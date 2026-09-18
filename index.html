@@ -80,45 +80,8 @@ function extraHourlyUrl(m,v){const lat=$('lat').value,lon=$('lon').value;return 
 function mergeHourlyExtra(rows,j,v){if(!j?.hourly?.time)return rows;const map=Object.fromEntries(rows.map(r=>[r.date,r]));const vals=j.hourly[v]||[];for(let i=0;i<j.hourly.time.length;i++){const r=map[j.hourly.time[i].slice(0,10)],val=vals[i];if(!r||val==null||!Number.isFinite(+val))continue;const n=+val;if(v==='uv_index')r.uv=Number.isFinite(r.uv)?Math.max(r.uv,n):n;else if(v==='wind_gusts_10m')r.gust=Number.isFinite(r.gust)?Math.max(r.gust,n):n;else if(v==='snowfall')r.snow=(Number.isFinite(r.snow)?r.snow:0)+n;else if(v==='precipitation_probability')r.pop=Number.isFinite(r.pop)?Math.max(r.pop,n):n;}return rows}
 async function fetchOneExtra(m,rows,v){try{let r=await fetch(extraHourlyUrl(m,v));let j=await r.json();if(!r.ok||j.error)return rows;return mergeHourlyExtra(rows,j,v)}catch(e){console.warn(v+' niet beschikbaar voor '+m.name,e);return rows}}
 async function fetchExtras(m,rows){for(const v of ['precipitation_probability','uv_index','wind_gusts_10m','snowfall'])rows=await fetchOneExtra(m,rows,v);return rows}
-
-function u16(b,p){return (b[p]<<8)|b[p+1]}
-function u32(b,p){return (b[p]*16777216+b[p+1]*65536+b[p+2]*256+b[p+3])>>>0}
-function i16(b,p){let v=u16(b,p);return v>=32768?v-65536:v}
-function i32(b,p){let v=u32(b,p);return v>=2147483648?v-4294967296:v}
-function f32(b,p){return new DataView(b.buffer,b.byteOffset+p,4).getFloat32(0,false)}
-function bits(b,off,count){let v=0;for(let k=0;k<count;k++){let q=off+k;v=v*2+((b[Math.floor(q/8)]>>(7-q%8))&1)}return v}
-function gribMsgLen(b,p){let v=0;for(let k=0;k<8;k++)v=v*256+b[p+8+k];return v}
-function gribParam(b){let p=16;while(p<b.length-4){let len=u32(b,p);if(len<5||p+len>b.length)break;if(b[p+4]===4)return b[p+10];p+=len}return -1}
-function readGribTemp(b,lat,lon){
- if(b.length<20||String.fromCharCode(...b.slice(0,4))!=='GRIB')throw new Error('NOAA gaf geen geldig GRIB-bestand terug');
- let p=16,ni=0,nj=0,nvals=0,nbits=0,lat1=0,lon1=0,di=0,dj=0,ref=0,e=0,d=0,scan=0,data=null;
- while(p<b.length-4){let len=u32(b,p);if(len<5||p+len>b.length)throw new Error('Ongeldige GRIB-sectie');let sec=b[p+4];
-  if(sec===3){if(u16(b,p+12)!==0)throw new Error('Onverwacht GFS-rooster');ni=u32(b,p+30);nj=u32(b,p+34);lat1=i32(b,p+46)/1e6;lon1=i32(b,p+50)/1e6;di=u32(b,p+63)/1e6;dj=u32(b,p+67)/1e6;scan=b[p+71]}
-  else if(sec===5){if(u16(b,p+9)!==0)throw new Error('Onverwachte GRIB-pakking');nvals=u32(b,p+5);ref=f32(b,p+11);e=i16(b,p+15);d=i16(b,p+17);nbits=b[p+19]}
-  else if(sec===6&&b[p+5]!==255)throw new Error('Bitmap niet ondersteund');
-  else if(sec===7)data=b.slice(p+5,p+len);p+=len
- }
- if(!ni||!nj||!data||nvals!==ni*nj)throw new Error('Onvolledige temperatuurdata');
- let iNeg=(scan&128)!==0,jPos=(scan&64)!==0,jAdj=(scan&32)!==0;
- let fi=(lon-lon1)/(iNeg?-di:di),fj=(lat-lat1)/(jPos?dj:-dj);fi=Math.max(0,Math.min(ni-1,fi));fj=Math.max(0,Math.min(nj-1,fj));
- let i0=Math.floor(fi),i1=Math.ceil(fi),j0=Math.floor(fj),j1=Math.ceil(fj),tx=fi-i0,ty=fj-j0;
- const V=(i,j)=>{let ix=jAdj?i*nj+j:j*ni+i,x=nbits===0?0:bits(data,ix*nbits,nbits);return (ref+x*Math.pow(2,e))*Math.pow(10,-d)-273.15};
- let a=V(i0,j0)*(1-tx)+V(i1,j0)*tx,c=V(i0,j1)*(1-tx)+V(i1,j1)*tx;return a*(1-ty)+c*ty
-}
-function readGribExtremes(buf,lat,lon){let b=new Uint8Array(buf),p=0,tmax=NaN,tmin=NaN;while(p+16<=b.length){while(p+4<=b.length&&String.fromCharCode(...b.slice(p,p+4))!=='GRIB')p++;if(p+16>b.length)break;let size=gribMsgLen(b,p);if(size<20||p+size>b.length)throw new Error('Ongeldige NOAA GRIB-data');let one=b.slice(p,p+size),par=gribParam(one),v=readGribTemp(one,lat,lon);if(par===4)tmax=v;else if(par===5)tmin=v;p+=size}if(!Number.isFinite(tmax)||!Number.isFinite(tmin))throw new Error('Geen complete TMAX/TMIN');return [tmax,tmin]}
-function noaaUrl(fh){let lat=+$('lat').value,lon=+$('lon').value,left=Math.floor(lon/.25)*.25,right=left+.25,bottom=Math.floor(lat/.25)*.25,top=bottom+.25,date=$('date').value.replaceAll('-',''),run=$('run').value,f=String(fh).padStart(3,'0');return `https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl?file=gfs.t${run}z.pgrb2.0p25.f${f}&lev_2_m_above_ground=on&var_TMAX=on&var_TMIN=on&subregion=&leftlon=${left}&rightlon=${right}&toplat=${top}&bottomlat=${bottom}&dir=%2Fgfs.${date}%2F${run}%2Fatmos`}
-async function fetchNoaaPoint(fh){let r=await fetch(noaaUrl(fh),{cache:'no-store'});if(!r.ok)throw new Error(`NOAA HTTP ${r.status}`);let buf=await r.arrayBuffer();return readGribExtremes(buf,+$('lat').value,+$('lon').value)}
-async function fetchGfsNoaa(){
- // Eerst +240 testen: zo weten we of de gekozen NOAA-run compleet aanwezig is.
- await fetchNoaaPoint(240);
- let runUtc=new Date(`${$('date').value}T${$('run').value}:00:00Z`),raw=[];
- for(let start=3;start<=240;start+=24){let hrs=[];for(let h=start;h<start+24&&h<=240;h+=3)hrs.push(h);let vals=await Promise.all(hrs.map(async h=>[h,await fetchNoaaPoint(h)]));for(let [h,v] of vals){let dt=new Date(runUtc.getTime()+h*3600000),date=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Amsterdam',year:'numeric',month:'2-digit',day:'2-digit'}).format(dt);raw.push({date,max:v[0],min:v[1]})}}
- let map={};for(let r of raw){if(!map[r.date])map[r.date]={date:r.date,max:-99,min:99,precip:0,sun:0,snow:0,pop:null,uv:null,gust:null,codes:[],hours:new Set(),complete:true};map[r.date].max=Math.max(map[r.date].max,r.max);map[r.date].min=Math.min(map[r.date].min,r.min)}
- let rows=Object.values(map).sort((a,b)=>a.date.localeCompare(b.date));rows._modelUsed={...MODELS.gfs,code:'NOAA GFS 0.25'};rows._runUsed=runIso();rows._source='NOAA/NOMADS';return rows
-}
 async function fetchModel(key,visual=true,runOverride=null){
  let m=MODELS[key];
- if(key==='gfs'&&!runOverride)return await fetchGfsNoaa();
  let codes=[m.code,...(m.aliases||[])];
  let lastErr='';
  for(const code of codes){
@@ -189,7 +152,22 @@ function previousCycleIso(){
  const d=new Date(runIso()+'Z');d.setUTCHours(d.getUTCHours()-6);return d.toISOString().slice(0,16)
 }
 async function loadGfsRunTable(){
- let rows=await fetchModel('gfs',false); lastGfsRows=rows.filter(r=>r.date>=$('date').value).slice(0,10); renderGfs(lastGfsRows);
+ try{
+   let rows;
+   try{rows=await fetchModel('gfs',false)}
+   catch(exactErr){
+     const prev=previousCycleIso();
+     rows=await fetchModel('gfs',false,prev);
+     rows._fallbackRun=true;
+     console.warn('GFS exacte run niet beschikbaar, vorige cyclus geladen:',exactErr);
+   }
+   lastGfsRows=rows.filter(r=>r.date>=$('date').value).slice(0,10);
+   renderGfs(lastGfsRows);
+   const used=(rows._runUsed||runIso()).replace('T',' ').replace(':00',' UTC');
+   if(rows._fallbackRun) $('status').textContent=`GFS ${used} geladen; gekozen run nog niet beschikbaar. Modelgegevens ophalen…`;
+ }catch(e){
+   lastGfsRows=[];renderGfs([]);console.warn('GFS-run tabel:',e);
+ }
 }
 async function copyGfs(kind){
  const vals=lastGfsRows.map(r=>fmt(r[kind]));
@@ -199,7 +177,7 @@ async function copyGfs(kind){
 $('copyTx').onclick=()=>copyGfs('max');
 $('copyTn').onclick=()=>copyGfs('min');
 
-$('load').onclick=async()=>{lastRows=[];lastGfsRows=[];renderGfs([]);$('csv').disabled=$('png').disabled=$('fivepng').disabled=true;try{setStatus('GFS-run en modelgegevens ophalen…',5);await loadGfsRunTable();setStatus('Modelgegevens ophalen…',10);if($('model').value==='mix'){let order=['gfs','icon','ecmwf','arome','arpege','harmonie'],data={};for(let i=0;i<order.length;i++){let k=order[i];setStatus(`${MODELS[k].name} ophalen…`,10+i*11);try{data[k]=await fetchModel(k,true)}catch(e){console.warn(e);data[k]=[]}}lastRows=buildMix(data);if(lastRows.length<5)throw new Error('Te weinig modeldata beschikbaar voor deze run. Probeer een oudere run of andere cyclus.');show(lastRows);$('csv').disabled=$('png').disabled=$('fivepng').disabled=false;setStatus(`Basis klaar – ${lastRows.length} dagen. Extra UV/wind/sneeuw ophalen…`,82);for(let i=0;i<order.length;i++){let k=order[i],rows=data[k];if(!rows?.length)continue;if(k==='gfs')continue;let mm=rows._modelUsed||MODELS[k];try{data[k]=await fetchExtras(mm,rows)}catch(e){console.warn('Extra data '+k,e)}}lastRows=buildMix(data);show(lastRows);setStatus(`Klaar – ${lastRows.length} dagen.`,100)}else{let key=$('model').value,rows=await fetchModel(key,true);lastRows=pickSingle(rows,key);show(lastRows);$('csv').disabled=$('png').disabled=$('fivepng').disabled=false;setStatus(`Basis klaar – ${lastRows.length} dagen. Extra UV/wind/sneeuw ophalen…`,85);try{if(key!=='gfs')rows=await fetchExtras(rows._modelUsed||MODELS[key],rows);lastRows=pickSingle(rows,key);show(lastRows)}catch(e){console.warn('Extra data',e)}setStatus(`Klaar – ${lastRows.length} dagen.`,100)}}catch(e){setStatus('Fout: '+e.message,0)}};
+$('load').onclick=async()=>{lastRows=[];lastGfsRows=[];renderGfs([]);$('csv').disabled=$('png').disabled=$('fivepng').disabled=true;try{setStatus('GFS-run en modelgegevens ophalen…',5);await loadGfsRunTable();setStatus('Modelgegevens ophalen…',10);if($('model').value==='mix'){let order=['gfs','icon','ecmwf','arome','arpege','harmonie'],data={};for(let i=0;i<order.length;i++){let k=order[i];setStatus(`${MODELS[k].name} ophalen…`,10+i*11);try{data[k]=await fetchModel(k,true)}catch(e){console.warn(e);data[k]=[]}}lastRows=buildMix(data);if(lastRows.length<5)throw new Error('Te weinig modeldata beschikbaar voor deze run. Probeer een oudere run of andere cyclus.');show(lastRows);$('csv').disabled=$('png').disabled=$('fivepng').disabled=false;setStatus(`Basis klaar – ${lastRows.length} dagen. Extra UV/wind/sneeuw ophalen…`,82);for(let i=0;i<order.length;i++){let k=order[i],rows=data[k];if(!rows?.length)continue;let mm=rows._modelUsed||MODELS[k];try{data[k]=await fetchExtras(mm,rows)}catch(e){console.warn('Extra data '+k,e)}}lastRows=buildMix(data);show(lastRows);setStatus(`Klaar – ${lastRows.length} dagen.`,100)}else{let key=$('model').value,rows=await fetchModel(key,true);lastRows=pickSingle(rows,key);show(lastRows);$('csv').disabled=$('png').disabled=$('fivepng').disabled=false;setStatus(`Basis klaar – ${lastRows.length} dagen. Extra UV/wind/sneeuw ophalen…`,85);try{rows=await fetchExtras(rows._modelUsed||MODELS[key],rows);lastRows=pickSingle(rows,key);show(lastRows)}catch(e){console.warn('Extra data',e)}setStatus(`Klaar – ${lastRows.length} dagen.`,100)}}catch(e){setStatus('Fout: '+e.message,0)}};
 function download(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
 $('csv').onclick=()=>{let lines=['Datum;TX (°C);TN (°C);Zon (uur);Neerslag (mm);Neerslagkans (%);UV-index;Max windstoot (km/u);Kans zware windstoten (drempel >=75 km/u) (%);Sneeuwkans (%);Modellen'];for(const r of lastRows)lines.push([r.date,fmt(r.max),fmt(r.min),fmt(r.sun),fmt(r.precip),Number.isFinite(r.pop)?Math.round(r.pop):'',fmt(r.uv),Number.isFinite(r.gust)?Math.round(r.gust):'',Number.isFinite(r.gustChance)?r.gustChance:'',isWinterDate(r.date)&&Number.isFinite(r.snowChance)?r.snowChance:'',r.count].join(';'));download(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),`regioweer-${$('date').value}-${$('run').value}z.csv`)};
 function drawWeather(ctx,t,cx,cy,s){ctx.save();ctx.lineWidth=3;ctx.lineCap='round';function sun(x,y,r){ctx.strokeStyle='#f3a712';ctx.fillStyle='#ffd54a';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();for(let a=0;a<8;a++){let q=a*Math.PI/4;ctx.beginPath();ctx.moveTo(x+Math.cos(q)*(r+5),y+Math.sin(q)*(r+5));ctx.lineTo(x+Math.cos(q)*(r+12),y+Math.sin(q)*(r+12));ctx.stroke()}}function cloud(x,y){ctx.fillStyle='#d7e0e8';ctx.strokeStyle='#91a1b2';ctx.beginPath();ctx.arc(x-18,y,15,Math.PI,0);ctx.arc(x,y-11,20,Math.PI,0);ctx.arc(x+22,y,14,Math.PI,0);ctx.lineTo(x+34,y+13);ctx.lineTo(x-30,y+13);ctx.closePath();ctx.fill();ctx.stroke()}if(t==='sun')sun(cx,cy,22);else if(t==='partly'){sun(cx-14,cy-13,17);cloud(cx+5,cy+5)}else{cloud(cx,cy-3);if(t==='showers'||t==='rain'){ctx.strokeStyle='#287dcc';for(let x=-18;x<=18;x+=18){ctx.beginPath();ctx.moveTo(cx+x,cy+20);ctx.lineTo(cx+x-4,cy+31+(t==='rain'?5:0));ctx.stroke()}}}ctx.restore()}
