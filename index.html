@@ -75,8 +75,11 @@ function renderRunSchedule(){
 }
 renderRunSchedule(); setInterval(renderRunSchedule,30000);
 function runIso(){return `${$('date').value}T${$('run').value}:00`}
-function apiUrl(m,visual=false){const lat=$('lat').value,lon=$('lon').value;const vars=visual?'temperature_2m,precipitation,precipitation_probability,snowfall,sunshine_duration,weather_code,uv_index,wind_gusts_10m':'temperature_2m';return `https://single-runs-api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&run=${runIso()}&models=${encodeURIComponent(m.code)}&hourly=${vars}&timezone=Europe%2FAmsterdam&forecast_hours=${m.hours}`}
-async function fetchModel(key,visual=true){let m=MODELS[key]; let urls=[apiUrl(m,visual)]; if(m.fallback) urls.push(apiUrl({...m,code:m.fallback},visual)); let lastErr=''; for(const u of urls){try{let r=await fetch(u);let j=await r.json();if(!r.ok||j.error) throw new Error(j.reason||`HTTP ${r.status}`);if(!j.hourly?.time)throw new Error('Geen uurgegevens');return hourlyToDaily(j.hourly)}catch(e){lastErr=e.message}}throw new Error(`${m.name}: ${lastErr}`)}
+function apiUrl(m,visual=false){const lat=$('lat').value,lon=$('lon').value;const vars=visual?'temperature_2m,precipitation,sunshine_duration,weather_code':'temperature_2m';return `https://single-runs-api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&run=${runIso()}&models=${encodeURIComponent(m.code)}&hourly=${vars}&timezone=Europe%2FAmsterdam&forecast_hours=${m.hours}`}
+function extrasUrl(m){const lat=$('lat').value,lon=$('lon').value;const vars='uv_index_max,snowfall_sum,wind_gusts_10m_max';return `https://single-runs-api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&run=${runIso()}&models=${encodeURIComponent(m.code)}&daily=${vars}&timezone=Europe%2FAmsterdam&forecast_days=16`}
+function mergeExtras(rows,j){if(!j?.daily?.time)return rows;const map=Object.fromEntries(rows.map(r=>[r.date,r]));for(let i=0;i<j.daily.time.length;i++){const r=map[j.daily.time[i]];if(!r)continue;const uv=j.daily.uv_index_max?.[i], snow=j.daily.snowfall_sum?.[i], gust=j.daily.wind_gusts_10m_max?.[i];if(uv!=null)r.uv=+uv;if(snow!=null)r.snow=+snow;if(gust!=null)r.gust=+gust;}return rows}
+async function fetchExtras(m,rows){try{let r=await fetch(extrasUrl(m));let j=await r.json();if(!r.ok||j.error)return rows;return mergeExtras(rows,j)}catch(e){console.warn('Extra velden niet beschikbaar voor '+m.name,e);return rows}}
+async function fetchModel(key,visual=true){let m=MODELS[key]; let models=[m]; if(m.fallback)models.push({...m,code:m.fallback}); let lastErr=''; for(const mm of models){try{let r=await fetch(apiUrl(mm,visual));let j=await r.json();if(!r.ok||j.error) throw new Error(j.reason||`HTTP ${r.status}`);if(!j.hourly?.time)throw new Error('Geen uurgegevens');let rows=hourlyToDaily(j.hourly);if(visual)rows=await fetchExtras(mm,rows);return rows}catch(e){lastErr=e.message}}throw new Error(`${m.name}: ${lastErr}`)}
 function hourlyToDaily(h){
  const map={};
  for(let i=0;i<h.time.length;i++){
@@ -86,11 +89,7 @@ function hourlyToDaily(h){
    if(t!=null){o.max=Math.max(o.max,+t);o.min=Math.min(o.min,+t)}
    if(h.precipitation?.[i]!=null)o.precip+=+h.precipitation[i];
    if(h.sunshine_duration?.[i]!=null)o.sun+=+h.sunshine_duration[i]/3600;
-   if(h.snowfall?.[i]!=null)o.snow+=+h.snowfall[i];
-   if(h.precipitation_probability?.[i]!=null){let v=+h.precipitation_probability[i];o.pop=o.pop==null?v:Math.max(o.pop,v)}
-   if(h.uv_index?.[i]!=null){let v=+h.uv_index[i];o.uv=o.uv==null?v:Math.max(o.uv,v)}
-   if(h.wind_gusts_10m?.[i]!=null){let v=+h.wind_gusts_10m[i];o.gust=o.gust==null?v:Math.max(o.gust,v)}
-   if(h.weather_code?.[i]!=null)o.codes.push(+h.weather_code[i]);
+      if(h.weather_code?.[i]!=null)o.codes.push(+h.weather_code[i]);
  }
  return Object.values(map).filter(x=>x.max>-90).map(x=>({...x,complete:x.hours.has('00')&&x.hours.has('23')&&x.hours.size>=23})).sort((a,b)=>a.date.localeCompare(b.date))
 }
@@ -110,13 +109,12 @@ function buildMix(data){
    let date=localDatePlus(off),keys=['gfs','ecmwf'];if(off<=4)keys.push('icon');if(off<=3)keys.push('arpege');if(off<=1)keys.push('arome');if(off<=2)keys.push('harmonie');
    let vals=keys.map(k=>maps[k]?.[date]).filter(Boolean);if(!vals.length)continue;
    let gustVals=vals.map(v=>v.gust).filter(Number.isFinite), snowVals=vals.map(v=>v.snow).filter(Number.isFinite);
-   let popVals=vals.map(v=>v.pop).filter(Number.isFinite);
-   let r={date,max:avg(vals,'max'),min:avg(vals,'min'),precip:avg(vals,'precip'),sun:avg(vals,'sun'),pop:popVals.length?avg(vals,'pop'):pct(vals.filter(v=>v.precip>=0.1).length,vals.length),uv:avg(vals,'uv'),gust:maxv(vals,'gust'),gustChance:pct(gustVals.filter(v=>v>=75).length,gustVals.length),snow:avg(vals,'snow'),snowChance:pct(snowVals.filter(v=>v>0.1).length,snowVals.length),count:vals.length,complete:vals.every(v=>v.complete)};
+   let r={date,max:avg(vals,'max'),min:avg(vals,'min'),precip:avg(vals,'precip'),sun:avg(vals,'sun'),pop:pct(vals.filter(v=>v.precip>=0.1).length,vals.length),uv:avg(vals,'uv'),gust:maxv(vals,'gust'),gustChance:pct(gustVals.filter(v=>v>=75).length,gustVals.length),snow:avg(vals,'snow'),snowChance:pct(snowVals.filter(v=>v>0.1).length,snowVals.length),count:vals.length,complete:vals.every(v=>v.complete)};
    r.type=weatherType(r);out.push(r)
  }
  return out
 }
-function pickSingle(rows,key){const base=$('date').value;return rows.filter(r=>key==='gfs'?r.date>=base:r.date>base).slice(0,9).map(r=>({...r,count:1,gustChance:Number.isFinite(r.gust)?(r.gust>=75?100:0):null,snowChance:Number.isFinite(r.snow)?(r.snow>0.1?100:0):null,type:weatherType(r)}))}
+function pickSingle(rows,key){const base=$('date').value;return rows.filter(r=>key==='gfs'?r.date>=base:r.date>base).slice(0,9).map(r=>({...r,count:1,pop:null,gustChance:Number.isFinite(r.gust)?(r.gust>=75?100:0):null,snowChance:Number.isFinite(r.snow)?(r.snow>0.1?100:0):null,type:weatherType(r)}))}
 function show(rows){
  const c=$('results');c.innerHTML='';
  for(const r of rows){let d=new Date(r.date+'T12:00:00');let winter=isWinterDate(r.date);let extra=`☂ ${Number.isFinite(r.pop)?Math.round(r.pop)+'%':'n.b.'}<br>UV ${Number.isFinite(r.uv)?fmt(r.uv):'n.b.'}<br>💨 ${Number.isFinite(r.gust)?Math.round(r.gust)+' km/u':'n.b.'}`;if(winter)extra+=`<br>❄ ${Number.isFinite(r.snowChance)?r.snowChance+'%':'n.b.'}`;
