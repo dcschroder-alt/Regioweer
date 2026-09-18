@@ -34,7 +34,7 @@
 <section class="panel" id="runPanel"><div style="font-weight:850;font-size:17px">Modelruns</div><div class="note">Volgende modelstart. Tijden worden automatisch in jouw lokale tijd getoond; UTC staat tussen haakjes.</div><div id="runSchedule" class="runs"></div><div class="note">De uitvoer verschijnt pas na de rekentijd. Globale modellen hebben doorgaans meer tijd nodig dan regionale modellen.</div></section>
 <section id="results" class="cards"></section>
 <section class="panel hidden" id="plumePanel"><div style="font-weight:850;font-size:17px">Pluim</div><div class="note">Actuele ensemblepluim voor de gekozen plaats. De pluim gebruikt de nieuwste beschikbare ensemble-run en staat los van de gekozen deterministische run hierboven.</div><div class="plumecontrols"><select id="plumeModel"><option value="ecmwf_ifs025_ensemble">ECMWF ENS (51 leden)</option><option value="ncep_gefs025">GEFS (31 leden)</option><option value="dwd_icon_eu_eps">ICON-EPS Europe</option></select><button class="primary" id="plumeLoad" type="button">Pluim ophalen</button><button class="ghost" id="plumeSave" type="button" disabled>PNG</button></div><div class="status" id="plumeStatus">Kies een ensemble en tik op Pluim ophalen.</div><div class="plumewrap"><canvas id="plumeCanvas" width="1200" height="650"></canvas></div></section>
-<section class="panel hidden" id="riskPanel"><div style="font-weight:850;font-size:17px">Kansentabel</div><div class="note">Ensemblekansen voor de gekozen plaats. De percentages zijn het aandeel ensembleleden dat de drempel op die dag bereikt.</div><div class="riskcontrols"><select id="riskModel"><option value="ecmwf_ifs025_ensemble">ECMWF ENS</option><option value="ncep_gefs025">GEFS</option><option value="dwd_icon_eu_eps">ICON-EPS Europe</option></select><button class="primary" id="riskLoad" type="button">Kansen ophalen</button><button class="ghost" id="riskSave" type="button" disabled>PNG</button></div><div class="status" id="riskStatus">Kies een ensemble en tik op Kansen ophalen.</div><div class="riskwrap"><canvas id="riskCanvas" width="1500" height="760"></canvas></div><div class="note">Dichte mist = minimaal zicht ≤200 m. Windstoten = maximaal ≥75 km/u. Vorst = minimumtemperatuur onder 0 °C.</div></section>
+<section class="panel hidden" id="riskPanel"><div style="font-weight:850;font-size:17px">Kansentabel</div><div class="note">Ensemblekansen voor de gekozen plaats. De percentages zijn het aandeel ensembleleden dat de drempel op die dag bereikt.</div><div class="riskcontrols"><select id="riskModel"><option value="ecmwf_ifs025_ensemble">ECMWF ENS</option><option value="ncep_gefs025">GEFS</option><option value="dwd_icon_eu_eps">ICON-EPS Europe</option></select><button class="primary" id="riskLoad" type="button">Kansen ophalen</button><button class="ghost" id="riskSave" type="button" disabled>PNG</button></div><div class="status" id="riskStatus">Kies een ensemble en tik op Kansen ophalen.</div><div class="riskwrap"><canvas id="riskCanvas" width="1500" height="760"></canvas></div><div class="note">Windstoten = maximaal ≥75 km/u. Vorst = minimumtemperatuur onder 0 °C.</div></section>
 <section class="panel" id="gfsPanel"><div style="font-weight:850;font-size:17px">GFS-run TX/TN</div><div class="note">Dagwaarden van de gekozen GFS-run, los van de modelmix.</div><div id="gfsTable" class="gfsgrid"><div class="gfshead"><div class="gfscell">Datum</div><div class="gfscell">TX</div><div class="gfscell">TN</div></div></div><div class="gfsactions"><button class="ghost" id="copyTx" disabled>TX kopiëren</button><button class="ghost" id="copyTn" disabled>TN kopiëren</button></div></section>
 <section class="panel"><div class="note"><b>Beste-modelmix:</b> korte termijn legt de nadruk op HARMONIE, AROME en ICON. Daarna verschuift de mix naar ECMWF IFS, GFS, UKMO, GEM en ECMWF AIFS. Extra HARMONIE- en JMA-runs kun je los bekijken, maar tellen niet dubbel mee in de mix.</div></section>
 </div>
@@ -190,7 +190,7 @@ function iconFor(t){return {sun:'☀️',partly:'🌤️',cloud:'☁️',sunshow
 function fmt(n,d=1){return Number.isFinite(n)?n.toFixed(d).replace('.',','):'n.b.'}
 function buildMix(data){
  let maps={};for(const [k,v] of Object.entries(data))maps[k]=byDate(v);let out=[];
- for(let off=1;off<=9;off++){
+ for(let off=1;off<=10;off++){
    let date=localDatePlus(off),keys;
    if(off===1) keys=['harmonie','arome','icon','ecmwf','gfs','ukmo','arpege'];
    else if(off===2) keys=['harmonie','icon','ecmwf','gfs','ukmo','arpege'];
@@ -206,7 +206,7 @@ function buildMix(data){
  }
  return out
 }
-function pickSingle(rows,key){const base=$('date').value;return rows.filter(r=>key==='gfs'?r.date>=base:r.date>base).slice(0,9).map(r=>{let pop=Number.isFinite(r.pop)?r.pop:null;if(r.precip>=0.1)pop=Math.max(pop??0,100);let o={...r,pop,count:1,gustChance:Number.isFinite(r.gust)?(r.gust>=75?100:0):null,snowChance:Number.isFinite(r.snow)?(r.snow>0.1?100:0):null};o.type=weatherType(o);return o})}
+function pickSingle(rows,key){const base=$('date').value;return rows.filter(r=>key==='gfs'?r.date>=base:r.date>base).slice(0,10).map(r=>{let pop=Number.isFinite(r.pop)?r.pop:null;if(r.precip>=0.1)pop=Math.max(pop??0,100);let o={...r,pop,count:1,gustChance:Number.isFinite(r.gust)?(r.gust>=75?100:0):null,snowChance:Number.isFinite(r.snow)?(r.snow>0.1?100:0):null};o.type=weatherType(o);return o})}
 function show(rows){
  const c=$('results');c.innerHTML='';
  for(const r of rows){let d=new Date(r.date+'T12:00:00');let winter=isWinterDate(r.date);let extra=`☂ ${Number.isFinite(r.pop)?Math.round(r.pop)+'%':'—'}<br>UV ${Number.isFinite(r.uv)?fmt(r.uv):'n.b.'}`;if(Number.isFinite(r.gust)&&r.gust>=60)extra+=`<br>💨 ${Math.round(r.gust)} km/u`;if(winter)extra+=`<br>❄ ${Number.isFinite(r.snowChance)?r.snowChance+'%':'n.b.'}`;
@@ -346,32 +346,31 @@ async function loadRisks(){
  const lat=$('lat').value,lon=$('lon').value,model=$('riskModel').value;
  $('riskStatus').textContent='Kansen ophalen…';$('riskSave').disabled=true;
  try{
-  const u=`https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&hourly=temperature_2m,wind_gusts_10m,visibility&forecast_days=14&timezone=Europe%2FAmsterdam&wind_speed_unit=kmh&models=${encodeURIComponent(model)}`;
+  const u=`https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&hourly=temperature_2m,wind_gusts_10m&forecast_days=10&timezone=Europe%2FAmsterdam&wind_speed_unit=kmh&models=${encodeURIComponent(model)}`;
   const r=await fetch(u,{cache:'no-store'}),j=await r.json();if(!r.ok||j.error)throw new Error(j.reason||`HTTP ${r.status}`);
   const h=j.hourly||{},times=h.time||[];if(!times.length)throw new Error('Geen ensembledata ontvangen');
-  const tkeys=ensembleKeys(h,'temperature_2m'),gkeys=ensembleKeys(h,'wind_gusts_10m'),vkeys=ensembleKeys(h,'visibility');
+  const tkeys=ensembleKeys(h,'temperature_2m'),gkeys=ensembleKeys(h,'wind_gusts_10m');
   if(tkeys.length<2)throw new Error('Te weinig ensembleleden ontvangen');
-  const groups=dailyGroups(times),dates=Object.keys(groups).slice(0,14);
+  const groups=dailyGroups(times),dates=Object.keys(groups).slice(0,10);
   const tmax=memberDailyValues(h,tkeys,groups,'max'),tmin=memberDailyValues(h,tkeys,groups,'min');
-  const gust=memberDailyValues(h,gkeys,groups,'max'),vis=memberDailyValues(h,vkeys,groups,'min');
+  const gust=memberDailyValues(h,gkeys,groups,'max');
   const rows=[
    {label:'Windstoten ≥75 km/u',icon:'💨',vals:dates.map(d=>probFrom(gust[d],v=>v>=75))},
    {label:'Maximumtemperatuur ≥20°C',icon:'🌡️',vals:dates.map(d=>probFrom(tmax[d],v=>v>=20))},
    {label:'Maximumtemperatuur ≥25°C',icon:'🌡️',vals:dates.map(d=>probFrom(tmax[d],v=>v>=25))},
    {label:'Maximumtemperatuur ≥30°C',icon:'🔥',vals:dates.map(d=>probFrom(tmax[d],v=>v>=30))},
    {label:'Vorst (minimum <0°C)',icon:'❄️',vals:dates.map(d=>probFrom(tmin[d],v=>v<0))},
-   {label:'Matige vorst (minimum ≤-5°C)',icon:'🥶',vals:dates.map(d=>probFrom(tmin[d],v=>v<=-5))},
-   {label:'Dichte mist (zicht ≤200 m)',icon:'🌫️',vals:dates.map(d=>probFrom(vis[d],v=>v<=200))}
+   {label:'Matige vorst (minimum ≤-5°C)',icon:'🥶',vals:dates.map(d=>probFrom(tmin[d],v=>v<=-5))}
   ];
-  drawRiskTable(dates,rows,model,tkeys.length,gkeys.length,vkeys.length);$('riskStatus').textContent=`Klaar · ${tkeys.length} ensembleleden · ${dates.length} dagen`; $('riskSave').disabled=false;
+  drawRiskTable(dates,rows,model,tkeys.length,gkeys.length);$('riskStatus').textContent=`Klaar · ${tkeys.length} ensembleleden · ${dates.length} dagen`; $('riskSave').disabled=false;
  }catch(e){$('riskStatus').textContent='Fout: '+e.message}
 }
-function drawRiskTable(dates,rows,model,nTemp,nGust,nVis){
+function drawRiskTable(dates,rows,model,nTemp,nGust){
  const c=$('riskCanvas'),left=360,top=118,rowH=72,colW=82,W=Math.max(1100,left+dates.length*colW+20),H=top+rows.length*rowH+95;c.width=W;c.height=H;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,H);
  x.fillStyle='#0c3e7d';x.font='700 30px Arial';x.textAlign='left';x.fillText('Kans op weerfenomenen',24,42);x.font='15px Arial';x.fillStyle='#506781';x.fillText(`${$('place').value} · ${$('riskModel').options[$('riskModel').selectedIndex].text}`,24,68);x.fillText('Percentage = aandeel ensembleleden dat de drempel bereikt',24,90);
  x.textAlign='center';dates.forEach((d,i)=>{let dt=new Date(d+'T12:00:00');let cx=left+i*colW+colW/2;x.fillStyle='#20334d';x.font='700 15px Arial';x.fillText(NL[dt.getDay()].toUpperCase(),cx,105);x.font='13px Arial';x.fillStyle='#6a7b8e';x.fillText(dt.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'}),cx,124)});
  rows.forEach((row,ri)=>{let y=top+ri*rowH;x.fillStyle=ri%2?'#fbfcfe':'#f7faff';x.fillRect(0,y,W,rowH);x.textAlign='left';x.fillStyle='#20334d';x.font='20px Arial';x.fillText(row.icon,24,y+43);x.font='700 15px Arial';x.fillText(row.label,66,y+42);dates.forEach((d,i)=>{let p=row.vals[i],xx=left+i*colW;x.fillStyle=probabilityColor(p);x.fillRect(xx+1,y+1,colW-2,rowH-2);x.strokeStyle='#d7e0ea';x.strokeRect(xx+1,y+1,colW-2,rowH-2);x.textAlign='center';x.font='700 15px Arial';x.fillStyle='#17283f';x.fillText(Number.isFinite(p)?`${p}%`:'—',xx+colW/2,y+43)})});
- x.strokeStyle='#cbd6e2';x.beginPath();x.moveTo(left,top);x.lineTo(left,H-70);x.stroke();x.textAlign='left';x.fillStyle='#718096';x.font='12px Arial';x.fillText('Dichte mist: zicht ≤200 m · Windstoten: max ≥75 km/u · Vorstkansen op basis van 2 m temperatuur.',24,H-42);x.fillText(`Beschikbare leden: temperatuur ${nTemp}, windstoten ${nGust||0}, zicht ${nVis||0}.`,24,H-20);lastRiskCanvas=c;
+ x.strokeStyle='#cbd6e2';x.beginPath();x.moveTo(left,top);x.lineTo(left,H-70);x.stroke();x.textAlign='left';x.fillStyle='#718096';x.font='12px Arial';x.fillText('Windstoten: max ≥75 km/u · Vorstkansen op basis van 2 m temperatuur.',24,H-42);x.fillText(`Beschikbare leden: temperatuur ${nTemp}, windstoten ${nGust||0}.`,24,H-20);lastRiskCanvas=c;
 }
 $('riskLoad').onclick=loadRisks;
 $('riskSave').onclick=()=>{if(!lastRiskCanvas)return;lastRiskCanvas.toBlob(b=>download(b,`regioweer-kansen-${$('place').value||'locatie'}.png`),'image/png')};
