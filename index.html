@@ -41,7 +41,7 @@ const $=id=>document.getElementById(id); const NL=['zo','ma','di','wo','do','vr'
 $('date').value=new Date().toISOString().slice(0,10);
 let lastRows=[]; let lastGfsRows=[];
 const MODELS={
- gfs:{code:'ncep_gfs_global',name:'GFS Global',hours:241,aliases:['gfs_global','gfs013','gfs_seamless','ncep_gfs_seamless']},
+ gfs:{code:'ncep_gfs025',name:'GFS Global 0.25°',hours:241,aliases:['gfs025','ncep_gfs_global','gfs_global','gfs013','gfs_seamless','ncep_gfs_seamless']},
  icon:{code:'icon_eu',name:'ICON-EU',hours:121},
  ecmwf:{code:'ecmwf_ifs',name:'ECMWF IFS',hours:241},
  arome:{code:'meteofrance_arome_france',name:'AROME France',hours:49},
@@ -87,15 +87,41 @@ async function fetchModel(key,visual=true,runOverride=null){
  for(const code of codes){
    const mm={...m,code};
    try{
-     let url=apiUrl(mm,visual);
+     // GFS: eerst alleen temperatuur ophalen. Zo kan een beschikbare GFS025-run
+     // niet worden geblokkeerd door een extra variabele die nog via GFS013 loopt.
+     let coreVisual = key==='gfs' ? false : visual;
+     let url=apiUrl(mm,coreVisual);
      if(runOverride) url=url.replace(encodeURIComponent(runIso()),encodeURIComponent(runOverride));
      let r=await fetch(url,{cache:'no-store'});let j=await r.json();
      if(!r.ok||j.error) throw new Error(j.reason||`HTTP ${r.status}`);
      if(!j.hourly?.time)throw new Error('Geen uurgegevens');
-     let rows=hourlyToDaily(j.hourly);rows._modelUsed=mm;rows._runUsed=runOverride||runIso();return rows
-   }catch(e){lastErr=e.message}
+     let rows=hourlyToDaily(j.hourly);rows._modelUsed=mm;rows._runUsed=runOverride||runIso();
+     // GFS-visuele velden zijn aanvullend: mislukken mag de run niet blokkeren.
+     if(key==='gfs' && visual){
+       for(const v of ['precipitation','sunshine_duration','weather_code']){
+         try{
+           let eu=extraHourlyUrl(mm,v);
+           if(runOverride) eu=eu.replace(encodeURIComponent(runIso()),encodeURIComponent(runOverride));
+           let er=await fetch(eu,{cache:'no-store'}), ej=await er.json();
+           if(er.ok&&!ej.error&&ej.hourly?.time) rows=mergeGfsVisual(rows,ej,v);
+         }catch(e){console.warn('GFS extra '+v+' niet beschikbaar',e)}
+       }
+     }
+     return rows
+   }catch(e){lastErr=e.message;console.warn('GFS/modelcode '+code+' mislukt:',e.message)}
  }
  throw new Error(`${m.name}: ${lastErr}`)
+}
+function mergeGfsVisual(rows,j,v){
+ const map=Object.fromEntries(rows.map(r=>[r.date,r]));
+ const vals=j.hourly?.[v]||[];
+ for(let i=0;i<(j.hourly?.time||[]).length;i++){
+   const r=map[j.hourly.time[i].slice(0,10)], val=vals[i]; if(!r||val==null)continue;
+   if(v==='precipitation')r.precip=(Number.isFinite(r.precip)?r.precip:0)+(+val||0);
+   else if(v==='sunshine_duration')r.sun=(Number.isFinite(r.sun)?r.sun:0)+(+val||0)/3600;
+   else if(v==='weather_code'){if(!Array.isArray(r.codes))r.codes=[];r.codes.push(+val)}
+ }
+ return rows
 }
 function hourlyToDaily(h){
  const map={};
