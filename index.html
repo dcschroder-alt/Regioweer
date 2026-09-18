@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0b63ce">
+<link rel="manifest" href="manifest.webmanifest">
+<title>Regioweer Modelmix</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#162033;background:#eef3f9}
+*{box-sizing:border-box} body{margin:0}.wrap{max-width:980px;margin:auto;padding:14px}.hero{background:linear-gradient(135deg,#0b63ce,#1593e6);color:#fff;padding:18px;border-radius:20px;box-shadow:0 8px 28px #174d7e26}.hero h1{font-size:22px;margin:0 0 4px}.hero p{margin:0;opacity:.9;font-size:14px}.panel{background:#fff;border-radius:18px;padding:14px;margin-top:14px;box-shadow:0 4px 18px #1e355018}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:flex;flex-direction:column;gap:5px}.field.full{grid-column:1/-1}label{font-size:12px;font-weight:700;color:#46566e}input,select,button{font:inherit;border-radius:12px;border:1px solid #cbd6e4;padding:12px;background:#fff}button{border:0;font-weight:800;cursor:pointer}.primary{background:#0b63ce;color:white}.secondary{background:#19a05b;color:white}.ghost{background:#edf3fb;color:#164f89}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.buttons .full{grid-column:1/-1}.status{font-size:13px;margin-top:10px;color:#425269;min-height:20px}.bar{height:7px;border-radius:999px;background:#e6edf6;overflow:hidden;margin-top:8px}.bar>span{display:block;height:100%;width:0;background:#0b63ce;transition:width .2s}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:12px}.card{background:#fff;border-radius:16px;padding:10px;text-align:center;box-shadow:0 3px 12px #1e355014}.day{font-size:12px;font-weight:800}.date{font-size:11px;color:#66758a}.icon{font-size:34px;line-height:1.15;margin:6px 0}.temps{font-size:18px;font-weight:900}.temps .min{color:#2070c7}.temps .max{color:#df4e3a}.meta{font-size:11px;color:#5a687c;margin-top:5px;line-height:1.45}.note{font-size:11px;color:#66758a;margin-top:8px}.hidden{display:none!important}@media(max-width:600px){.wrap{padding:10px}.grid{grid-template-columns:1fr 1fr}.cards{grid-template-columns:repeat(2,1fr)}.buttons{grid-template-columns:1fr}.buttons .full{grid-column:auto}.hero{border-radius:16px}.panel{border-radius:16px}}@media(max-width:360px){.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.cards{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body><div class="wrap">
+<section class="hero"><h1>Regioweer Modelmix</h1><p>GFS · ICON · ECMWF · AROME · ARPEGE · KNMI HARMONIE</p></section>
+<section class="panel">
+<div class="grid">
+<div class="field"><label>Breedtegraad</label><input id="lat" type="number" step="0.000001" value="52.019260"></div>
+<div class="field"><label>Lengtegraad</label><input id="lon" type="number" step="0.000001" value="5.172830"></div>
+<div class="field"><label>Model</label><select id="model"><option value="mix">Mix modellen</option><option value="gfs">GFS Global</option><option value="icon">ICON-EU</option><option value="ecmwf">ECMWF IFS</option><option value="arome">AROME France</option><option value="arpege">ARPEGE Europe</option><option value="harmonie">KNMI HARMONIE NL 2 km</option></select></div>
+<div class="field"><label>Run (UTC)</label><select id="run"><option>00</option><option>06</option><option selected>12</option><option>18</option></select></div>
+<div class="field full"><label>Datum modelrun</label><input id="date" type="date"></div>
+</div>
+<div class="buttons"><button class="primary full" id="load">Gegevens ophalen</button><button class="ghost" id="csv" disabled>Excel/CSV opslaan</button><button class="secondary" id="png" disabled>Website-PNG opslaan</button></div>
+<div class="bar"><span id="prog"></span></div><div class="status" id="status">Kies een run en tik op Gegevens ophalen.</div>
+</section>
+<section id="results" class="cards"></section>
+<section class="panel"><div class="note"><b>Mix:</b> dag 1: GFS + ECMWF + ICON + ARPEGE + AROME + HARMONIE · dag 2: GFS + ECMWF + ICON + ARPEGE + HARMONIE · dag 3: GFS + ECMWF + ICON + ARPEGE · dag 4: GFS + ECMWF + ICON · daarna GFS + ECMWF.</div></section>
+</div>
+<script>
+const $=id=>document.getElementById(id); const NL=['zo','ma','di','wo','do','vr','za'];
+$('date').value=new Date().toISOString().slice(0,10);
+let lastRows=[];
+const MODELS={
+ gfs:{code:'gfs_global',name:'GFS Global',hours:241,fallback:'gfs_seamless'},
+ icon:{code:'icon_eu',name:'ICON-EU',hours:121},
+ ecmwf:{code:'ecmwf_ifs',name:'ECMWF IFS',hours:241},
+ arome:{code:'meteofrance_arome_france',name:'AROME France',hours:49},
+ arpege:{code:'meteofrance_arpege_europe',name:'ARPEGE Europe',hours:97},
+ harmonie:{code:'knmi_harmonie_arome_netherlands',name:'KNMI HARMONIE NL 2 km',hours:61}
+};
+function runIso(){return `${$('date').value}T${$('run').value}:00`}
+function apiUrl(m,visual=false){const lat=$('lat').value,lon=$('lon').value;const vars=visual?'temperature_2m,precipitation,sunshine_duration,weather_code':'temperature_2m';return `https://single-runs-api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&run=${runIso()}&models=${encodeURIComponent(m.code)}&hourly=${vars}&timezone=Europe%2FAmsterdam&forecast_hours=${m.hours}`}
+async function fetchModel(key,visual=true){let m=MODELS[key]; let urls=[apiUrl(m,visual)]; if(m.fallback) urls.push(apiUrl({...m,code:m.fallback},visual)); let lastErr=''; for(const u of urls){try{let r=await fetch(u);let j=await r.json();if(!r.ok||j.error) throw new Error(j.reason||`HTTP ${r.status}`);if(!j.hourly?.time)throw new Error('Geen uurgegevens');return hourlyToDaily(j.hourly)}catch(e){lastErr=e.message}}throw new Error(`${m.name}: ${lastErr}`)}
+function hourlyToDaily(h){const map={};for(let i=0;i<h.time.length;i++){let d=h.time[i].slice(0,10),t=h.temperature_2m?.[i];if(!map[d])map[d]={date:d,max:-99,min:99,precip:0,sun:0,codes:[]};let o=map[d];if(t!=null){o.max=Math.max(o.max,+t);o.min=Math.min(o.min,+t)}if(h.precipitation?.[i]!=null)o.precip+=+h.precipitation[i];if(h.sunshine_duration?.[i]!=null)o.sun+=+h.sunshine_duration[i]/3600;if(h.weather_code?.[i]!=null)o.codes.push(+h.weather_code[i])}return Object.values(map).filter(x=>x.max>-90).sort((a,b)=>a.date.localeCompare(b.date))}
+function byDate(rows){return Object.fromEntries(rows.map(x=>[x.date,x]))}
+function localDatePlus(offset){const d=new Date(`${$('date').value}T12:00:00`);d.setDate(d.getDate()+offset);return d.toLocaleDateString('sv-SE')}
+function avg(vals,k){let a=vals.map(v=>v?.[k]).filter(v=>Number.isFinite(v));return a.length?a.reduce((x,y)=>x+y,0)/a.length:null}
+function weatherType(r){if(r.precip>=5)return 'rain';if(r.precip>=0.3)return 'showers';if(r.sun>=6)return 'sun';if(r.sun>=2)return 'partly';return 'cloud'}
+function iconFor(t){return {sun:'☀️',partly:'🌤️',cloud:'☁️',showers:'🌦️',rain:'🌧️'}[t]||'☁️'}
+function fmt(n,d=1){return Number.isFinite(n)?n.toFixed(d).replace('.',','):'n.b.'}
+function buildMix(data){let maps={};for(const [k,v] of Object.entries(data))maps[k]=byDate(v);let out=[];for(let off=1;off<=9;off++){let date=localDatePlus(off),keys=['gfs','ecmwf'];if(off<=4)keys.push('icon');if(off<=3)keys.push('arpege');if(off<=1)keys.push('arome');if(off<=2)keys.push('harmonie');let vals=keys.map(k=>maps[k]?.[date]).filter(Boolean);if(!vals.length)continue;let r={date,max:avg(vals,'max'),min:avg(vals,'min'),precip:avg(vals,'precip'),sun:avg(vals,'sun'),count:vals.length};r.type=weatherType(r);out.push(r)}return out}
+function pickSingle(rows){const base=$('date').value;return rows.filter(r=>r.date>base).slice(0,9).map(r=>({...r,count:1,type:weatherType(r)}))}
+function show(rows){const c=$('results');c.innerHTML='';for(const r of rows){let d=new Date(r.date+'T12:00:00');c.insertAdjacentHTML('beforeend',`<article class="card"><div class="day">${NL[d.getDay()]}</div><div class="date">${d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'})}</div><div class="icon">${iconFor(r.type)}</div><div class="temps"><span class="max">${Math.round(r.max)}°</span> / <span class="min">${Math.round(r.min)}°</span></div><div class="meta">☀ ${fmt(r.sun)} u<br>💧 ${fmt(r.precip)} mm<br>${r.count>1?r.count+' modellen':''}</div></article>`)} }
+function setStatus(t,p){$('status').textContent=t;$('prog').style.width=`${p}%`}
+$('load').onclick=async()=>{lastRows=[];$('csv').disabled=$('png').disabled=true;try{setStatus('Modelgegevens ophalen…',5);if($('model').value==='mix'){let order=['gfs','icon','ecmwf','arome','arpege','harmonie'],data={};for(let i=0;i<order.length;i++){let k=order[i];setStatus(`${MODELS[k].name} ophalen…`,10+i*13);try{data[k]=await fetchModel(k,true)}catch(e){console.warn(e);data[k]=[]}}lastRows=buildMix(data);if(lastRows.length<5)throw new Error('Te weinig modeldata beschikbaar voor deze run. Probeer een oudere run of andere cyclus.')}else{lastRows=pickSingle(await fetchModel($('model').value,true))}show(lastRows);setStatus(`Klaar – ${lastRows.length} dagen.`,100);$('csv').disabled=$('png').disabled=false}catch(e){setStatus('Fout: '+e.message,0)}};
+function download(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
+$('csv').onclick=()=>{let lines=['Datum;TX (°C);TN (°C);Zon (uur);Neerslag (mm);Modellen'];for(const r of lastRows)lines.push([r.date,fmt(r.max),fmt(r.min),fmt(r.sun),fmt(r.precip),r.count].join(';'));download(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),`regioweer-${$('date').value}-${$('run').value}z.csv`)};
+function drawWeather(ctx,t,cx,cy,s){ctx.save();ctx.lineWidth=3;ctx.lineCap='round';function sun(x,y,r){ctx.strokeStyle='#f3a712';ctx.fillStyle='#ffd54a';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();for(let a=0;a<8;a++){let q=a*Math.PI/4;ctx.beginPath();ctx.moveTo(x+Math.cos(q)*(r+5),y+Math.sin(q)*(r+5));ctx.lineTo(x+Math.cos(q)*(r+12),y+Math.sin(q)*(r+12));ctx.stroke()}}function cloud(x,y){ctx.fillStyle='#d7e0e8';ctx.strokeStyle='#91a1b2';ctx.beginPath();ctx.arc(x-18,y,15,Math.PI,0);ctx.arc(x,y-11,20,Math.PI,0);ctx.arc(x+22,y,14,Math.PI,0);ctx.lineTo(x+34,y+13);ctx.lineTo(x-30,y+13);ctx.closePath();ctx.fill();ctx.stroke()}if(t==='sun')sun(cx,cy,22);else if(t==='partly'){sun(cx-14,cy-13,17);cloud(cx+5,cy+5)}else{cloud(cx,cy-3);if(t==='showers'||t==='rain'){ctx.strokeStyle='#287dcc';for(let x=-18;x<=18;x+=18){ctx.beginPath();ctx.moveTo(cx+x,cy+20);ctx.lineTo(cx+x-4,cy+31+(t==='rain'?5:0));ctx.stroke()}}}ctx.restore()}
+$('png').onclick=()=>{const W=1500,H=500,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.fillStyle='#f7fbff';x.fillRect(0,0,W,H);x.fillStyle='#0b63ce';x.fillRect(0,0,W,72);x.fillStyle='white';x.font='700 31px Arial';x.fillText('Regioweer – modelmix',32,45);let n=lastRows.length,cw=(W-40)/n;for(let i=0;i<n;i++){let r=lastRows[i],left=20+i*cw,mid=left+cw/2,d=new Date(r.date+'T12:00:00');if(i){x.strokeStyle='#d7e2ee';x.beginPath();x.moveTo(left,88);x.lineTo(left,H-24);x.stroke()}x.textAlign='center';x.fillStyle='#23344a';x.font='700 20px Arial';x.fillText(NL[d.getDay()].toUpperCase(),mid,112);x.font='16px Arial';x.fillStyle='#63748a';x.fillText(d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'}),mid,137);drawWeather(x,r.type,mid,190,1);x.font='700 28px Arial';x.fillStyle='#df4e3a';x.fillText(`${Math.round(r.max)}°`,mid-27,273);x.fillStyle='#2070c7';x.fillText(`${Math.round(r.min)}°`,mid+28,273);x.font='16px Arial';x.fillStyle='#394c63';x.fillText(`☀ ${fmt(r.sun)} uur`,mid,322);x.fillText(`💧 ${fmt(r.precip)} mm`,mid,352);x.font='13px Arial';x.fillStyle='#718096';if(r.count>1)x.fillText(`${r.count} modellen`,mid,386)}x.textAlign='left';x.font='13px Arial';x.fillStyle='#718096';x.fillText(`Run ${$('date').value} ${$('run').value} UTC · GFS, ECMWF, ICON, ARPEGE, AROME, KNMI HARMONIE`,24,474);c.toBlob(b=>download(b,`regioweer-verwachting-${$('date').value}.png`),'image/png')};
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script></body></html>
