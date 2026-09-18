@@ -143,7 +143,7 @@ function maxv(vals,k){let a=vals.map(v=>v?.[k]).filter(v=>Number.isFinite(v));re
 function pct(n,d){return d?Math.round(n/d*100):null}
 function isWinterDate(date){const m=+date.slice(5,7);return m===11||m===12||m===1||m===2||m===3}
 function uvLabel(v){if(!Number.isFinite(v))return '';if(v<3)return 'Laag';if(v<6)return 'Matig';if(v<8)return 'Hoog';if(v<11)return 'Zeer hoog';return 'Extreem'}
-function weatherType(r){if(r.precip>=5)return 'rain';if(r.precip>=0.3)return 'showers';if(r.sun>=6)return 'sun';if(r.sun>=2)return 'partly';return 'cloud'}
+function weatherType(r){if(r.precip>=5)return 'rain';if(r.precip>=0.1)return 'showers';if(r.sun>=6)return 'sun';if(r.sun>=2)return 'partly';return 'cloud'}
 function iconFor(t){return {sun:'☀️',partly:'🌤️',cloud:'☁️',showers:'🌦️',rain:'🌧️'}[t]||'☁️'}
 function fmt(n,d=1){return Number.isFinite(n)?n.toFixed(d).replace('.',','):'n.b.'}
 function buildMix(data){
@@ -152,15 +152,15 @@ function buildMix(data){
    let date=localDatePlus(off),keys=['gfs','ecmwf'];if(off<=4)keys.push('icon');if(off<=3)keys.push('arpege');if(off<=1)keys.push('arome');if(off<=2)keys.push('harmonie');
    let vals=keys.map(k=>maps[k]?.[date]).filter(Boolean);if(!vals.length)continue;
    let gustVals=vals.map(v=>v.gust).filter(Number.isFinite), snowVals=vals.map(v=>v.snow).filter(Number.isFinite);
-   let probVals=vals.map(v=>v.pop).filter(Number.isFinite);let r={date,max:avg(vals,'max'),min:avg(vals,'min'),precip:avg(vals,'precip'),sun:avg(vals,'sun'),pop:probVals.length?probVals.reduce((a,b)=>a+b,0)/probVals.length:pct(vals.filter(v=>v.precip>=0.1).length,vals.length),uv:avg(vals,'uv'),gust:maxv(vals,'gust'),gustChance:pct(gustVals.filter(v=>v>=75).length,gustVals.length),snow:avg(vals,'snow'),snowChance:pct(snowVals.filter(v=>v>0.1).length,snowVals.length),count:vals.length,complete:vals.every(v=>v.complete)};
+   let probVals=vals.map(v=>v.pop).filter(Number.isFinite);let precipAgreement=pct(vals.filter(v=>v.precip>=0.1).length,vals.length);let apiPop=probVals.length?probVals.reduce((a,b)=>a+b,0)/probVals.length:null;let finalPop=Number.isFinite(apiPop)?Math.max(apiPop,precipAgreement??0):precipAgreement;let r={date,max:avg(vals,'max'),min:avg(vals,'min'),precip:avg(vals,'precip'),sun:avg(vals,'sun'),pop:finalPop,uv:avg(vals,'uv'),gust:maxv(vals,'gust'),gustChance:pct(gustVals.filter(v=>v>=75).length,gustVals.length),snow:avg(vals,'snow'),snowChance:pct(snowVals.filter(v=>v>0.1).length,snowVals.length),count:vals.length,complete:vals.every(v=>v.complete)};
    r.type=weatherType(r);out.push(r)
  }
  return out
 }
-function pickSingle(rows,key){const base=$('date').value;return rows.filter(r=>key==='gfs'?r.date>=base:r.date>base).slice(0,9).map(r=>({...r,count:1,gustChance:Number.isFinite(r.gust)?(r.gust>=75?100:0):null,snowChance:Number.isFinite(r.snow)?(r.snow>0.1?100:0):null,type:weatherType(r)}))}
+function pickSingle(rows,key){const base=$('date').value;return rows.filter(r=>key==='gfs'?r.date>=base:r.date>base).slice(0,9).map(r=>{let pop=Number.isFinite(r.pop)?r.pop:null;if(r.precip>=0.1)pop=Math.max(pop??0,100);let o={...r,pop,count:1,gustChance:Number.isFinite(r.gust)?(r.gust>=75?100:0):null,snowChance:Number.isFinite(r.snow)?(r.snow>0.1?100:0):null};o.type=weatherType(o);return o})}
 function show(rows){
  const c=$('results');c.innerHTML='';
- for(const r of rows){let d=new Date(r.date+'T12:00:00');let winter=isWinterDate(r.date);let extra=`☂ ${Number.isFinite(r.pop)?Math.round(r.pop)+'%':'—'}<br>UV ${Number.isFinite(r.uv)?fmt(r.uv):'n.b.'}<br>💨 ${Number.isFinite(r.gust)?Math.round(r.gust)+' km/u':'n.b.'}`;if(winter)extra+=`<br>❄ ${Number.isFinite(r.snowChance)?r.snowChance+'%':'n.b.'}`;
+ for(const r of rows){let d=new Date(r.date+'T12:00:00');let winter=isWinterDate(r.date);let extra=`☂ ${Number.isFinite(r.pop)?Math.round(r.pop)+'%':'—'}<br>UV ${Number.isFinite(r.uv)?fmt(r.uv):'n.b.'}`;if(Number.isFinite(r.gust)&&r.gust>=60)extra+=`<br>💨 ${Math.round(r.gust)} km/u`;if(winter)extra+=`<br>❄ ${Number.isFinite(r.snowChance)?r.snowChance+'%':'n.b.'}`;
  c.insertAdjacentHTML('beforeend',`<article class="card"><div class="day">${NL[d.getDay()]}</div><div class="date">${d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'})}</div><div class="icon">${r.complete?iconFor(r.type):''}</div><div class="temps"><span class="max">${Math.round(r.max)}°</span> / <span class="min">${Math.round(r.min)}°</span></div><div class="meta">☀ ${fmt(r.sun)} u<br>💧 ${fmt(r.precip)} mm<br>${extra}</div></article>`)}
 }
 function setStatus(t,p){$('status').textContent=t;$('prog').style.width=`${p}%`}
@@ -228,15 +228,15 @@ function drawFiveDayFigure(){
       ['☀',`Zonuren`,`${fmt(r.sun)} u`],
       ['💧','Neerslag',`${fmt(r.precip)} mm`],
       ['☂','Kans op neerslag',Number.isFinite(r.pop)?`${Math.round(r.pop)}%`:'—'],
-      ['UV','UV-index',Number.isFinite(r.uv)?`${fmt(r.uv)} · ${uvLabel(r.uv)}`:'n.b.'],
-      ['💨','Max. windstoot',Number.isFinite(r.gust)?`${Math.round(r.gust)} km/u`:'n.b.'],
-      ['⚠','Kans zware windstoten',Number.isFinite(r.gustChance)?`${r.gustChance}%`:'n.b.']
+      ['UV','UV-index',Number.isFinite(r.uv)?`${fmt(r.uv)} · ${uvLabel(r.uv)}`:'n.b.']
     ];
     if(winter) lines.splice(3,0,['❄','Sneeuwkans',Number.isFinite(r.snowChance)?`${r.snowChance}%`:'n.b.']);
+    if(Number.isFinite(r.gust)&&r.gust>=60) lines.push(['💨','Max. windstoot',`${Math.round(r.gust)} km/u`]);
+    if(Number.isFinite(r.gustChance)&&r.gustChance>0) lines.push(['⚠','Kans ≥ 75 km/u',`${r.gustChance}%`]);
     let y=452;for(const [ico,label,val] of lines){x.textAlign='left';x.font='18px Arial';x.fillStyle='#116bd0';x.fillText(ico,left+16,y);x.font='15px Arial';x.fillStyle='#21364f';x.fillText(label,left+48,y);x.textAlign='right';x.font='700 15px Arial';x.fillStyle='#142b4e';x.fillText(val,left+cw-14,y);x.strokeStyle='#dce7f3';x.beginPath();x.moveTo(left+14,y+14);x.lineTo(left+cw-14,y+14);x.stroke();y+=54;}
   }
   x.textAlign='left';x.font='14px Arial';x.fillStyle='#5f7186';x.fillText(`Run ${$('date').value} ${$('run').value} UTC · ${$('lat').value} N, ${$('lon').value} E`,28,862);
-  x.textAlign='right';x.fillText('GFS · ECMWF · ICON · AROME · ARPEGE · KNMI HARMONIE',W-28,862);x.textAlign='left';x.font='12px Arial';x.fillStyle='#7b8899';x.fillText('Kans zware windstoten = aandeel modellen met max. windstoot ≥ 75 km/u',28,885);
+  x.textAlign='right';x.fillText('GFS · ECMWF · ICON · AROME · ARPEGE · KNMI HARMONIE',W-28,862);if(rows.some(r=>Number.isFinite(r.gustChance)&&r.gustChance>0)){x.textAlign='left';x.font='12px Arial';x.fillStyle='#7b8899';x.fillText('Kans ≥ 75 km/u = aandeel modellen dat zware windstoten berekent',28,885);}
   c.toBlob(b=>download(b,`regioweer-5-daagse-${$('date').value}.png`),'image/png');
 }
 function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
