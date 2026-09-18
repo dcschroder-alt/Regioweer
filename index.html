@@ -41,7 +41,7 @@ const $=id=>document.getElementById(id); const NL=['zo','ma','di','wo','do','vr'
 $('date').value=new Date().toISOString().slice(0,10);
 let lastRows=[]; let lastGfsRows=[];
 const MODELS={
- gfs:{code:'ncep_gfs025',name:'GFS Global 0.25°',hours:241,aliases:['gfs025','ncep_gfs_global','gfs_global','gfs013','gfs_seamless','ncep_gfs_seamless']},
+ gfs:{code:'ncep_gfs_global',name:'GFS Global',hours:241,aliases:['gfs_global','gfs013','gfs_seamless','ncep_gfs_seamless']},
  icon:{code:'icon_eu',name:'ICON-EU',hours:121},
  ecmwf:{code:'ecmwf_ifs',name:'ECMWF IFS',hours:241},
  arome:{code:'meteofrance_arome_france',name:'AROME France',hours:49},
