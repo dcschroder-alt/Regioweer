@@ -28,7 +28,7 @@
 <div class="field"><label>Run (UTC)</label><select id="run"><option>00</option><option>06</option><option selected>12</option><option>18</option></select></div>
 <div class="field full"><label>Datum modelrun</label><input id="date" type="date"></div>
 </div>
-<div class="buttons"><button class="primary full" id="load">Gegevens ophalen</button><button class="ghost" id="csv" disabled>Excel/CSV opslaan</button><button class="secondary" id="png" disabled>Website-PNG opslaan</button><button class="ghost full hidden" id="install">📲 App installeren</button></div>
+<div class="buttons"><button class="primary full" id="load">Gegevens ophalen</button><button class="ghost" id="csv" disabled>Excel/CSV opslaan</button><button class="secondary" id="png" disabled>Website-PNG opslaan</button><button class="secondary full" id="fivepng" disabled>5-daagse figuur opslaan</button><button class="ghost full hidden" id="install">📲 App installeren</button></div>
 <div class="bar"><span id="prog"></span></div><div class="status" id="status">Kies een run en tik op Gegevens ophalen.</div>
 </section>
 <section id="results" class="cards"></section>
@@ -88,11 +88,41 @@ async function copyGfs(kind){
 $('copyTx').onclick=()=>copyGfs('max');
 $('copyTn').onclick=()=>copyGfs('min');
 
-$('load').onclick=async()=>{lastRows=[];lastGfsRows=[];renderGfs([]);$('csv').disabled=$('png').disabled=true;try{setStatus('GFS-run en modelgegevens ophalen…',5);await loadGfsRunTable();setStatus('Modelgegevens ophalen…',10);if($('model').value==='mix'){let order=['gfs','icon','ecmwf','arome','arpege','harmonie'],data={};for(let i=0;i<order.length;i++){let k=order[i];setStatus(`${MODELS[k].name} ophalen…`,10+i*13);try{data[k]=await fetchModel(k,true)}catch(e){console.warn(e);data[k]=[]}}lastRows=buildMix(data);if(lastRows.length<5)throw new Error('Te weinig modeldata beschikbaar voor deze run. Probeer een oudere run of andere cyclus.')}else{lastRows=pickSingle(await fetchModel($('model').value,true),$('model').value)}show(lastRows);setStatus(`Klaar – ${lastRows.length} dagen.`,100);$('csv').disabled=$('png').disabled=false}catch(e){setStatus('Fout: '+e.message,0)}};
+$('load').onclick=async()=>{lastRows=[];lastGfsRows=[];renderGfs([]);$('csv').disabled=$('png').disabled=$('fivepng').disabled=true;try{setStatus('GFS-run en modelgegevens ophalen…',5);await loadGfsRunTable();setStatus('Modelgegevens ophalen…',10);if($('model').value==='mix'){let order=['gfs','icon','ecmwf','arome','arpege','harmonie'],data={};for(let i=0;i<order.length;i++){let k=order[i];setStatus(`${MODELS[k].name} ophalen…`,10+i*13);try{data[k]=await fetchModel(k,true)}catch(e){console.warn(e);data[k]=[]}}lastRows=buildMix(data);if(lastRows.length<5)throw new Error('Te weinig modeldata beschikbaar voor deze run. Probeer een oudere run of andere cyclus.')}else{lastRows=pickSingle(await fetchModel($('model').value,true),$('model').value)}show(lastRows);setStatus(`Klaar – ${lastRows.length} dagen.`,100);$('csv').disabled=$('png').disabled=$('fivepng').disabled=false}catch(e){setStatus('Fout: '+e.message,0)}};
 function download(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
 $('csv').onclick=()=>{let lines=['Datum;TX (°C);TN (°C);Zon (uur);Neerslag (mm);Modellen'];for(const r of lastRows)lines.push([r.date,fmt(r.max),fmt(r.min),fmt(r.sun),fmt(r.precip),r.count].join(';'));download(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),`regioweer-${$('date').value}-${$('run').value}z.csv`)};
 function drawWeather(ctx,t,cx,cy,s){ctx.save();ctx.lineWidth=3;ctx.lineCap='round';function sun(x,y,r){ctx.strokeStyle='#f3a712';ctx.fillStyle='#ffd54a';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();for(let a=0;a<8;a++){let q=a*Math.PI/4;ctx.beginPath();ctx.moveTo(x+Math.cos(q)*(r+5),y+Math.sin(q)*(r+5));ctx.lineTo(x+Math.cos(q)*(r+12),y+Math.sin(q)*(r+12));ctx.stroke()}}function cloud(x,y){ctx.fillStyle='#d7e0e8';ctx.strokeStyle='#91a1b2';ctx.beginPath();ctx.arc(x-18,y,15,Math.PI,0);ctx.arc(x,y-11,20,Math.PI,0);ctx.arc(x+22,y,14,Math.PI,0);ctx.lineTo(x+34,y+13);ctx.lineTo(x-30,y+13);ctx.closePath();ctx.fill();ctx.stroke()}if(t==='sun')sun(cx,cy,22);else if(t==='partly'){sun(cx-14,cy-13,17);cloud(cx+5,cy+5)}else{cloud(cx,cy-3);if(t==='showers'||t==='rain'){ctx.strokeStyle='#287dcc';for(let x=-18;x<=18;x+=18){ctx.beginPath();ctx.moveTo(cx+x,cy+20);ctx.lineTo(cx+x-4,cy+31+(t==='rain'?5:0));ctx.stroke()}}}ctx.restore()}
 $('png').onclick=()=>{const W=1500,H=500,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.fillStyle='#f7fbff';x.fillRect(0,0,W,H);x.fillStyle='#0b63ce';x.fillRect(0,0,W,72);x.fillStyle='white';x.font='700 31px Arial';x.fillText('Regioweer – modelmix',32,45);let n=lastRows.length,cw=(W-40)/n;for(let i=0;i<n;i++){let r=lastRows[i],left=20+i*cw,mid=left+cw/2,d=new Date(r.date+'T12:00:00');if(i){x.strokeStyle='#d7e2ee';x.beginPath();x.moveTo(left,88);x.lineTo(left,H-24);x.stroke()}x.textAlign='center';x.fillStyle='#23344a';x.font='700 20px Arial';x.fillText(NL[d.getDay()].toUpperCase(),mid,112);x.font='16px Arial';x.fillStyle='#63748a';x.fillText(d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'}),mid,137);if(r.complete)drawWeather(x,r.type,mid,190,1);x.font='700 28px Arial';x.fillStyle='#df4e3a';x.fillText(`${Math.round(r.max)}°`,mid-27,273);x.fillStyle='#2070c7';x.fillText(`${Math.round(r.min)}°`,mid+28,273);x.font='16px Arial';x.fillStyle='#394c63';x.fillText(`☀ ${fmt(r.sun)} uur`,mid,322);x.fillText(`💧 ${fmt(r.precip)} mm`,mid,352);x.font='13px Arial';x.fillStyle='#718096';if(r.count>1)x.fillText(`${r.count} modellen`,mid,386)}x.textAlign='left';x.font='13px Arial';x.fillStyle='#718096';x.fillText(`Run ${$('date').value} ${$('run').value} UTC · GFS, ECMWF, ICON, ARPEGE, AROME, KNMI HARMONIE`,24,474);c.toBlob(b=>download(b,`regioweer-verwachting-${$('date').value}.png`),'image/png')};
+
+function drawFiveDayFigure(){
+  const rows=lastRows.slice(0,5);
+  if(!rows.length){setStatus('Eerst gegevens ophalen.',0);return}
+  const W=1500,H=720,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  const grad=x.createLinearGradient(0,0,0,H);grad.addColorStop(0,'#eef7ff');grad.addColorStop(1,'#ffffff');x.fillStyle=grad;x.fillRect(0,0,W,H);
+  x.fillStyle='#0b63ce';x.fillRect(0,0,W,96);
+  x.fillStyle='white';x.textAlign='left';x.font='700 34px Arial';x.fillText('Regioweer – komende 5 dagen',38,46);
+  x.font='17px Arial';x.globalAlpha=.92;x.fillText(`Model: ${$('model').selectedOptions[0].text} · run ${$('date').value} ${$('run').value} UTC`,38,75);x.globalAlpha=1;
+  const pad=34,gap=14,cw=(W-pad*2-gap*4)/5,top=122,ch=520;
+  for(let i=0;i<rows.length;i++){
+    const r=rows[i],left=pad+i*(cw+gap),mid=left+cw/2,d=new Date(r.date+'T12:00:00');
+    x.fillStyle='white';x.shadowColor='rgba(25,55,90,.14)';x.shadowBlur=14;x.shadowOffsetY=4;
+    roundRect(x,left,top,cw,ch,24);x.fill();x.shadowColor='transparent';
+    x.textAlign='center';x.fillStyle='#24364d';x.font='700 25px Arial';x.fillText(['Zondag','Maandag','Dinsdag','Woensdag','Donderdag','Vrijdag','Zaterdag'][d.getDay()],mid,170);
+    x.font='17px Arial';x.fillStyle='#6b7c90';x.fillText(d.toLocaleDateString('nl-NL',{day:'2-digit',month:'long'}),mid,198);
+    if(r.complete){drawWeather(x,r.type,mid,278,1.25)}else{x.font='14px Arial';x.fillStyle='#8a97a8';x.fillText('onvolledige dag',mid,282)}
+    x.font='700 38px Arial';x.fillStyle='#df4e3a';x.fillText(`${Math.round(r.max)}°`,mid-42,380);x.fillStyle='#2070c7';x.fillText(`${Math.round(r.min)}°`,mid+42,380);
+    x.font='14px Arial';x.fillStyle='#7a8798';x.fillText('max',mid-42,406);x.fillText('min',mid+42,406);
+    x.font='700 20px Arial';x.fillStyle='#34495e';x.fillText(`☀  ${fmt(r.sun)} uur zon`,mid,466);x.fillText(`💧  ${fmt(r.precip)} mm`,mid,505);
+    x.font='14px Arial';x.fillStyle='#7a8798';if(r.count>1)x.fillText(`${r.count} modellen in de mix`,mid,548);
+    const typeLabel={sun:'Zonnig',partly:'Zon en wolken',cloud:'Bewolkt',showers:'Buien',rain:'Regen'}[r.type]||'';
+    x.font='700 16px Arial';x.fillStyle='#4a5c72';if(r.complete)x.fillText(typeLabel,mid,590);
+  }
+  x.textAlign='left';x.font='14px Arial';x.fillStyle='#718096';x.fillText('Regioweer Modelmix · GFS · ECMWF · ICON · ARPEGE · AROME · KNMI HARMONIE',38,690);
+  c.toBlob(b=>download(b,`regioweer-5-daagse-${$('date').value}.png`),'image/png');
+}
+function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
+$('fivepng').onclick=drawFiveDayFigure;
+
 let deferredInstall=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;$('install').classList.remove('hidden')});
 $('install').onclick=async()=>{if(!deferredInstall)return;deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;$('install').classList.add('hidden')};
