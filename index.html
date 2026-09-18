@@ -41,7 +41,7 @@ const $=id=>document.getElementById(id); const NL=['zo','ma','di','wo','do','vr'
 $('date').value=new Date().toISOString().slice(0,10);
 let lastRows=[]; let lastGfsRows=[];
 const MODELS={
- gfs:{code:'gfs_global',name:'GFS Global',hours:241,fallback:'gfs_seamless'},
+ gfs:{code:'ncep_gfs_global',name:'GFS Global',hours:241,aliases:['gfs_global','gfs013','gfs_seamless','ncep_gfs_seamless']},
  icon:{code:'icon_eu',name:'ICON-EU',hours:121},
  ecmwf:{code:'ecmwf_ifs',name:'ECMWF IFS',hours:241},
  arome:{code:'meteofrance_arome_france',name:'AROME France',hours:49},
@@ -77,10 +77,26 @@ renderRunSchedule(); setInterval(renderRunSchedule,30000);
 function runIso(){return `${$('date').value}T${$('run').value}:00`}
 function apiUrl(m,visual=false){const lat=$('lat').value,lon=$('lon').value;const vars=visual?'temperature_2m,precipitation,sunshine_duration,weather_code':'temperature_2m';return `https://single-runs-api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&run=${runIso()}&models=${encodeURIComponent(m.code)}&hourly=${vars}&timezone=Europe%2FAmsterdam&forecast_hours=${m.hours}`}
 function extraHourlyUrl(m,v){const lat=$('lat').value,lon=$('lon').value;return `https://single-runs-api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&run=${runIso()}&models=${encodeURIComponent(m.code)}&hourly=${encodeURIComponent(v)}&timezone=Europe%2FAmsterdam&forecast_hours=${m.hours}`}
-function mergeHourlyExtra(rows,j,v){if(!j?.hourly?.time)return rows;const map=Object.fromEntries(rows.map(r=>[r.date,r]));const vals=j.hourly[v]||[];for(let i=0;i<j.hourly.time.length;i++){const r=map[j.hourly.time[i].slice(0,10)],val=vals[i];if(!r||val==null||!Number.isFinite(+val))continue;const n=+val;if(v==='uv_index')r.uv=Number.isFinite(r.uv)?Math.max(r.uv,n):n;else if(v==='wind_gusts_10m')r.gust=Number.isFinite(r.gust)?Math.max(r.gust,n):n;else if(v==='snowfall')r.snow=(Number.isFinite(r.snow)?r.snow:0)+n;}return rows}
+function mergeHourlyExtra(rows,j,v){if(!j?.hourly?.time)return rows;const map=Object.fromEntries(rows.map(r=>[r.date,r]));const vals=j.hourly[v]||[];for(let i=0;i<j.hourly.time.length;i++){const r=map[j.hourly.time[i].slice(0,10)],val=vals[i];if(!r||val==null||!Number.isFinite(+val))continue;const n=+val;if(v==='uv_index')r.uv=Number.isFinite(r.uv)?Math.max(r.uv,n):n;else if(v==='wind_gusts_10m')r.gust=Number.isFinite(r.gust)?Math.max(r.gust,n):n;else if(v==='snowfall')r.snow=(Number.isFinite(r.snow)?r.snow:0)+n;else if(v==='precipitation_probability')r.pop=Number.isFinite(r.pop)?Math.max(r.pop,n):n;}return rows}
 async function fetchOneExtra(m,rows,v){try{let r=await fetch(extraHourlyUrl(m,v));let j=await r.json();if(!r.ok||j.error)return rows;return mergeHourlyExtra(rows,j,v)}catch(e){console.warn(v+' niet beschikbaar voor '+m.name,e);return rows}}
-async function fetchExtras(m,rows){for(const v of ['uv_index','wind_gusts_10m','snowfall'])rows=await fetchOneExtra(m,rows,v);return rows}
-async function fetchModel(key,visual=true){let m=MODELS[key]; let models=[m]; if(m.fallback)models.push({...m,code:m.fallback}); let lastErr=''; for(const mm of models){try{let r=await fetch(apiUrl(mm,visual));let j=await r.json();if(!r.ok||j.error) throw new Error(j.reason||`HTTP ${r.status}`);if(!j.hourly?.time)throw new Error('Geen uurgegevens');let rows=hourlyToDaily(j.hourly);rows._modelUsed=mm;return rows}catch(e){lastErr=e.message}}throw new Error(`${m.name}: ${lastErr}`)}
+async function fetchExtras(m,rows){for(const v of ['precipitation_probability','uv_index','wind_gusts_10m','snowfall'])rows=await fetchOneExtra(m,rows,v);return rows}
+async function fetchModel(key,visual=true,runOverride=null){
+ let m=MODELS[key];
+ let codes=[m.code,...(m.aliases||[])];
+ let lastErr='';
+ for(const code of codes){
+   const mm={...m,code};
+   try{
+     let url=apiUrl(mm,visual);
+     if(runOverride) url=url.replace(encodeURIComponent(runIso()),encodeURIComponent(runOverride));
+     let r=await fetch(url,{cache:'no-store'});let j=await r.json();
+     if(!r.ok||j.error) throw new Error(j.reason||`HTTP ${r.status}`);
+     if(!j.hourly?.time)throw new Error('Geen uurgegevens');
+     let rows=hourlyToDaily(j.hourly);rows._modelUsed=mm;rows._runUsed=runOverride||runIso();return rows
+   }catch(e){lastErr=e.message}
+ }
+ throw new Error(`${m.name}: ${lastErr}`)
+}
 function hourlyToDaily(h){
  const map={};
  for(let i=0;i<h.time.length;i++){
@@ -110,15 +126,15 @@ function buildMix(data){
    let date=localDatePlus(off),keys=['gfs','ecmwf'];if(off<=4)keys.push('icon');if(off<=3)keys.push('arpege');if(off<=1)keys.push('arome');if(off<=2)keys.push('harmonie');
    let vals=keys.map(k=>maps[k]?.[date]).filter(Boolean);if(!vals.length)continue;
    let gustVals=vals.map(v=>v.gust).filter(Number.isFinite), snowVals=vals.map(v=>v.snow).filter(Number.isFinite);
-   let r={date,max:avg(vals,'max'),min:avg(vals,'min'),precip:avg(vals,'precip'),sun:avg(vals,'sun'),pop:pct(vals.filter(v=>v.precip>=0.1).length,vals.length),uv:avg(vals,'uv'),gust:maxv(vals,'gust'),gustChance:pct(gustVals.filter(v=>v>=75).length,gustVals.length),snow:avg(vals,'snow'),snowChance:pct(snowVals.filter(v=>v>0.1).length,snowVals.length),count:vals.length,complete:vals.every(v=>v.complete)};
+   let probVals=vals.map(v=>v.pop).filter(Number.isFinite);let r={date,max:avg(vals,'max'),min:avg(vals,'min'),precip:avg(vals,'precip'),sun:avg(vals,'sun'),pop:probVals.length?probVals.reduce((a,b)=>a+b,0)/probVals.length:pct(vals.filter(v=>v.precip>=0.1).length,vals.length),uv:avg(vals,'uv'),gust:maxv(vals,'gust'),gustChance:pct(gustVals.filter(v=>v>=75).length,gustVals.length),snow:avg(vals,'snow'),snowChance:pct(snowVals.filter(v=>v>0.1).length,snowVals.length),count:vals.length,complete:vals.every(v=>v.complete)};
    r.type=weatherType(r);out.push(r)
  }
  return out
 }
-function pickSingle(rows,key){const base=$('date').value;return rows.filter(r=>key==='gfs'?r.date>=base:r.date>base).slice(0,9).map(r=>({...r,count:1,pop:null,gustChance:Number.isFinite(r.gust)?(r.gust>=75?100:0):null,snowChance:Number.isFinite(r.snow)?(r.snow>0.1?100:0):null,type:weatherType(r)}))}
+function pickSingle(rows,key){const base=$('date').value;return rows.filter(r=>key==='gfs'?r.date>=base:r.date>base).slice(0,9).map(r=>({...r,count:1,gustChance:Number.isFinite(r.gust)?(r.gust>=75?100:0):null,snowChance:Number.isFinite(r.snow)?(r.snow>0.1?100:0):null,type:weatherType(r)}))}
 function show(rows){
  const c=$('results');c.innerHTML='';
- for(const r of rows){let d=new Date(r.date+'T12:00:00');let winter=isWinterDate(r.date);let extra=`☂ ${Number.isFinite(r.pop)?Math.round(r.pop)+'%':'n.b.'}<br>UV ${Number.isFinite(r.uv)?fmt(r.uv):'n.b.'}<br>💨 ${Number.isFinite(r.gust)?Math.round(r.gust)+' km/u':'n.b.'}`;if(winter)extra+=`<br>❄ ${Number.isFinite(r.snowChance)?r.snowChance+'%':'n.b.'}`;
+ for(const r of rows){let d=new Date(r.date+'T12:00:00');let winter=isWinterDate(r.date);let extra=`☂ ${Number.isFinite(r.pop)?Math.round(r.pop)+'%':'—'}<br>UV ${Number.isFinite(r.uv)?fmt(r.uv):'n.b.'}<br>💨 ${Number.isFinite(r.gust)?Math.round(r.gust)+' km/u':'n.b.'}`;if(winter)extra+=`<br>❄ ${Number.isFinite(r.snowChance)?r.snowChance+'%':'n.b.'}`;
  c.insertAdjacentHTML('beforeend',`<article class="card"><div class="day">${NL[d.getDay()]}</div><div class="date">${d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'})}</div><div class="icon">${r.complete?iconFor(r.type):''}</div><div class="temps"><span class="max">${Math.round(r.max)}°</span> / <span class="min">${Math.round(r.min)}°</span></div><div class="meta">☀ ${fmt(r.sun)} u<br>💧 ${fmt(r.precip)} mm<br>${extra}</div></article>`)}
 }
 function setStatus(t,p){$('status').textContent=t;$('prog').style.width=`${p}%`}
@@ -132,11 +148,23 @@ function renderGfs(rows){
  }
  $('copyTx').disabled=$('copyTn').disabled=!rows.length;
 }
+function previousCycleIso(){
+ const d=new Date(runIso()+'Z');d.setUTCHours(d.getUTCHours()-6);return d.toISOString().slice(0,16)
+}
 async function loadGfsRunTable(){
  try{
-   const rows=await fetchModel('gfs',false);
+   let rows;
+   try{rows=await fetchModel('gfs',false)}
+   catch(exactErr){
+     const prev=previousCycleIso();
+     rows=await fetchModel('gfs',false,prev);
+     rows._fallbackRun=true;
+     console.warn('GFS exacte run niet beschikbaar, vorige cyclus geladen:',exactErr);
+   }
    lastGfsRows=rows.filter(r=>r.date>=$('date').value).slice(0,10);
    renderGfs(lastGfsRows);
+   const used=(rows._runUsed||runIso()).replace('T',' ').replace(':00',' UTC');
+   if(rows._fallbackRun) $('status').textContent=`GFS ${used} geladen; gekozen run nog niet beschikbaar. Modelgegevens ophalen…`;
  }catch(e){
    lastGfsRows=[];renderGfs([]);console.warn('GFS-run tabel:',e);
  }
@@ -156,7 +184,7 @@ function drawWeather(ctx,t,cx,cy,s){ctx.save();ctx.lineWidth=3;ctx.lineCap='roun
 $('png').onclick=()=>{const W=1500,H=500,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.fillStyle='#f7fbff';x.fillRect(0,0,W,H);x.fillStyle='#0b63ce';x.fillRect(0,0,W,72);x.fillStyle='white';x.font='700 31px Arial';x.fillText('Regioweer – modelmix',32,45);let n=lastRows.length,cw=(W-40)/n;for(let i=0;i<n;i++){let r=lastRows[i],left=20+i*cw,mid=left+cw/2,d=new Date(r.date+'T12:00:00');if(i){x.strokeStyle='#d7e2ee';x.beginPath();x.moveTo(left,88);x.lineTo(left,H-24);x.stroke()}x.textAlign='center';x.fillStyle='#23344a';x.font='700 20px Arial';x.fillText(NL[d.getDay()].toUpperCase(),mid,112);x.font='16px Arial';x.fillStyle='#63748a';x.fillText(d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'}),mid,137);if(r.complete)drawWeather(x,r.type,mid,190,1);x.font='700 28px Arial';x.fillStyle='#df4e3a';x.fillText(`${Math.round(r.max)}°`,mid-27,273);x.fillStyle='#2070c7';x.fillText(`${Math.round(r.min)}°`,mid+28,273);x.font='16px Arial';x.fillStyle='#394c63';x.fillText(`☀ ${fmt(r.sun)} uur`,mid,322);x.fillText(`💧 ${fmt(r.precip)} mm`,mid,352);x.font='13px Arial';x.fillStyle='#718096';if(r.count>1)x.fillText(`${r.count} modellen`,mid,386)}x.textAlign='left';x.font='13px Arial';x.fillStyle='#718096';x.fillText(`Run ${$('date').value} ${$('run').value} UTC · GFS, ECMWF, ICON, ARPEGE, AROME, KNMI HARMONIE`,24,474);c.toBlob(b=>download(b,`regioweer-verwachting-${$('date').value}.png`),'image/png')};
 
 function drawFiveDayFigure(){
-  const rows=lastRows.slice(0,5); if(!rows.length){setStatus('Eerst gegevens ophalen.',0);return}
+  const base=$('date').value;const rows=lastRows.filter(r=>r.date>base).slice(0,5); if(!rows.length){setStatus('Geen complete 5-daagse vanaf morgen beschikbaar.',0);return}
   const W=1500,H=900,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
   const grad=x.createLinearGradient(0,0,W,0);grad.addColorStop(0,'#0664c8');grad.addColorStop(1,'#4c91df');x.fillStyle=grad;roundRect(x,0,0,W,112,0);x.fill();
   x.fillStyle='#fff';x.textAlign='left';x.font='700 42px Arial';x.fillText('Regioweer',42,50);x.font='700 28px Arial';x.fillStyle='#d6e8ff';x.fillText('5-daagse verwachting',42,88);
@@ -173,7 +201,7 @@ function drawFiveDayFigure(){
     const lines=[
       ['☀',`Zonuren`,`${fmt(r.sun)} u`],
       ['💧','Neerslag',`${fmt(r.precip)} mm`],
-      ['☂','Kans op neerslag',Number.isFinite(r.pop)?`${Math.round(r.pop)}%`:'n.b.'],
+      ['☂','Kans op neerslag',Number.isFinite(r.pop)?`${Math.round(r.pop)}%`:'—'],
       ['UV','UV-index',Number.isFinite(r.uv)?`${fmt(r.uv)} · ${uvLabel(r.uv)}`:'n.b.'],
       ['💨','Max. windstoot',Number.isFinite(r.gust)?`${Math.round(r.gust)} km/u`:'n.b.'],
       ['⚠','Kans zware windstoten',Number.isFinite(r.gustChance)?`${r.gustChance}%`:'n.b.']
