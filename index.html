@@ -4,12 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0b63ce">
-<link rel="apple-touch-icon" href="icon-192.png">
-<link rel="manifest" href="manifest.webmanifest">
+<meta name="application-name" content="Regioweer">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
+<link rel="apple-touch-icon" sizes="192x192" href="./icon-192.png">
+<link rel="manifest" href="./manifest.webmanifest">
 <title>Regioweer Modelmix</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#162033;background:#eef3f9}
-*{box-sizing:border-box} body{margin:0}.wrap{max-width:980px;margin:auto;padding:14px}.hero{background:linear-gradient(135deg,#0b63ce,#1593e6);color:#fff;padding:18px;border-radius:20px;box-shadow:0 8px 28px #174d7e26}.hero h1{font-size:22px;margin:0 0 4px}.hero p{margin:0;opacity:.9;font-size:14px}.panel{background:#fff;border-radius:18px;padding:14px;margin-top:14px;box-shadow:0 4px 18px #1e355018}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:flex;flex-direction:column;gap:5px}.field.full{grid-column:1/-1}label{font-size:12px;font-weight:700;color:#46566e}input,select,button{font:inherit;border-radius:12px;border:1px solid #cbd6e4;padding:12px;background:#fff}button{border:0;font-weight:800;cursor:pointer}.primary{background:#0b63ce;color:white}.secondary{background:#19a05b;color:white}.ghost{background:#edf3fb;color:#164f89}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.buttons .full{grid-column:1/-1}.status{font-size:13px;margin-top:10px;color:#425269;min-height:20px}.bar{height:7px;border-radius:999px;background:#e6edf6;overflow:hidden;margin-top:8px}.bar>span{display:block;height:100%;width:0;background:#0b63ce;transition:width .2s}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:12px}.card{background:#fff;border-radius:16px;padding:10px;text-align:center;box-shadow:0 3px 12px #1e355014}.day{font-size:12px;font-weight:800}.date{font-size:11px;color:#66758a}.icon{font-size:34px;line-height:1.15;margin:6px 0}.temps{font-size:18px;font-weight:900}.temps .min{color:#2070c7}.temps .max{color:#df4e3a}.meta{font-size:11px;color:#5a687c;margin-top:5px;line-height:1.45}.note{font-size:11px;color:#66758a;margin-top:8px}.hidden{display:none!important}@media(max-width:600px){.wrap{padding:10px}.grid{grid-template-columns:1fr 1fr}.cards{grid-template-columns:repeat(2,1fr)}.buttons{grid-template-columns:1fr}.buttons .full{grid-column:auto}.hero{border-radius:16px}.panel{border-radius:16px}}@media(max-width:360px){.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.cards{grid-template-columns:1fr 1fr}}
+*{box-sizing:border-box} body{margin:0}.wrap{max-width:980px;margin:auto;padding:14px}.hero{background:linear-gradient(135deg,#0b63ce,#1593e6);color:#fff;padding:18px;border-radius:20px;box-shadow:0 8px 28px #174d7e26}.hero h1{font-size:22px;margin:0 0 4px}.hero p{margin:0;opacity:.9;font-size:14px}.panel{background:#fff;border-radius:18px;padding:14px;margin-top:14px;box-shadow:0 4px 18px #1e355018}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:flex;flex-direction:column;gap:5px}.field.full{grid-column:1/-1}label{font-size:12px;font-weight:700;color:#46566e}input,select,button{font:inherit;border-radius:12px;border:1px solid #cbd6e4;padding:12px;background:#fff}button{border:0;font-weight:800;cursor:pointer}.primary{background:#0b63ce;color:white}.secondary{background:#19a05b;color:white}.ghost{background:#edf3fb;color:#164f89}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.buttons .full{grid-column:1/-1}.status{font-size:13px;margin-top:10px;color:#425269;min-height:20px}.bar{height:7px;border-radius:999px;background:#e6edf6;overflow:hidden;margin-top:8px}.bar>span{display:block;height:100%;width:0;background:#0b63ce;transition:width .2s}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:12px}.card{background:#fff;border-radius:16px;padding:10px;text-align:center;box-shadow:0 3px 12px #1e355014}.day{font-size:12px;font-weight:800}.date{font-size:11px;color:#66758a}.icon{font-size:34px;line-height:1.15;margin:6px 0}.temps{font-size:18px;font-weight:900}.temps .min{color:#2070c7}.temps .max{color:#df4e3a}.meta{font-size:11px;color:#5a687c;margin-top:5px;line-height:1.45}.note{font-size:11px;color:#66758a;margin-top:8px}.gfsgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}.gfshead,.gfsrow{display:contents}.gfscell{padding:8px 7px;border-bottom:1px solid #e5ebf2;font-size:13px}.gfshead .gfscell{font-weight:800;color:#40516a;background:#f4f7fb}.gfsactions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.hidden{display:none!important}@media(max-width:600px){.wrap{padding:10px}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.cards{grid-template-columns:repeat(2,1fr)}.buttons{grid-template-columns:1fr}.buttons .full{grid-column:auto}.hero{border-radius:16px}.panel{border-radius:16px}}@media(max-width:360px){.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.cards{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body><div class="wrap">
@@ -26,12 +32,13 @@
 <div class="bar"><span id="prog"></span></div><div class="status" id="status">Kies een run en tik op Gegevens ophalen.</div>
 </section>
 <section id="results" class="cards"></section>
+<section class="panel" id="gfsPanel"><div style="font-weight:850;font-size:17px">GFS-run TX/TN</div><div class="note">Dagwaarden van de gekozen GFS-run, los van de modelmix.</div><div id="gfsTable" class="gfsgrid"><div class="gfshead"><div class="gfscell">Datum</div><div class="gfscell">TX</div><div class="gfscell">TN</div></div></div><div class="gfsactions"><button class="ghost" id="copyTx" disabled>TX kopiëren</button><button class="ghost" id="copyTn" disabled>TN kopiëren</button></div></section>
 <section class="panel"><div class="note"><b>Mix:</b> dag 1: GFS + ECMWF + ICON + ARPEGE + AROME + HARMONIE · dag 2: GFS + ECMWF + ICON + ARPEGE + HARMONIE · dag 3: GFS + ECMWF + ICON + ARPEGE · dag 4: GFS + ECMWF + ICON · daarna GFS + ECMWF.</div></section>
 </div>
 <script>
 const $=id=>document.getElementById(id); const NL=['zo','ma','di','wo','do','vr','za'];
 $('date').value=new Date().toISOString().slice(0,10);
-let lastRows=[];
+let lastRows=[]; let lastGfsRows=[];
 const MODELS={
  gfs:{code:'gfs_global',name:'GFS Global',hours:241,fallback:'gfs_seamless'},
  icon:{code:'icon_eu',name:'ICON-EU',hours:121},
@@ -54,7 +61,34 @@ function buildMix(data){let maps={};for(const [k,v] of Object.entries(data))maps
 function pickSingle(rows){const base=$('date').value;return rows.filter(r=>r.date>base).slice(0,9).map(r=>({...r,count:1,type:weatherType(r)}))}
 function show(rows){const c=$('results');c.innerHTML='';for(const r of rows){let d=new Date(r.date+'T12:00:00');c.insertAdjacentHTML('beforeend',`<article class="card"><div class="day">${NL[d.getDay()]}</div><div class="date">${d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'})}</div><div class="icon">${iconFor(r.type)}</div><div class="temps"><span class="max">${Math.round(r.max)}°</span> / <span class="min">${Math.round(r.min)}°</span></div><div class="meta">☀ ${fmt(r.sun)} u<br>💧 ${fmt(r.precip)} mm<br>${r.count>1?r.count+' modellen':''}</div></article>`)} }
 function setStatus(t,p){$('status').textContent=t;$('prog').style.width=`${p}%`}
-$('load').onclick=async()=>{lastRows=[];$('csv').disabled=$('png').disabled=true;try{setStatus('Modelgegevens ophalen…',5);if($('model').value==='mix'){let order=['gfs','icon','ecmwf','arome','arpege','harmonie'],data={};for(let i=0;i<order.length;i++){let k=order[i];setStatus(`${MODELS[k].name} ophalen…`,10+i*13);try{data[k]=await fetchModel(k,true)}catch(e){console.warn(e);data[k]=[]}}lastRows=buildMix(data);if(lastRows.length<5)throw new Error('Te weinig modeldata beschikbaar voor deze run. Probeer een oudere run of andere cyclus.')}else{lastRows=pickSingle(await fetchModel($('model').value,true))}show(lastRows);setStatus(`Klaar – ${lastRows.length} dagen.`,100);$('csv').disabled=$('png').disabled=false}catch(e){setStatus('Fout: '+e.message,0)}};
+
+function renderGfs(rows){
+ const t=$('gfsTable');
+ t.innerHTML='<div class="gfshead"><div class="gfscell">Datum</div><div class="gfscell">TX</div><div class="gfscell">TN</div></div>';
+ for(const r of rows.slice(0,10)){
+   const d=new Date(r.date+'T12:00:00');
+   t.insertAdjacentHTML('beforeend',`<div class="gfsrow"><div class="gfscell">${d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'})}</div><div class="gfscell"><b>${fmt(r.max)}°</b></div><div class="gfscell">${fmt(r.min)}°</div></div>`);
+ }
+ $('copyTx').disabled=$('copyTn').disabled=!rows.length;
+}
+async function loadGfsRunTable(){
+ try{
+   const rows=await fetchModel('gfs',false);
+   lastGfsRows=rows.filter(r=>r.date>$('date').value).slice(0,10);
+   renderGfs(lastGfsRows);
+ }catch(e){
+   lastGfsRows=[];renderGfs([]);console.warn('GFS-run tabel:',e);
+ }
+}
+async function copyGfs(kind){
+ const vals=lastGfsRows.map(r=>fmt(r[kind]));
+ try{await navigator.clipboard.writeText(vals.join('\n'));setStatus(`${kind==='max'?'TX':'TN'} gekopieerd.`,100)}
+ catch(e){setStatus('Kopiëren lukte niet; houd de waarden ingedrukt om ze handmatig te kopiëren.',100)}
+}
+$('copyTx').onclick=()=>copyGfs('max');
+$('copyTn').onclick=()=>copyGfs('min');
+
+$('load').onclick=async()=>{lastRows=[];lastGfsRows=[];renderGfs([]);$('csv').disabled=$('png').disabled=true;try{setStatus('GFS-run en modelgegevens ophalen…',5);await loadGfsRunTable();setStatus('Modelgegevens ophalen…',10);if($('model').value==='mix'){let order=['gfs','icon','ecmwf','arome','arpege','harmonie'],data={};for(let i=0;i<order.length;i++){let k=order[i];setStatus(`${MODELS[k].name} ophalen…`,10+i*13);try{data[k]=await fetchModel(k,true)}catch(e){console.warn(e);data[k]=[]}}lastRows=buildMix(data);if(lastRows.length<5)throw new Error('Te weinig modeldata beschikbaar voor deze run. Probeer een oudere run of andere cyclus.')}else{lastRows=pickSingle(await fetchModel($('model').value,true))}show(lastRows);setStatus(`Klaar – ${lastRows.length} dagen.`,100);$('csv').disabled=$('png').disabled=false}catch(e){setStatus('Fout: '+e.message,0)}};
 function download(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
 $('csv').onclick=()=>{let lines=['Datum;TX (°C);TN (°C);Zon (uur);Neerslag (mm);Modellen'];for(const r of lastRows)lines.push([r.date,fmt(r.max),fmt(r.min),fmt(r.sun),fmt(r.precip),r.count].join(';'));download(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),`regioweer-${$('date').value}-${$('run').value}z.csv`)};
 function drawWeather(ctx,t,cx,cy,s){ctx.save();ctx.lineWidth=3;ctx.lineCap='round';function sun(x,y,r){ctx.strokeStyle='#f3a712';ctx.fillStyle='#ffd54a';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();for(let a=0;a<8;a++){let q=a*Math.PI/4;ctx.beginPath();ctx.moveTo(x+Math.cos(q)*(r+5),y+Math.sin(q)*(r+5));ctx.lineTo(x+Math.cos(q)*(r+12),y+Math.sin(q)*(r+12));ctx.stroke()}}function cloud(x,y){ctx.fillStyle='#d7e0e8';ctx.strokeStyle='#91a1b2';ctx.beginPath();ctx.arc(x-18,y,15,Math.PI,0);ctx.arc(x,y-11,20,Math.PI,0);ctx.arc(x+22,y,14,Math.PI,0);ctx.lineTo(x+34,y+13);ctx.lineTo(x-30,y+13);ctx.closePath();ctx.fill();ctx.stroke()}if(t==='sun')sun(cx,cy,22);else if(t==='partly'){sun(cx-14,cy-13,17);cloud(cx+5,cy+5)}else{cloud(cx,cy-3);if(t==='showers'||t==='rain'){ctx.strokeStyle='#287dcc';for(let x=-18;x<=18;x+=18){ctx.beginPath();ctx.moveTo(cx+x,cy+20);ctx.lineTo(cx+x-4,cy+31+(t==='rain'?5:0));ctx.stroke()}}}ctx.restore()}
@@ -63,5 +97,5 @@ let deferredInstall=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;$('install').classList.remove('hidden')});
 $('install').onclick=async()=>{if(!deferredInstall)return;deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;$('install').classList.add('hidden')};
 window.addEventListener('appinstalled',()=>{$('install').classList.add('hidden');setStatus('Regioweer is als app geïnstalleerd.',100)});
-if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(console.error));}
 </script></body></html>
