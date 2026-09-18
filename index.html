@@ -22,8 +22,8 @@
 <section class="hero"><h1>Regioweer Modelmix</h1><p>GFS · ICON · ECMWF · AROME · ARPEGE · KNMI HARMONIE</p></section>
 <section class="panel">
 <div class="grid">
-<div class="field"><label>Breedtegraad</label><input id="lat" type="number" step="0.000001" value="52.019260"></div>
-<div class="field"><label>Lengtegraad</label><input id="lon" type="number" step="0.000001" value="5.172830"></div>
+<div class="field full"><label>Plaatsnaam</label><div style="display:grid;grid-template-columns:1fr auto;gap:8px"><input id="place" type="text" value="Houten" placeholder="Bijv. Houten, De Bilt of Utrecht"><button class="ghost" id="findPlace" type="button">Zoek plaats</button></div><div class="note" id="placeInfo">Houten · coördinaten worden automatisch gebruikt</div></div>
+<input id="lat" type="hidden" value="52.019260"><input id="lon" type="hidden" value="5.172830">
 <div class="field"><label>Model</label><select id="model"><option value="mix">Mix modellen</option><option value="gfs">GFS Global</option><option value="icon">ICON-EU</option><option value="ecmwf">ECMWF IFS</option><option value="arome">AROME France</option><option value="arpege">ARPEGE Europe</option><option value="harmonie">KNMI HARMONIE NL 2 km</option></select></div>
 <div class="field"><label>Run (UTC)</label><select id="run"><option>00</option><option>06</option><option selected>12</option><option>18</option></select></div>
 <div class="field full"><label>Datum modelrun</label><input id="date" type="date"></div>
@@ -39,6 +39,23 @@
 <script>
 const $=id=>document.getElementById(id); const NL=['zo','ma','di','wo','do','vr','za'];
 $('date').value=new Date().toISOString().slice(0,10);
+async function findPlace(){
+  const q=$('place').value.trim(); if(!q){$('placeInfo').textContent='Vul eerst een plaatsnaam in.';return false}
+  $('placeInfo').textContent='Plaats zoeken…';
+  try{
+    const u=`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=nl&format=json`;
+    const r=await fetch(u,{cache:'no-store'}),j=await r.json();
+    const g=j?.results?.[0]; if(!g)throw new Error('Plaats niet gevonden');
+    $('lat').value=g.latitude; $('lon').value=g.longitude;
+    const bits=[g.name,g.admin1,g.country_code].filter(Boolean);
+    $('place').value=g.name; $('placeInfo').textContent=`${bits.join(' · ')} · ${g.latitude.toFixed(4)}, ${g.longitude.toFixed(4)}`;
+    localStorage.setItem('regioweer-place',JSON.stringify({name:g.name,lat:g.latitude,lon:g.longitude,info:$('placeInfo').textContent}));
+    return true;
+  }catch(e){$('placeInfo').textContent=`Plaats niet gevonden: ${e.message}`;return false}
+}
+$('findPlace').onclick=findPlace;
+$('place').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();findPlace()}});
+try{const sv=JSON.parse(localStorage.getItem('regioweer-place')||'null');if(sv){$('place').value=sv.name;$('lat').value=sv.lat;$('lon').value=sv.lon;$('placeInfo').textContent=sv.info||sv.name}}catch(e){}
 let lastRows=[]; let lastGfsRows=[];
 const MODELS={
  gfs:{code:'ncep_gfs_global',name:'GFS Global',hours:241,aliases:['gfs_global','gfs013','gfs_seamless','ncep_gfs_seamless']},
@@ -216,7 +233,10 @@ async function copyGfs(kind){
 $('copyTx').onclick=()=>copyGfs('max');
 $('copyTn').onclick=()=>copyGfs('min');
 
-$('load').onclick=async()=>{lastRows=[];lastGfsRows=[];renderGfs([]);$('csv').disabled=$('png').disabled=$('fivepng').disabled=true;try{setStatus('GFS-run en modelgegevens ophalen…',5);await loadGfsRunTable();setStatus('Modelgegevens ophalen…',10);if($('model').value==='mix'){let order=['gfs','icon','ecmwf','arome','arpege','harmonie'],data={};for(let i=0;i<order.length;i++){let k=order[i];setStatus(`${MODELS[k].name} ophalen…`,10+i*11);try{data[k]=await fetchModel(k,true)}catch(e){console.warn(e);data[k]=[]}}lastRows=buildMix(data);if(lastRows.length<5)throw new Error('Te weinig modeldata beschikbaar voor deze run. Probeer een oudere run of andere cyclus.');show(lastRows);$('csv').disabled=$('png').disabled=$('fivepng').disabled=false;setStatus(`Basis klaar – ${lastRows.length} dagen. Extra UV/wind/sneeuw ophalen…`,82);for(let i=0;i<order.length;i++){let k=order[i],rows=data[k];if(!rows?.length)continue;let mm=rows._modelUsed||MODELS[k];try{data[k]=await fetchExtras(mm,rows)}catch(e){console.warn('Extra data '+k,e)}}lastRows=buildMix(data);show(lastRows);setStatus(`Klaar – ${lastRows.length} dagen.`,100)}else{let key=$('model').value,rows=await fetchModel(key,true);lastRows=pickSingle(rows,key);show(lastRows);$('csv').disabled=$('png').disabled=$('fivepng').disabled=false;setStatus(`Basis klaar – ${lastRows.length} dagen. Extra UV/wind/sneeuw ophalen…`,85);try{rows=await fetchExtras(rows._modelUsed||MODELS[key],rows);lastRows=pickSingle(rows,key);show(lastRows)}catch(e){console.warn('Extra data',e)}setStatus(`Klaar – ${lastRows.length} dagen.`,100)}}catch(e){setStatus('Fout: '+e.message,0)}};
+$('load').onclick=async()=>{
+  const q=$('place').value.trim();
+  const saved=(()=>{try{return JSON.parse(localStorage.getItem('regioweer-place')||'null')}catch(e){return null}})();
+  if(q && (!saved || saved.name!==q)){const ok=await findPlace();if(!ok)return;}lastRows=[];lastGfsRows=[];renderGfs([]);$('csv').disabled=$('png').disabled=$('fivepng').disabled=true;try{setStatus('GFS-run en modelgegevens ophalen…',5);await loadGfsRunTable();setStatus('Modelgegevens ophalen…',10);if($('model').value==='mix'){let order=['gfs','icon','ecmwf','arome','arpege','harmonie'],data={};for(let i=0;i<order.length;i++){let k=order[i];setStatus(`${MODELS[k].name} ophalen…`,10+i*11);try{data[k]=await fetchModel(k,true)}catch(e){console.warn(e);data[k]=[]}}lastRows=buildMix(data);if(lastRows.length<5)throw new Error('Te weinig modeldata beschikbaar voor deze run. Probeer een oudere run of andere cyclus.');show(lastRows);$('csv').disabled=$('png').disabled=$('fivepng').disabled=false;setStatus(`Basis klaar – ${lastRows.length} dagen. Extra UV/wind/sneeuw ophalen…`,82);for(let i=0;i<order.length;i++){let k=order[i],rows=data[k];if(!rows?.length)continue;let mm=rows._modelUsed||MODELS[k];try{data[k]=await fetchExtras(mm,rows)}catch(e){console.warn('Extra data '+k,e)}}lastRows=buildMix(data);show(lastRows);setStatus(`Klaar – ${lastRows.length} dagen.`,100)}else{let key=$('model').value,rows=await fetchModel(key,true);lastRows=pickSingle(rows,key);show(lastRows);$('csv').disabled=$('png').disabled=$('fivepng').disabled=false;setStatus(`Basis klaar – ${lastRows.length} dagen. Extra UV/wind/sneeuw ophalen…`,85);try{rows=await fetchExtras(rows._modelUsed||MODELS[key],rows);lastRows=pickSingle(rows,key);show(lastRows)}catch(e){console.warn('Extra data',e)}setStatus(`Klaar – ${lastRows.length} dagen.`,100)}}catch(e){setStatus('Fout: '+e.message,0)}};
 function download(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
 $('csv').onclick=()=>{let lines=['Datum;TX (°C);TN (°C);Zon (uur);Neerslag (mm);Neerslagkans (%);UV-index;Max windstoot (km/u);Kans zware windstoten (drempel >=75 km/u) (%);Sneeuwkans (%);Modellen'];for(const r of lastRows)lines.push([r.date,fmt(r.max),fmt(r.min),fmt(r.sun),fmt(r.precip),Number.isFinite(r.pop)?Math.round(r.pop):'',fmt(r.uv),Number.isFinite(r.gust)?Math.round(r.gust):'',Number.isFinite(r.gustChance)?r.gustChance:'',isWinterDate(r.date)&&Number.isFinite(r.snowChance)?r.snowChance:'',r.count].join(';'));download(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),`regioweer-${$('date').value}-${$('run').value}z.csv`)};
 function drawWeather(ctx,t,cx,cy,s){ctx.save();ctx.lineWidth=3;ctx.lineCap='round';function sun(x,y,r){ctx.strokeStyle='#f3a712';ctx.fillStyle='#ffd54a';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();for(let a=0;a<8;a++){let q=a*Math.PI/4;ctx.beginPath();ctx.moveTo(x+Math.cos(q)*(r+5),y+Math.sin(q)*(r+5));ctx.lineTo(x+Math.cos(q)*(r+12),y+Math.sin(q)*(r+12));ctx.stroke()}}function cloud(x,y){ctx.fillStyle='#d7e0e8';ctx.strokeStyle='#91a1b2';ctx.beginPath();ctx.arc(x-18,y,15,Math.PI,0);ctx.arc(x,y-11,20,Math.PI,0);ctx.arc(x+22,y,14,Math.PI,0);ctx.lineTo(x+34,y+13);ctx.lineTo(x-30,y+13);ctx.closePath();ctx.fill();ctx.stroke()}function drops(y,heavy=false){ctx.strokeStyle='#287dcc';for(let xx=-18;xx<=18;xx+=18){ctx.beginPath();ctx.moveTo(cx+xx,y);ctx.lineTo(cx+xx-4,y+11+(heavy?5:0));ctx.stroke()}}if(t==='sun')sun(cx,cy,22);else if(t==='partly'){sun(cx-14,cy-13,17);cloud(cx+5,cy+5)}else if(t==='sunshowers'){sun(cx-17,cy-16,17);cloud(cx+6,cy+2);drops(cy+23,false)}else{cloud(cx,cy-3);if(t==='showers'||t==='rain')drops(cy+20,t==='rain')}ctx.restore()}
@@ -248,7 +268,7 @@ function drawFiveDayFigure(){
     if(Number.isFinite(r.gustChance)&&r.gustChance>0) lines.push(['⚠','Kans ≥ 75 km/u',`${r.gustChance}%`]);
     let y=452;for(const [ico,label,val] of lines){x.textAlign='left';x.font='18px Arial';x.fillStyle='#116bd0';x.fillText(ico,left+16,y);x.font='15px Arial';x.fillStyle='#21364f';x.fillText(label,left+48,y);x.textAlign='right';x.font='700 15px Arial';x.fillStyle='#142b4e';x.fillText(val,left+cw-14,y);x.strokeStyle='#dce7f3';x.beginPath();x.moveTo(left+14,y+14);x.lineTo(left+cw-14,y+14);x.stroke();y+=54;}
   }
-  x.textAlign='left';x.font='14px Arial';x.fillStyle='#5f7186';x.fillText(`Run ${$('date').value} ${$('run').value} UTC · ${$('lat').value} N, ${$('lon').value} E`,28,862);
+  x.textAlign='left';x.font='14px Arial';x.fillStyle='#5f7186';x.fillText(`Run ${$('date').value} ${$('run').value} UTC · ${$('place').value || ($('lat').value+' N, '+$('lon').value+' E')}`,28,862);
   x.textAlign='right';x.fillText('GFS · ECMWF · ICON · AROME · ARPEGE · KNMI HARMONIE',W-28,862);if(rows.some(r=>Number.isFinite(r.gustChance)&&r.gustChance>0)){x.textAlign='left';x.font='12px Arial';x.fillStyle='#7b8899';x.fillText('Kans ≥ 75 km/u = aandeel modellen dat zware windstoten berekent',28,885);}
   c.toBlob(b=>download(b,`regioweer-5-daagse-${$('date').value}.png`),'image/png');
 }
