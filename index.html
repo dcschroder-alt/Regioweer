@@ -35,7 +35,7 @@
 <section id="results" class="cards"></section>
 <section class="panel hidden" id="plumePanel"><div style="font-weight:850;font-size:17px">Pluim</div><div class="note">Actuele ensemblepluim voor de gekozen plaats. De pluim gebruikt de nieuwste beschikbare ensemble-run en staat los van de gekozen deterministische run hierboven.</div><div class="plumecontrols"><select id="plumeModel"><option value="ecmwf_ifs025_ensemble">ECMWF ENS (51 leden)</option><option value="ncep_gefs025">GEFS (31 leden)</option><option value="dwd_icon_eu_eps">ICON-EPS Europe</option></select><button class="primary" id="plumeLoad" type="button">Pluim ophalen</button><button class="ghost" id="plumeSave" type="button" disabled>PNG</button></div><div class="status" id="plumeStatus">Kies een ensemble en tik op Pluim ophalen.</div><div class="plumewrap"><canvas id="plumeCanvas" width="1200" height="650"></canvas></div></section>
 <section class="panel hidden" id="riskPanel"><div style="font-weight:850;font-size:17px">Kansentabel</div><div class="note">Ensemblekansen voor de gekozen plaats. De percentages zijn het aandeel ensembleleden dat de drempel op die dag bereikt.</div><div class="riskcontrols"><select id="riskModel"><option value="ecmwf_ifs025_ensemble">ECMWF ENS</option><option value="ncep_gefs025">GEFS</option><option value="dwd_icon_eu_eps">ICON-EPS Europe</option></select><button class="primary" id="riskLoad" type="button">Kansen ophalen</button><button class="ghost" id="riskSave" type="button" disabled>PNG</button></div><div class="status" id="riskStatus">Kies een ensemble en tik op Kansen ophalen.</div><div class="riskwrap"><canvas id="riskCanvas" width="1500" height="760"></canvas></div><div class="note">Windstoten = maximaal ≥75 km/u. Vorst = minimumtemperatuur onder 0 °C.</div></section>
-<section class="panel" id="gfsPanel"><div style="font-weight:850;font-size:17px">GFS-run TX/TN</div><div class="note">Dagwaarden van de gekozen GFS-run, los van de modelmix.</div><div id="gfsTable" class="gfsgrid"><div class="gfshead"><div class="gfscell">Datum</div><div class="gfscell">TX</div><div class="gfscell">TN</div></div></div><div class="gfsactions"><button class="ghost" id="copyTx" disabled>TX kopiëren</button><button class="ghost" id="copyTn" disabled>TN kopiëren</button></div></section>
+<section class="panel" id="gfsPanel"><div style="font-weight:850;font-size:17px">GFS-run TX/TN</div><div class="note">Dagwaarden van de gekozen GFS-run, los van de modelmix. Alle beschikbare dagen tot 384 uur vooruit worden getoond.</div><div id="gfsTable" class="gfsgrid"><div class="gfshead"><div class="gfscell">Datum</div><div class="gfscell">TX</div><div class="gfscell">TN</div></div></div><div class="gfsactions"><button class="ghost" id="copyTx" disabled>TX kopiëren</button><button class="ghost" id="copyTn" disabled>TN kopiëren</button></div></section>
 <section class="panel"><div class="note"><b>Beste-modelmix:</b> korte termijn legt de nadruk op HARMONIE, AROME en ICON. Daarna verschuift de mix naar ECMWF IFS, GFS, UKMO, GEM en ECMWF AIFS. Extra HARMONIE- en JMA-runs kun je los bekijken, maar tellen niet dubbel mee in de mix.</div></section>
 </div>
 <script>
@@ -217,7 +217,7 @@ function setStatus(t,p){$('status').textContent=t;$('prog').style.width=`${p}%`}
 function renderGfs(rows){
  const t=$('gfsTable');
  t.innerHTML='<div class="gfshead"><div class="gfscell">Datum</div><div class="gfscell">TX</div><div class="gfscell">TN</div></div>';
- for(const r of rows.slice(0,10)){
+ for(const r of rows){
    const d=new Date(r.date+'T12:00:00');
    t.insertAdjacentHTML('beforeend',`<div class="gfsrow"><div class="gfscell">${d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'})}</div><div class="gfscell"><b>${fmt(r.max)}°</b></div><div class="gfscell">${fmt(r.min)}°</div></div>`);
  }
@@ -236,7 +236,7 @@ async function loadGfsRunTable(){
      rows._fallbackRun=true;
      console.warn('GFS exacte run niet beschikbaar, vorige cyclus geladen:',exactErr);
    }
-   lastGfsRows=rows.filter(r=>r.date>=$('date').value).slice(0,10);
+   lastGfsRows=rows.filter(r=>r.date>=$('date').value);
    renderGfs(lastGfsRows);
    const used=(rows._runUsed||runIso()).replace('T',' ').replace(':00',' UTC');
    if(rows._fallbackRun) $('status').textContent=`GFS ${used} geladen; gekozen run nog niet beschikbaar. Modelgegevens ophalen…`;
