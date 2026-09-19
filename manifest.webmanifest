@@ -2,17 +2,14 @@
   "id": "./",
   "name": "Regioweer Modelmix",
   "short_name": "Regioweer",
-  "description": "Weermodelmix met GFS, ECMWF, ICON, AROME, ARPEGE en KNMI HARMONIE",
+  "description": "Weermodelmix met KNMI HARMONIE, ECMWF, ICON-EU, GFS, AROME en ARPEGE",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": [
-    "standalone",
-    "minimal-ui"
-  ],
   "orientation": "portrait-primary",
   "background_color": "#eef3f9",
   "theme_color": "#0b63ce",
+  "categories": ["weather", "utilities"],
   "icons": [
     {
       "src": "./icon-192.png",
