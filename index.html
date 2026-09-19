@@ -35,7 +35,7 @@
 <section id="results" class="cards"></section>
 <section class="panel hidden" id="plumePanel"><div style="font-weight:850;font-size:17px">Pluim</div><div class="note">Actuele ensemblepluim voor de gekozen plaats. De pluim gebruikt de nieuwste beschikbare ensemble-run en staat los van de gekozen deterministische run hierboven.</div><div class="plumecontrols"><select id="plumeModel"><option value="ecmwf_ifs025_ensemble">ECMWF ENS (51 leden)</option><option value="ncep_gefs025">GEFS (31 leden)</option><option value="dwd_icon_eu_eps">ICON-EPS Europe</option></select><button class="primary" id="plumeLoad" type="button">Pluim ophalen</button><button class="ghost" id="plumeSave" type="button" disabled>PNG</button></div><div class="status" id="plumeStatus">Kies een ensemble en tik op Pluim ophalen.</div><div class="plumewrap"><canvas id="plumeCanvas" width="1200" height="650"></canvas></div></section>
 <section class="panel hidden" id="riskPanel"><div style="font-weight:850;font-size:17px">Kansentabel</div><div class="note">Ensemblekansen voor de gekozen plaats. De percentages zijn het aandeel ensembleleden dat de drempel op die dag bereikt.</div><div class="riskcontrols"><select id="riskModel"><option value="ecmwf_ifs025_ensemble">ECMWF ENS</option><option value="ncep_gefs025">GEFS</option><option value="dwd_icon_eu_eps">ICON-EPS Europe</option></select><button class="primary" id="riskLoad" type="button">Kansen ophalen</button><button class="ghost" id="riskSave" type="button" disabled>PNG</button></div><div class="status" id="riskStatus">Kies een ensemble en tik op Kansen ophalen.</div><div class="riskwrap"><canvas id="riskCanvas" width="1500" height="760"></canvas></div><div class="note">Windstoten = maximaal ≥75 km/u. Vorst = minimumtemperatuur onder 0 °C.</div></section>
-<section class="panel" id="gfsPanel"><div style="font-weight:850;font-size:17px">GFS-run TX/TN</div><div class="note">Dagwaarden van de gekozen GFS-run, los van de modelmix. Alle beschikbare dagen tot 384 uur vooruit worden getoond.</div><div id="gfsTable" class="gfsgrid"><div class="gfshead"><div class="gfscell">Datum</div><div class="gfscell">TX</div><div class="gfscell">TN</div></div></div><div class="gfsactions"><button class="ghost" id="copyTx" disabled>TX kopiëren</button><button class="ghost" id="copyTn" disabled>TN kopiëren</button></div></section>
+<section class="panel" id="gfsPanel"><div style="font-weight:850;font-size:17px">GFS-run TX/TN</div><div class="note">Nieuwste live GFS voor je Excel. Alleen als live GFS niet beschikbaar is, wordt teruggevallen op de gekozen of een oudere run. Alle beschikbare dagen tot 384 uur vooruit worden getoond.</div><div id="gfsTable" class="gfsgrid"><div class="gfshead"><div class="gfscell">Datum</div><div class="gfscell">TX</div><div class="gfscell">TN</div></div></div><div class="gfsactions"><button class="ghost" id="copyTx" disabled>TX kopiëren</button><button class="ghost" id="copyTn" disabled>TN kopiëren</button></div></section>
 <section class="panel"><div class="note"><b>Beste-modelmix:</b> korte termijn legt de nadruk op HARMONIE, AROME en ICON. Daarna verschuift de mix naar ECMWF IFS, GFS, UKMO, GEM en ECMWF AIFS. Extra HARMONIE- en JMA-runs kun je los bekijken, maar tellen niet dubbel mee in de mix.</div></section>
 </div>
 <script>
@@ -227,18 +227,35 @@ function cycleIsoBack(hours){
  const d=new Date(runIso()+'Z');d.setUTCHours(d.getUTCHours()-hours);return d.toISOString().slice(0,16)
 }
 async function loadGfsRunTable(){
- const attempts=[0,6,12,18,24,30];
  let lastErr=null;
+ // Voor Excel altijd eerst de nieuwste live GFS proberen.
+ try{
+   const lat=$('lat').value,lon=$('lon').value;
+   const liveUrl=`https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&models=gfs_global&hourly=temperature_2m&timezone=Europe%2FAmsterdam&forecast_hours=384`;
+   const r=await fetch(liveUrl,{cache:'no-store'}),j=await r.json();
+   if(!r.ok||j.error)throw new Error(j.reason||`HTTP ${r.status}`);
+   if(!j.hourly?.time)throw new Error('Geen live GFS-uurgegevens');
+   const rows=hourlyToDaily(j.hourly);
+   if(!rows?.length)throw new Error('Geen live GFS-dagwaarden');
+   lastGfsRows=rows.filter(x=>x.date>=$('date').value);
+   renderGfs(lastGfsRows);
+   $('status').textContent='Nieuwste live GFS geladen voor TX/TN. Modelgegevens ophalen…';
+   return;
+ }catch(e){
+   lastErr=e;
+   console.warn('Nieuwste live GFS TX/TN niet beschikbaar:',e);
+ }
+ // Alleen als live GFS mislukt: gekozen Single Run en oudere cycli proberen.
+ const attempts=[0,6,12,18,24,30];
  for(const back of attempts){
    const candidate=back===0?runIso():cycleIsoBack(back);
    try{
      const rows=await fetchModel('gfs',false,candidate);
      if(!rows?.length)throw new Error('Geen GFS-dagwaarden');
-     if(back>0)rows._fallbackRun=true;
      lastGfsRows=rows.filter(r=>r.date>=$('date').value);
      renderGfs(lastGfsRows);
      const used=(rows._runUsed||candidate).replace('T',' ').replace(':00',' UTC');
-     if(back>0) $('status').textContent=`GFS ${used} geladen voor TX/TN; gekozen run nog niet beschikbaar. Modelgegevens ophalen…`;
+     $('status').textContent=`Live GFS niet beschikbaar; GFS ${used} geladen voor TX/TN. Modelgegevens ophalen…`;
      return;
    }catch(e){
      lastErr=e;
@@ -246,7 +263,7 @@ async function loadGfsRunTable(){
    }
  }
  lastGfsRows=[];renderGfs([]);
- console.warn('GFS-run tabel: geen bruikbare cyclus gevonden',lastErr);
+ console.warn('GFS-run tabel: geen bruikbare GFS-data gevonden',lastErr);
 }
 async function copyGfs(kind){
  const vals=lastGfsRows.map(r=>fmt(r[kind]));
