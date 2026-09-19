@@ -3,413 +3,2776 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0b63ce">
+<meta name="theme-color" content="#2563eb">
 <meta name="application-name" content="Regioweer">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="description" content="Professionele modelmix en gewogen ensemble weersverwachting op basis van KNMI HARMONIE, ECMWF IFS, DWD ICON en GFS.">
+<meta name="keywords" content="weer, modelmix, KNMI, HARMONIE, ECMWF, GFS, ICON, meteogram, weersverwachting, ensemble">
+<meta name="author" content="Regioweer">
+
+<!-- Open Graph / Social Sharing -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Regioweer Modelmix · Geavanceerd Modelensemble">
+<meta property="og:description" content="Vergelijk en analyseer toonaangevende Europese en mondiale weermodellen in één oogopslag.">
+<meta property="og:site_name" content="Regioweer">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Regioweer Modelmix">
+<meta name="twitter:description" content="Gewogen modelensemble van KNMI, ECMWF, DWD, UKMO en GFS.">
+
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
-<link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
 <link rel="apple-touch-icon" sizes="192x192" href="./icon-192.png">
 <link rel="manifest" href="./manifest.webmanifest">
 <title>Regioweer Modelmix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<script>
+  (function() {
+    try {
+      const saved = localStorage.getItem('regioweer_theme');
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.setAttribute('data-theme', saved || (prefersDark ? 'dark' : 'light'));
+    } catch (_) {}
+  })();
+</script>
+
 <style>
-:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#162033;background:#eef3f9}
-*{box-sizing:border-box} body{margin:0}.wrap{max-width:980px;margin:auto;padding:14px}.hero{background:linear-gradient(135deg,#0b63ce,#1593e6);color:#fff;padding:18px;border-radius:20px;box-shadow:0 8px 28px #174d7e26}.hero h1{font-size:22px;margin:0 0 4px}.hero p{margin:0;opacity:.9;font-size:14px}.panel{background:#fff;border-radius:18px;padding:14px;margin-top:14px;box-shadow:0 4px 18px #1e355018}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:flex;flex-direction:column;gap:5px}.field.full{grid-column:1/-1}label{font-size:12px;font-weight:700;color:#46566e}input,select,button{font:inherit;border-radius:12px;border:1px solid #cbd6e4;padding:12px;background:#fff}button{border:0;font-weight:800;cursor:pointer}.primary{background:#0b63ce;color:white}.secondary{background:#19a05b;color:white}.ghost{background:#edf3fb;color:#164f89}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.buttons .full{grid-column:1/-1}.status{font-size:13px;margin-top:10px;color:#425269;min-height:20px}.bar{height:7px;border-radius:999px;background:#e6edf6;overflow:hidden;margin-top:8px}.bar>span{display:block;height:100%;width:0;background:#0b63ce;transition:width .2s}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:12px}.card{background:#fff;border-radius:16px;padding:10px;text-align:center;box-shadow:0 3px 12px #1e355014}.day{font-size:12px;font-weight:800}.date{font-size:11px;color:#66758a}.icon{font-size:34px;line-height:1.15;margin:6px 0}.temps{font-size:18px;font-weight:900}.temps .min{color:#2070c7}.temps .max{color:#df4e3a}.meta{font-size:11px;color:#5a687c;margin-top:5px;line-height:1.45}.note{font-size:11px;color:#66758a;margin-top:8px}.runs{display:grid;gap:7px;margin-top:10px}.runrow{display:grid;grid-template-columns:1.1fr .8fr 1.45fr;gap:8px;align-items:center;padding:9px 10px;background:#f6f9fd;border-radius:12px}.runname{font-weight:850;font-size:13px}.runcad{font-size:11px;color:#69798d}.runnext{font-size:12px;text-align:right;color:#34485f}.runnext b{color:#0b63ce}.runhint{font-size:10px;color:#7a8798;margin-top:2px}.gfsgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}.gfshead,.gfsrow{display:contents}.gfscell{padding:8px 7px;border-bottom:1px solid #e5ebf2;font-size:13px}.gfshead .gfscell{font-weight:800;color:#40516a;background:#f4f7fb}.gfsactions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.plumecontrols{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-top:10px}.plumewrap{overflow-x:auto;margin-top:10px}.plumewrap canvas{display:block;width:100%;min-width:720px;height:auto;background:#f8fbff;border-radius:14px}.riskcontrols{display:grid;grid-template-columns:1fr auto auto;gap:8px;margin-top:10px}.riskwrap{overflow-x:auto;margin-top:10px}.riskwrap canvas{display:block;width:100%;min-width:900px;height:auto;background:#fff;border-radius:14px}.hidden{display:none!important}@media(max-width:600px){.wrap{padding:10px}.runrow{grid-template-columns:1fr auto}.runcad{grid-column:1}.runnext{grid-column:2;grid-row:1/3}.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.cards{grid-template-columns:repeat(2,1fr)}.buttons{grid-template-columns:1fr}.buttons .full{grid-column:auto}.hero{border-radius:16px}.panel{border-radius:16px}}@media(max-width:360px){.grid{grid-template-columns:1fr}.field.full{grid-column:auto}.cards{grid-template-columns:1fr 1fr}}
+:root {
+  --font-main: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --bg-app: #f4f8fd;
+  --panel-bg: #ffffff;
+  --panel-border: rgba(226, 232, 240, 0.85);
+  --input-bg: #f8fafc;
+  --input-border: #cbd5e1;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --chip-bg: #f1f5f9;
+  --chip-text: #334155;
+  --chip-border: #e2e8f0;
+  --table-border: #e2e8f0;
+  --table-head-bg: #f8fafc;
+  --chart-grid: #e2e8f0;
+  --chart-text: #94a3b8;
+  --meta-bg: #f8fafc;
+  --meta-border: #f1f5f9;
+  --modal-bg: #ffffff;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: #eff6ff;
+  --primary-glow: rgba(37, 99, 235, 0.22);
+  --temp-max: #f43f5e;
+  --temp-min: #3b82f6;
+  --radius-panel: 22px;
+  --radius-card: 20px;
+  --radius-input: 13px;
+  --radius-pill: 9999px;
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 10px 28px rgba(30, 58, 138, 0.06);
+  --shadow-hover: 0 16px 36px rgba(37, 99, 235, 0.13);
+
+  --err-bg: #fef2f2;
+  --err-border: #fecaca;
+  --err-text: #991b1b;
+  --err-btn: #dc2626;
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="dark"] {
+  --bg-app: #080c15;
+  --panel-bg: #111827;
+  --panel-border: #1f293d;
+  --input-bg: #0b1120;
+  --input-border: #2c394f;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --chip-bg: #1a2336;
+  --chip-text: #cbd5e1;
+  --chip-border: #28354c;
+  --table-border: #1f293d;
+  --table-head-bg: #0d1424;
+  --chart-grid: #1e293b;
+  --chart-text: #64748b;
+  --meta-bg: #0d1525;
+  --meta-border: #1c273c;
+  --modal-bg: #111827;
+  --primary: #3b82f6;
+  --primary-hover: #60a5fa;
+  --primary-light: #17243c;
+  --primary-glow: rgba(59, 130, 246, 0.32);
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --shadow-hover: 0 18px 40px rgba(0, 0, 0, 0.65);
+
+  --err-bg: #1f1215;
+  --err-border: #4c1d24;
+  --err-text: #fecdd3;
+  --err-btn: #e11d48;
+}
+
+* {
+  box-sizing: border-box;
+  scrollbar-width: thin;
+  scrollbar-color: var(--input-border) transparent;
+}
+*::-webkit-scrollbar { width: 6px; height: 6px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: var(--input-border); border-radius: var(--radius-pill); }
+*::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+*::-webkit-scrollbar-button { display: none; width: 0; height: 0; }
+
+body {
+  margin: 0;
+  font-family: var(--font-main);
+  color: var(--text-main);
+  background: var(--bg-app);
+  min-height: 100vh;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  -webkit-font-smoothing: antialiased;
+}
+body.modal-locked { overflow: hidden; }
+
+.hidden { display: none !important; }
+.loading-fade {
+  opacity: 0.5;
+  pointer-events: none;
+  filter: grayscale(15%);
+  transition: opacity 0.22s ease, filter 0.22s ease;
+}
+
+.wrap { max-width: 1120px; margin: auto; padding: 20px; }
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 55%, #0284c7 85%, #38bdf8 100%);
+  color: #fff;
+  padding: 24px 28px;
+  border-radius: var(--radius-panel);
+  box-shadow: 0 12px 36px rgba(37, 99, 235, 0.25);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -20%;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.hero-text h1 {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.6px;
+  margin: 0 0 6px;
+}
+.hero-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.hero-tag {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  background: rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px);
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #eff6ff;
+}
+
+.theme-toggle-btn {
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  border-radius: var(--radius-pill);
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
+  backdrop-filter: blur(10px);
+  transition: transform 0.3s var(--spring), background 0.2s ease, box-shadow 0.2s ease;
+  padding: 0;
+}
+.theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.32);
+  transform: rotate(24deg) scale(1.1);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+}
+.theme-toggle-btn:active { transform: scale(0.92); }
+
+.panel {
+  background: var(--panel-bg);
+  border-radius: var(--radius-panel);
+  padding: 22px;
+  margin-top: 16px;
+  border: 1px solid var(--panel-border);
+  box-shadow: var(--shadow-md);
+  transition: background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.panel-section-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.loc-search-box { position: relative; display: flex; gap: 8px; margin-top: 4px; }
+.loc-input-wrap { position: relative; flex: 1; }
+.loc-input-wrap input {
+  width: 100%;
+  padding-left: 40px;
+  font-weight: 700;
+  height: 46px;
+}
+.search-ico {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 15px;
+  opacity: 0.5;
+  pointer-events: none;
+}
+.gps-btn {
+  background: var(--chip-bg);
+  color: var(--primary);
+  border: 1px solid var(--input-border);
+  padding: 0 18px;
+  height: 46px;
+  border-radius: var(--radius-input);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: all 0.2s var(--spring);
+}
+.gps-btn:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+.gps-btn:active { transform: scale(0.96); }
+
+.geo-results {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--panel-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-input);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16);
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 100;
+  display: none;
+  animation: fadeIn 0.18s var(--ease-out);
+}
+.geo-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 13px;
+  border-bottom: 1px solid var(--panel-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.geo-item:last-child { border-bottom: none; }
+.geo-item:hover, .geo-item:focus { background: var(--primary-light); color: var(--primary); outline: none; }
+.geo-item span.admin { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+
+.presets { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.chip {
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  border: 1px solid var(--chip-border);
+  padding: 7px 15px;
+  border-radius: var(--radius-pill);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.22s var(--spring);
+  user-select: none;
+}
+.chip:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+.chip:active { transform: scale(0.94); }
+.chip.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px var(--primary-glow);
+}
+.chip.active::before {
+  content: '●';
+  font-size: 8px;
+  line-height: 1;
+  color: #fff;
+}
+.chip-del {
+  font-size: 15px;
+  line-height: 1;
+  opacity: 0.6;
+  padding: 0 2px;
+  border-radius: 50%;
+  transition: opacity 0.15s, transform 0.2s var(--spring);
+}
+.chip-del:hover { opacity: 1; color: var(--temp-max); transform: scale(1.25); }
+
+.cur-loc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--primary);
+  background: var(--primary-light);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  margin-top: 12px;
+}
+
+details.coord-toggle { margin-top: 12px; font-size: 12px; }
+details.coord-toggle summary {
+  cursor: pointer;
+  list-style: none;
+  font-weight: 800;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  transition: color 0.15s ease;
+}
+details.coord-toggle summary::-webkit-details-marker { display: none; }
+details.coord-toggle summary::after {
+  content: '›';
+  font-size: 17px;
+  font-weight: 900;
+  line-height: 1;
+  transition: transform 0.25s var(--spring);
+  display: inline-block;
+}
+details[open].coord-toggle summary::after { transform: rotate(90deg); }
+details.coord-toggle summary:hover { color: var(--primary); }
+.coord-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+
+.grid-controls {
+  display: grid;
+  grid-template-columns: 1.3fr 0.9fr 1.1fr;
+  gap: 14px;
+  margin-top: 18px;
+}
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field.full { grid-column: 1/-1; }
+.field-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.checkbox-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+.checkbox-wrap input { accent-color: var(--primary); width: 16px; height: 16px; cursor: pointer; }
+
+label { font-size: 12px; font-weight: 800; color: var(--text-muted); letter-spacing: 0.3px; }
+input, select, button {
+  font-family: inherit;
+  border-radius: var(--radius-input);
+  border: 1px solid var(--input-border);
+  padding: 11px 14px;
+  background: var(--input-bg);
+  color: var(--text-main);
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s, transform 0.18s var(--spring);
+}
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+button { border: 0; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+button:active { transform: scale(0.97); }
+button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-cta {
+  background: linear-gradient(135deg, var(--primary) 0%, #1d4ed8 100%);
+  color: #fff;
+  padding: 14px 22px;
+  font-size: 15px;
+  font-weight: 900;
+  width: 100%;
+  margin-top: 18px;
+  border-radius: var(--radius-input);
+  box-shadow: 0 6px 18px var(--primary-glow);
+  letter-spacing: 0.2px;
+  position: relative;
+  overflow: hidden;
+}
+.btn-cta::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.22), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.75s ease;
+}
+.btn-cta:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px var(--primary-glow);
+}
+.btn-cta:hover::after { left: 150%; }
+.btn-cta:active:not(:disabled) { transform: scale(0.98); }
+
+.export-toolbar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--panel-border);
+}
+.btn-export {
+  background: var(--chip-bg);
+  color: var(--text-main);
+  font-size: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--input-border);
+  transition: all 0.2s var(--spring);
+}
+.btn-export:hover:not(:disabled) {
+  background: var(--panel-border);
+  transform: translateY(-1px);
+}
+
+.status { font-size: 13px; font-weight: 700; margin-top: 12px; color: var(--text-muted); min-height: 20px; }
+.bar {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--input-bg);
+  overflow: hidden;
+  margin-top: 8px;
+  position: relative;
+}
+.bar > span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--primary), #38bdf8);
+  transition: width 0.35s var(--ease-out);
+  border-radius: var(--radius-pill);
+}
+
+.error-box {
+  background: var(--err-bg);
+  border: 1px solid var(--err-border);
+  color: var(--err-text);
+  border-radius: 16px;
+  padding: 14px 18px;
+  margin-top: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  animation: fadeIn 0.25s var(--ease-out);
+}
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.error-icon { font-size: 20px; line-height: 1; margin-top: 2px; }
+.error-body { flex: 1; }
+.error-title { font-size: 13px; font-weight: 900; margin-bottom: 3px; }
+.error-message { font-size: 12px; font-weight: 600; line-height: 1.5; opacity: 0.95; }
+.error-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-error-fix {
+  background: var(--err-btn);
+  color: #fff;
+  border: none;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 7px 14px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: transform 0.2s var(--spring);
+}
+.btn-error-fix:hover { transform: translateY(-1px); }
+.error-dismiss {
+  background: transparent;
+  border: none;
+  color: var(--err-text);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 4px;
+  opacity: 0.6;
+}
+.error-dismiss:hover { opacity: 1; }
+
+.results-header { display: flex; justify-content: space-between; align-items: center; margin: 24px 0 10px; padding: 0 4px; }
+.results-title { font-size: 18px; font-weight: 900; color: var(--text-main); letter-spacing: -0.4px; }
+.results-controls { display: flex; align-items: center; gap: 6px; }
+.view-btn {
+  background: var(--panel-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 9px;
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-muted);
+  transition: all 0.2s var(--spring);
+}
+.view-btn.active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  box-shadow: 0 3px 10px var(--primary-glow);
+}
+.nav-arrow {
+  background: var(--panel-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 9px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-main);
+  transition: all 0.2s var(--spring);
+}
+.nav-arrow:hover { background: var(--chip-bg); transform: scale(1.06); }
+
+.cards-wrap { position: relative; width: 100%; min-height: 280px; }
+.cards.mode-carousel {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  gap: 14px;
+  padding: 10px 4px 20px;
+}
+.cards.mode-carousel .card { flex: 0 0 190px; scroll-snap-align: start; }
+.cards.mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(184px, 1fr)); gap: 14px; padding: 10px 0; }
+
+.card {
+  background: var(--panel-bg);
+  border-radius: var(--radius-card);
+  padding: 18px 14px;
+  text-align: center;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--panel-border);
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  transition: transform 0.28s var(--spring), box-shadow 0.28s ease, border-color 0.28s ease;
+}
+.card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-hover);
+  border-color: rgba(37, 99, 235, 0.35);
+}
+.card:active { transform: scale(0.97); }
+
+.day-badge { font-size: 13px; font-weight: 900; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.3px; }
+.date-badge { font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: capitalize; margin-top: 1px; }
+
+.icon {
+  font-size: 46px;
+  line-height: 1;
+  margin: 12px 0 8px;
+  display: inline-block;
+  transform-origin: center center;
+  transition: transform 0.28s var(--spring);
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.06));
+  will-change: transform;
+}
+.card:hover .icon {
+  transform: scale(1.2) rotate(-6deg);
+}
+
+.condition-txt { font-size: 12px; font-weight: 800; color: var(--text-main); min-height: 18px; }
+
+.temps {
+  font-size: 23px;
+  font-weight: 900;
+  margin: 6px 0 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.temps .max { color: var(--temp-max); }
+.temps .min { color: var(--temp-min); }
+.temps .sep { color: var(--text-muted); opacity: 0.45; font-weight: 400; font-size: 18px; }
+.feel-badge { font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 10px; }
+
+.card-meta {
+  background: var(--meta-bg);
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  margin-top: auto;
+  border: 1px solid var(--meta-border);
+}
+.meta-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; white-space: nowrap; }
+.meta-row span { color: var(--text-muted); font-weight: 600; }
+.meta-row b { color: var(--text-main); font-weight: 800; }
+
+.conf-pill {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  display: inline-block;
+  margin-top: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.conf-high { background: #dcfce7; color: #15803d; }
+.conf-mid  { background: #fef3c7; color: #b45309; }
+.conf-low  { background: #ffe4e6; color: #e11d48; }
+[data-theme="dark"] .conf-high { background: #064e3b; color: #6ee7b7; }
+[data-theme="dark"] .conf-mid  { background: #78350f; color: #fde68a; }
+[data-theme="dark"] .conf-low  { background: #881337; color: #fecdd3; }
+
+.chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.chart-title { font-weight: 900; font-size: 16px; color: var(--text-main); }
+.chart-legend { font-size: 11px; font-weight: 800; display: flex; gap: 14px; }
+.leg-max { color: var(--temp-max); }
+.leg-min { color: var(--temp-min); }
+.chart-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.chart-wrap circle {
+  transition: r 0.25s var(--spring), stroke-width 0.25s ease;
+  cursor: pointer;
+}
+.chart-wrap circle:hover { r: 7.5; stroke-width: 3.5; }
+
+.gfs-controls {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr auto;
+  gap: 12px;
+  margin-top: 14px;
+}
+.gfs-btn-field { display: flex; flex-direction: column; justify-content: flex-end; }
+.gfs-status { font-size: 12px; font-weight: 600; color: var(--text-muted); margin: 10px 0 6px; min-height: 18px; }
+.gfsgrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  margin-top: 8px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--table-border);
+}
+.gfshead, .gfsrow { display: contents; }
+.gfscell {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--table-border);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--panel-bg);
+}
+.gfshead .gfscell {
+  font-weight: 800;
+  color: var(--text-muted);
+  background: var(--table-head-bg);
+  text-transform: uppercase;
+  font-size: 11px;
+}
+.gfsactions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+
+details#runPanel summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none;
+  padding: 0;
+}
+details#runPanel summary::-webkit-details-marker { display: none; }
+.summary-heading {
+  font-size: 15px;
+  font-weight: 900;
+  color: var(--text-main);
+}
+.summary-pill {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--primary);
+  background: var(--primary-light);
+  border: 1px solid rgba(37, 99, 235, 0.16);
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s var(--spring);
+}
+.summary-pill::after {
+  content: '›';
+  font-size: 15px;
+  line-height: 1;
+  font-weight: 900;
+  display: inline-block;
+  transition: transform 0.25s var(--spring);
+}
+details#runPanel[open] .summary-pill::after {
+  transform: rotate(90deg);
+}
+details#runPanel summary:hover .summary-pill {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+.summary-pill .txt-open { display: none; }
+.summary-pill .txt-closed { display: inline; }
+details#runPanel[open] .summary-pill .txt-open { display: inline; }
+details#runPanel[open] .summary-pill .txt-closed { display: none; }
+
+.runs { display: grid; gap: 8px; margin-top: 14px; }
+.runrow {
+  display: grid;
+  grid-template-columns: 1.1fr 0.8fr 1.45fr;
+  gap: 8px;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--chip-bg);
+  border-radius: 14px;
+  transition: transform 0.2s var(--spring);
+}
+.runrow:hover { transform: translateX(3px); }
+.runname { font-weight: 900; font-size: 13px; color: var(--text-main); }
+.runcad { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.runnext { font-size: 12px; text-align: right; color: var(--text-main); font-weight: 600; }
+.runnext b { color: var(--primary); }
+.runhint { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+
+/* 24-Hour Sheet Drawer */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
+}
+.modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+.modal-sheet {
+  background: var(--modal-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 28px 28px 0 0;
+  width: 100%;
+  max-width: 880px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.35s var(--spring);
+  padding: 12px 24px 24px;
+  overflow: hidden;
+  box-shadow: 0 -10px 40px rgba(0,0,0,0.25);
+}
+.modal-overlay.open .modal-sheet { transform: translateY(0); }
+
+.sheet-handle {
+  width: 38px;
+  height: 4px;
+  background: var(--input-border);
+  border-radius: var(--radius-pill);
+  margin: 0 auto 12px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.modal-title { font-size: 18px; font-weight: 900; color: var(--text-main); }
+.modal-close {
+  background: var(--chip-bg);
+  color: var(--text-main);
+  border: 0;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s var(--spring);
+}
+.modal-close:hover { transform: scale(1.15) rotate(90deg); }
+
+.modal-content {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-right: 2px;
+}
+
+.dayparts-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.daypart-card {
+  background: var(--meta-bg);
+  border: 1px solid var(--meta-border);
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  transition: transform 0.25s var(--spring), border-color 0.25s ease;
+}
+.daypart-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(37, 99, 235, 0.4);
+}
+.daypart-name { font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; }
+.daypart-main { display: flex; align-items: center; justify-content: space-between; margin-top: 2px; }
+.daypart-temp { font-size: 18px; font-weight: 900; color: var(--text-main); }
+.daypart-icon {
+  font-size: 24px;
+  display: inline-block;
+  transition: transform 0.25s var(--spring);
+}
+.daypart-card:hover .daypart-icon { transform: scale(1.2) rotate(-6deg); }
+.daypart-sub { font-size: 11px; font-weight: 700; color: var(--primary); }
+
+.meteogram-box {
+  background: var(--meta-bg);
+  border: 1px solid var(--meta-border);
+  border-radius: 18px;
+  padding: 14px 16px 8px;
+  overflow-x: auto;
+}
+.meteogram-title { font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+.meteogram-box circle {
+  transition: r 0.2s var(--spring);
+  cursor: pointer;
+}
+.meteogram-box circle:hover { r: 5.5; }
+
+.hourly-ribbon-title { font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px; }
+.hourly-ribbon {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 4px 2px 14px;
+}
+.hourly-col {
+  flex: 0 0 78px;
+  scroll-snap-align: start;
+  background: var(--meta-bg);
+  border: 1px solid var(--meta-border);
+  border-radius: 16px;
+  padding: 12px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  transition: transform 0.25s var(--spring), border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.hourly-col:hover {
+  transform: translateY(-4px);
+  border-color: rgba(37, 99, 235, 0.4);
+  box-shadow: var(--shadow-sm);
+}
+.hourly-time { font-size: 12px; font-weight: 800; color: var(--text-muted); }
+.hourly-icon {
+  font-size: 24px;
+  line-height: 1;
+  display: inline-block;
+  transition: transform 0.25s var(--spring);
+}
+.hourly-col:hover .hourly-icon { transform: scale(1.2) rotate(-6deg); }
+.hourly-temp { font-size: 15px; font-weight: 900; color: var(--temp-max); }
+.hourly-feel { font-size: 10px; font-weight: 700; color: var(--text-muted); }
+.hourly-rain { font-size: 11px; font-weight: 800; color: var(--temp-min); min-height: 15px; }
+.hourly-wind {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 2px;
+}
+.wind-arrow {
+  display: inline-block;
+  font-size: 11px;
+  transition: transform 0.3s var(--spring);
+}
+
+/* Comprehensive Legal & Attribution Footer */
+.footer-panel {
+  padding: 24px;
+  margin-top: 20px;
+}
+.footer-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 0.9fr;
+  gap: 22px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.footer-col b { color: var(--text-main); }
+.footer-heading {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.footer-col p { margin: 0 0 6px; }
+.footer-col p:last-child { margin-bottom: 0; }
+.footer-col a {
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 700;
+  transition: color 0.15s ease;
+}
+.footer-col a:hover { text-decoration: underline; color: var(--primary-hover); }
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--panel-border);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.open-meteo-badge {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 11px;
+  font-weight: 800;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s var(--spring);
+}
+.open-meteo-badge:hover {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+
+@media(max-width: 760px) {
+  .footer-grid { grid-template-columns: 1fr; gap: 18px; }
+  .footer-bottom { flex-direction: column; align-items: flex-start; }
+}
 </style>
 </head>
-<body><div class="wrap">
-<section class="hero"><h1>Regioweer Modelmix</h1><p>Regionale topmodellen · wereldmodellen · ensemblepluim</p></section>
-<section class="panel">
-<div class="grid">
-<div class="field full"><label>Plaatsnaam</label><div style="display:grid;grid-template-columns:1fr auto;gap:8px"><input id="place" type="text" value="Houten" placeholder="Bijv. Houten, De Bilt of Utrecht"><button class="ghost" id="findPlace" type="button">Zoek plaats</button></div><div class="note" id="placeInfo">Houten · coördinaten worden automatisch gebruikt</div></div>
-<input id="lat" type="hidden" value="52.019260"><input id="lon" type="hidden" value="5.172830">
-<div class="field"><label>Model</label><select id="model"><option value="mix">Mix beste modellen</option><option value="gfs">GFS Global</option><option value="ecmwf">ECMWF IFS</option><option value="aifs">ECMWF AIFS</option><option value="icon">ICON-EU</option><option value="ukmo">UKMO Global 10 km</option><option value="gem">GEM Global</option><option value="arome">AROME France</option><option value="arpege">ARPEGE Europe</option><option value="harmonie">KNMI HARMONIE NL 2 km</option><option value="harmonie_eu">KNMI HARMONIE Europe</option><option value="dmi_harmonie">DMI HARMONIE Europe</option><option value="jma">JMA GSM</option></select></div>
-<div class="field"><label>Run (UTC)</label><select id="run"><option>00</option><option>06</option><option selected>12</option><option>18</option></select></div>
-<div class="field full"><label>Datum modelrun</label><input id="date" type="date"></div>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <div class="hero-text">
+      <h1>🌦️ Regioweer Modelmix</h1>
+      <div class="hero-pills">
+        <span class="hero-tag">KNMI HARMONIE</span>
+        <span class="hero-tag">DWD ICON-D2</span>
+        <span class="hero-tag">ECMWF IFS</span>
+        <span class="hero-tag">UKMO</span>
+        <span class="hero-tag">ICON-EU</span>
+        <span class="hero-tag">GFS</span>
+        <span class="hero-tag">ARPEGE</span>
+      </div>
+    </div>
+    <button type="button" id="themeToggle" class="theme-toggle-btn" title="Wissel donkere/lichte modus" aria-label="Wissel thema">🌓</button>
+  </header>
+
+  <section class="panel" aria-labelledby="loc-header">
+    <div class="field full">
+      <label id="loc-header" for="citySearch">Locatie & Coördinaten</label>
+      <div class="loc-search-box">
+        <div class="loc-input-wrap">
+          <span class="search-ico" aria-hidden="true">🔍</span>
+          <input id="citySearch" type="text" placeholder="Zoek plaatsnaam (bijv. Utrecht, Groningen, Valkenburg)..." autocomplete="off" aria-autocomplete="list" aria-controls="geoResults">
+          <div id="geoResults" class="geo-results" role="listbox"></div>
+        </div>
+        <button type="button" class="gps-btn" id="gpsBtn">📍 Mijn locatie</button>
+      </div>
+
+      <div class="presets" id="presetsWrap" role="group" aria-label="Voorkeurslocaties"></div>
+
+      <div>
+        <span class="cur-loc-badge" id="locBadge">📍 Houten (52.02° N, 5.17° O)</span>
+      </div>
+
+      <details class="coord-toggle">
+        <summary>Handmatige coördinaten aanpassen</summary>
+        <div class="coord-fields">
+          <div class="field"><label for="lat">Breedtegraad</label><input id="lat" type="number" step="0.000001" value="52.019260"></div>
+          <div class="field"><label for="lon">Lengtegraad</label><input id="lon" type="number" step="0.000001" value="5.172830"></div>
+        </div>
+      </details>
+    </div>
+
+    <div class="grid-controls">
+      <div class="field">
+        <label for="model">Weermodel</label>
+        <select id="model">
+          <option value="mix" selected>Mix modellen (Gewogen ensemble)</option>
+          <option value="harmonie">KNMI HARMONIE NL (max 48u, 2 km)</option>
+          <option value="icon_d2">DWD ICON-D2 (max 48u, 2.2 km)</option>
+          <option value="ecmwf">ECMWF IFS (9 km)</option>
+          <option value="ukmo">UK Met Office (10 km)</option>
+          <option value="icon_eu">DWD ICON-EU (7 km)</option>
+          <option value="gfs">NCEP GFS Global</option>
+          <option value="arpege">Météo-France ARPEGE Europe</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="days">Aantal dagen</label>
+        <select id="days">
+          <option value="3">3 dagen</option>
+          <option value="5">5 dagen</option>
+          <option value="7" selected>7 dagen</option>
+          <option value="9">9 dagen</option>
+          <option value="10">10 dagen</option>
+        </select>
+      </div>
+      <div class="field">
+        <div class="field-row">
+          <label for="date">Startdatum</label>
+          <label class="checkbox-wrap" for="includeToday">
+            <input type="checkbox" id="includeToday"> Vandaag (dag 0)
+          </label>
+        </div>
+        <input id="date" type="date">
+      </div>
+    </div>
+
+    <button class="btn-cta" id="load">Verwachting ophalen</button>
+
+    <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="prog"></span></div>
+    <div class="status" id="status" aria-live="polite">Kies instellingen en tik op Verwachting ophalen.</div>
+
+    <div id="errorBox" class="error-box hidden" role="alert">
+      <div class="error-icon">⚠️</div>
+      <div class="error-body">
+        <div class="error-title" id="errorTitle">Fout bij ophalen</div>
+        <div class="error-message" id="errorMessage"></div>
+        <div class="error-actions" id="errorActions"></div>
+      </div>
+      <button type="button" class="error-dismiss" id="errorDismiss" aria-label="Melding sluiten">✕</button>
+    </div>
+
+    <div class="export-toolbar">
+      <button class="btn-export" id="multiPng" disabled>Overzichtsfiguur opslaan</button>
+      <button class="btn-export" id="png" disabled>Website-afbeelding opslaan</button>
+      <button class="btn-export" id="csv" disabled>CSV exporteren</button>
+    </div>
+  </section>
+
+  <section class="panel hidden" id="chartPanel">
+    <div class="chart-header">
+      <div class="chart-title">Temperatuurverloop (°C)</div>
+      <div class="chart-legend">
+        <span class="leg-max">● Max (TX)</span>
+        <span class="leg-min">● Min (TN)</span>
+      </div>
+    </div>
+    <div class="chart-wrap" id="chartBox"></div>
+  </section>
+
+  <div class="results-header">
+    <div class="results-title" id="resultsTitle">Verwachting</div>
+    <div class="results-controls">
+      <button type="button" class="nav-arrow" id="scrollPrev" title="Scroll links" aria-label="Vorige">◀</button>
+      <button type="button" class="nav-arrow" id="scrollNext" title="Scroll rechts" aria-label="Volgende">▶</button>
+      <button type="button" class="view-btn active" id="btnCarousel">Carrousel</button>
+      <button type="button" class="view-btn" id="btnGrid">Raster</button>
+    </div>
+  </div>
+
+  <div class="cards-wrap">
+    <section id="results" class="cards mode-carousel" aria-live="polite"></section>
+  </div>
+
+  <section class="panel" id="gfsPanel">
+    <div class="panel-section-title">GFS-run TX / TN</div>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:-6px;">
+      Ruwe synoptische modelwaarden per specifieke run via de Single Runs API.
+    </div>
+
+    <div class="gfs-controls">
+      <div class="field">
+        <label for="gfsDate">Run datum</label>
+        <input id="gfsDate" type="date">
+      </div>
+      <div class="field">
+        <label for="gfsRun">Run (UTC)</label>
+        <select id="gfsRun">
+          <option value="00">00 UTC</option>
+          <option value="06">06 UTC</option>
+          <option value="12">12 UTC</option>
+          <option value="18">18 UTC</option>
+        </select>
+      </div>
+      <div class="field gfs-btn-field">
+        <button type="button" class="btn-cta" id="loadGfsBtn" style="margin-top:0;padding:11px 18px">GFS-run ophalen</button>
+      </div>
+    </div>
+
+    <div id="gfsStatus" class="gfs-status">Kies een datum en run-tijd en klik op GFS-run ophalen.</div>
+
+    <div id="gfsTable" class="gfsgrid">
+      <div class="gfshead"><div class="gfscell">Datum</div><div class="gfscell">TX</div><div class="gfscell">TN</div></div>
+    </div>
+    <div class="gfsactions">
+      <button class="btn-export" id="copyTx" disabled>TX kopiëren</button>
+      <button class="btn-export" id="copyTn" disabled>TN kopiëren</button>
+    </div>
+  </section>
+
+  <details class="panel" id="runPanel">
+    <summary>
+      <span class="summary-heading">Modelruns schema</span>
+      <span class="summary-pill">
+        <span class="txt-closed">Bekijk schema</span>
+        <span class="txt-open">Verberg schema</span>
+      </span>
+    </summary>
+    <div style="font-size:11px;color:var(--text-muted);margin-top:10px;">Verwachte publicatietijd in lokale tijd (UTC tussen haakjes).</div>
+    <div id="runSchedule" class="runs"></div>
+  </details>
+
+  <!-- Complete Legal, Attribution and Scientific Footnote -->
+  <footer class="panel footer-panel">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <div class="footer-heading">⚖️ Gewogen Ensemble</div>
+        <p>• <b>Korte termijn (Dag 1–2):</b> KNMI HARMONIE (35%), DWD ICON-D2 (30%), ECMWF IFS (20%), UKMO (15%).</p>
+        <p>• <b>Middellange termijn (Dag 3–5):</b> ECMWF IFS (40%), UKMO (25%), ICON-EU (25%), ARPEGE (10%).</p>
+        <p>• <b>Lange termijn (Dag 6+):</b> ECMWF IFS (55%), UKMO (30%), GFS (15%).</p>
+      </div>
+
+      <div class="footer-col">
+        <div class="footer-heading">📡 Data &amp; Licenties</div>
+        <p>Weergegevens geleverd door <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo.com</a> onder de <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">Creative Commons Attribution 4.0 International (CC BY 4.0)</a> licentie.</p>
+        <p>Numerieke voorspellingsdata zijn afkomstig van het <b>KNMI</b>, Deutscher Wetterdienst (<b>DWD</b>), <b>ECMWF</b>, UK Met Office (<b>UKMO</b>), Météo-France (<b>ARPEGE</b>) en NOAA National Weather Service (<b>GFS</b>).</p>
+      </div>
+
+      <div class="footer-col">
+        <div class="footer-heading">⚠️ Disclaimer</div>
+        <p>Deze webapplicatie is ontworpen voor meteorologische vergelijking en analyse. Niet geschikt voor operationele besluitvorming of bescherming van lijf en goed. Raadpleeg voor officiële weeralarmen en waarschuwingen het <a href="https://www.knmi.nl" target="_blank" rel="noopener noreferrer">KNMI</a>.</p>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2026 Regioweer Modelmix · Real-time Weerdata &amp; Modellenanalyse</span>
+      <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" class="open-meteo-badge">Weather data by Open-Meteo.com</a>
+    </div>
+  </footer>
 </div>
-<div class="buttons"><button class="primary full" id="load">Gegevens ophalen</button><button class="ghost" id="csv" disabled>Excel/CSV opslaan</button><button class="secondary" id="png" disabled>Website-PNG opslaan</button><button class="secondary full" id="fivepng" disabled>5-daagse figuur opslaan</button><button class="ghost full" id="plumeOpen" type="button">📈 Pluim</button><button class="ghost full" id="riskOpen" type="button">⚠️ Kansentabel</button><button class="ghost full hidden" id="install">📲 App installeren</button></div>
-<div class="bar"><span id="prog"></span></div><div class="status" id="status">Kies een run en tik op Gegevens ophalen.</div>
-</section>
-<section class="panel" id="runPanel"><div style="font-weight:850;font-size:17px">Modelruns</div><div class="note">Volgende modelstart. Tijden worden automatisch in jouw lokale tijd getoond; UTC staat tussen haakjes.</div><div id="runSchedule" class="runs"></div><div class="note">De uitvoer verschijnt pas na de rekentijd. Globale modellen hebben doorgaans meer tijd nodig dan regionale modellen.</div></section>
-<section id="results" class="cards"></section>
-<section class="panel hidden" id="plumePanel"><div style="font-weight:850;font-size:17px">Pluim</div><div class="note">Actuele ensemblepluim voor de gekozen plaats. De pluim gebruikt de nieuwste beschikbare ensemble-run en staat los van de gekozen deterministische run hierboven.</div><div class="plumecontrols"><select id="plumeModel"><option value="ecmwf_ifs025_ensemble">ECMWF ENS (51 leden)</option><option value="ncep_gefs025">GEFS (31 leden)</option><option value="dwd_icon_eu_eps">ICON-EPS Europe</option></select><button class="primary" id="plumeLoad" type="button">Pluim ophalen</button><button class="ghost" id="plumeSave" type="button" disabled>PNG</button></div><div class="status" id="plumeStatus">Kies een ensemble en tik op Pluim ophalen.</div><div class="plumewrap"><canvas id="plumeCanvas" width="1200" height="650"></canvas></div></section>
-<section class="panel hidden" id="riskPanel"><div style="font-weight:850;font-size:17px">Kansentabel</div><div class="note">Ensemblekansen voor de gekozen plaats. De percentages zijn het aandeel ensembleleden dat de drempel op die dag bereikt.</div><div class="riskcontrols"><select id="riskModel"><option value="ecmwf_ifs025_ensemble">ECMWF ENS</option><option value="ncep_gefs025">GEFS</option><option value="dwd_icon_eu_eps">ICON-EPS Europe</option></select><button class="primary" id="riskLoad" type="button">Kansen ophalen</button><button class="ghost" id="riskSave" type="button" disabled>PNG</button></div><div class="status" id="riskStatus">Kies een ensemble en tik op Kansen ophalen.</div><div class="riskwrap"><canvas id="riskCanvas" width="1500" height="760"></canvas></div><div class="note">Windstoten = maximaal ≥75 km/u. Vorst = minimumtemperatuur onder 0 °C.</div></section>
-<section class="panel" id="gfsPanel"><div style="font-weight:850;font-size:17px">GFS-run TX/TN</div><div class="note">Nieuwste live GFS voor je Excel. Alleen als live GFS niet beschikbaar is, wordt teruggevallen op de gekozen of een oudere run. Alle beschikbare dagen tot 384 uur vooruit worden getoond.</div><div id="gfsTable" class="gfsgrid"><div class="gfshead"><div class="gfscell">Datum</div><div class="gfscell">TX</div><div class="gfscell">TN</div></div></div><div class="gfsactions"><button class="ghost" id="copyTx" disabled>TX kopiëren</button><button class="ghost" id="copyTn" disabled>TN kopiëren</button></div></section>
-<section class="panel"><div class="note"><b>Beste-modelmix:</b> korte termijn legt de nadruk op HARMONIE, AROME en ICON. Daarna verschuift de mix naar ECMWF IFS, GFS, UKMO, GEM en ECMWF AIFS. Extra HARMONIE- en JMA-runs kun je los bekijken, maar tellen niet dubbel mee in de mix.</div></section>
+
+<!-- Modal Drawer -->
+<div class="modal-overlay" id="hourlyModal" aria-modal="true" role="dialog" aria-labelledby="modalDayTitle">
+  <div class="modal-sheet">
+    <div class="sheet-handle"></div>
+    <div class="modal-header">
+      <div class="modal-title" id="modalDayTitle">24-uurs detailverwachting</div>
+      <button type="button" class="modal-close" id="modalClose" aria-label="Sluiten">✕</button>
+    </div>
+    <div class="modal-content">
+      <div class="dayparts-grid" id="daypartsGrid"></div>
+      <div class="meteogram-box">
+        <div class="meteogram-title">Temperatuur & Neerslag verloop</div>
+        <div id="meteogramWrap"></div>
+      </div>
+      <div>
+        <div class="hourly-ribbon-title">Uur-voor-uur tijdlijn</div>
+        <div class="hourly-ribbon" id="hourlyRibbon"></div>
+      </div>
+    </div>
+  </div>
 </div>
+
 <script>
-const $=id=>document.getElementById(id); const NL=['zo','ma','di','wo','do','vr','za'];
-$('date').value=new Date().toISOString().slice(0,10);
-async function findPlace(){
-  const q=$('place').value.trim(); if(!q){$('placeInfo').textContent='Vul eerst een plaatsnaam in.';return false}
-  $('placeInfo').textContent='Plaats zoeken…';
-  try{
-    const u=`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=1&language=nl&format=json`;
-    const r=await fetch(u,{cache:'no-store'}),j=await r.json();
-    const g=j?.results?.[0]; if(!g)throw new Error('Plaats niet gevonden');
-    $('lat').value=g.latitude; $('lon').value=g.longitude;
-    const bits=[g.name,g.admin1,g.country_code].filter(Boolean);
-    $('place').value=g.name; $('placeInfo').textContent=`${bits.join(' · ')} · ${g.latitude.toFixed(4)}, ${g.longitude.toFixed(4)}`;
-    localStorage.setItem('regioweer-place',JSON.stringify({name:g.name,lat:g.latitude,lon:g.longitude,info:$('placeInfo').textContent}));
-    return true;
-  }catch(e){$('placeInfo').textContent=`Plaats niet gevonden: ${e.message}`;return false}
+'use strict';
+
+const $ = id => document.getElementById(id);
+const NL = ['zo', 'ma', 'di', 'wo', 'do', 'vr', 'za'];
+let lastRows = [];
+let lastGfsRows = [];
+let currentLocationName = 'Houten';
+let searchAbortController = null;
+let forecastAbortController = null;
+
+const getLocalDateStr = (d = new Date()) => d.toLocaleDateString('sv-SE');
+
+function formatCoords(lat, lon) {
+  const nLat = Number(lat);
+  const nLon = Number(lon);
+  const latStr = `${Math.abs(nLat).toFixed(2)}° ${nLat >= 0 ? 'N' : 'Z'}`;
+  const lonStr = `${Math.abs(nLon).toFixed(2)}° ${nLon >= 0 ? 'O' : 'W'}`;
+  return `${latStr}, ${lonStr}`;
 }
-$('findPlace').onclick=findPlace;
-$('place').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();findPlace()}});
-try{const sv=JSON.parse(localStorage.getItem('regioweer-place')||'null');if(sv){$('place').value=sv.name;$('lat').value=sv.lat;$('lon').value=sv.lon;$('placeInfo').textContent=sv.info||sv.name}}catch(e){}
-let lastRows=[]; let lastGfsRows=[];
-const MODELS={
- gfs:{code:'ncep_gfs_global',name:'GFS Global',hours:384,aliases:['gfs_global','gfs013','gfs_seamless','ncep_gfs_seamless']},
- ecmwf:{code:'ecmwf_ifs',name:'ECMWF IFS',hours:241},
- aifs:{code:'ecmwf_aifs025_single',name:'ECMWF AIFS',hours:361},
- icon:{code:'icon_eu',name:'ICON-EU',hours:121},
- ukmo:{code:'ukmo_global_deterministic_10km',name:'UKMO Global 10 km',hours:193},
- gem:{code:'cmc_gem_gdps',name:'GEM Global',hours:241},
- arome:{code:'meteofrance_arome_france',name:'AROME France',hours:49},
- arpege:{code:'meteofrance_arpege_europe',name:'ARPEGE Europe',hours:97},
- harmonie:{code:'knmi_harmonie_arome_netherlands',name:'KNMI HARMONIE NL 2 km',hours:61},
- harmonie_eu:{code:'knmi_harmonie_arome_europe',name:'KNMI HARMONIE Europe',hours:61},
- dmi_harmonie:{code:'dmi_harmonie_arome_europe',name:'DMI HARMONIE Europe',hours:61},
- jma:{code:'jma_gsm',name:'JMA GSM',hours:265}
+
+function syncThemeIcon() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  $('themeToggle').textContent = isDark ? '☀️' : '🌙';
 }
-const RUN_SCHEDULES=[
- {name:'GFS',step:6,delay:[4,6]},
- {name:'ECMWF IFS',step:6,delay:[4,7.5]},
- {name:'ECMWF AIFS',step:6,delay:[3,6]},
- {name:'ICON-EU',step:3,delay:[1,3]},
- {name:'UKMO Global',step:6,delay:[4,7]},
- {name:'GEM Global',step:6,delay:[3,6]},
- {name:'AROME',step:3,delay:[1,3]},
- {name:'ARPEGE',step:6,delay:[2,4]},
- {name:'HARMONIE NL',step:1,delay:[1,3]},
- {name:'HARMONIE EU',step:1,delay:[1,3]}
-]
-function nextUtcSlot(step,now=new Date()){
-  const t=now.getTime(), hour=now.getUTCHours(), base=Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate(),0,0,0,0);
-  let slot=Math.floor(hour/step)*step; let candidate=base+slot*3600000;
-  if(candidate<=t) candidate+=step*3600000;
+syncThemeIcon();
+
+$('themeToggle').onclick = () => {
+  const current = document.documentElement.getAttribute('data-theme');
+  const target = current === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', target);
+  try { localStorage.setItem('regioweer_theme', target); } catch (_) {}
+  syncThemeIcon();
+};
+
+const DEFAULT_PRESETS = [
+  { name: 'Houten', lat: '52.019260', lon: '5.172830' },
+  { name: 'De Bilt', lat: '52.109272', lon: '5.180968' }
+];
+
+let sessionSearches = [];
+try {
+  sessionSearches = JSON.parse(sessionStorage.getItem('regioweer_session_presets')) || [];
+} catch (_) {}
+
+const MODELS = {
+  harmonie: { code: 'knmi_harmonie_arome_netherlands', name: 'KNMI HARMONIE NL (2 km)', maxDays: 2, region: 'NL/Benelux' },
+  icon_d2:  { code: 'icon_d2', name: 'DWD ICON-D2 (2.2 km)', maxDays: 2, region: 'Midden-Europa' },
+  ecmwf:    { code: 'ecmwf_ifs', name: 'ECMWF IFS (9 km)', maxDays: 10, isGlobal: true },
+  ukmo:     { code: 'ukmo_seamless', name: 'UK Met Office (10 km)', maxDays: 10, isGlobal: true },
+  icon_eu:  { code: 'icon_eu', name: 'DWD ICON-EU (7 km)', maxDays: 5, region: 'Europa' },
+  gfs:      { code: 'gfs_seamless', name: 'NCEP GFS Global', maxDays: 10, isGlobal: true },
+  arpege:   { code: 'meteofrance_arpege_europe', name: 'Météo-France ARPEGE', maxDays: 4, region: 'Europa' }
+};
+
+const RUN_SCHEDULES = [
+  { name: 'KNMI HARMONIE', step: 1, delay: [1, 2.5] },
+  { name: 'DWD ICON-D2',   step: 3, delay: [1, 2] },
+  { name: 'DWD ICON-EU',   step: 3, delay: [1.5, 3] },
+  { name: 'UK Met Office', step: 6, delay: [3, 5] },
+  { name: 'ARPEGE Europe', step: 6, delay: [2, 4] },
+  { name: 'NCEP GFS',      step: 6, delay: [3.5, 5.5] },
+  { name: 'ECMWF IFS',     step: 6, delay: [4, 7] }
+];
+
+function escapeHtml(str) {
+  if (str == null) return '';
+  return String(str).replace(/[&<>"']/g, m => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  })[m]);
+}
+
+function updateUrlParams(lat, lon, name) {
+  const url = new URL(window.location);
+  url.searchParams.set('lat', Number(lat).toFixed(4));
+  url.searchParams.set('lon', Number(lon).toFixed(4));
+  if (name) url.searchParams.set('name', name);
+  window.history.replaceState(null, '', url.toString());
+}
+
+function renderPresets() {
+  const wrap = $('presetsWrap');
+  if (!wrap) return;
+
+  const allPresets = [
+    ...DEFAULT_PRESETS.map(p => ({ ...p, isDefault: true })),
+    ...sessionSearches.map(p => ({ ...p, isDefault: false }))
+  ];
+
+  wrap.innerHTML = allPresets.map(p => {
+    const isActive = (p.name === currentLocationName || 
+      (Math.abs(Number(p.lat) - Number($('lat').value)) < 0.001 && Math.abs(Number(p.lon) - Number($('lon').value)) < 0.001));
+    const delBtn = p.isDefault ? '' : `<span class="chip-del" data-del="${escapeHtml(p.name)}" title="Verwijder" role="button" aria-label="Verwijder ${escapeHtml(p.name)}">×</span>`;
+    return `<div class="chip${isActive ? ' active' : ''}" data-lat="${p.lat}" data-lon="${p.lon}" data-name="${escapeHtml(p.name)}">
+      <span>${escapeHtml(p.name)}</span>${delBtn}
+    </div>`;
+  }).join('');
+}
+
+function addSessionPreset(lat, lon, name) {
+  if (!name) return;
+  const nLat = Number(lat).toFixed(6);
+  const nLon = Number(lon).toFixed(6);
+
+  const isDefault = DEFAULT_PRESETS.some(d => 
+    d.name.toLowerCase() === name.toLowerCase() || 
+    (Math.abs(Number(d.lat) - Number(nLat)) < 0.01 && Math.abs(Number(d.lon) - Number(nLon)) < 0.01)
+  );
+  if (isDefault) return;
+
+  sessionSearches = sessionSearches.filter(item => 
+    item.name.toLowerCase() !== name.toLowerCase() && 
+    !(Math.abs(Number(item.lat) - Number(nLat)) < 0.01 && Math.abs(Number(item.lon) - Number(nLon)) < 0.01)
+  );
+
+  sessionSearches.unshift({ name, lat: nLat, lon: nLon });
+  if (sessionSearches.length > 5) sessionSearches = sessionSearches.slice(0, 5);
+
+  try {
+    sessionStorage.setItem('regioweer_session_presets', JSON.stringify(sessionSearches));
+  } catch (_) {}
+
+  renderPresets();
+}
+
+function setLocation(lat, lon, name = '') {
+  const nLat = Number(lat);
+  const nLon = Number(lon);
+  if (!Number.isFinite(nLat) || !Number.isFinite(nLon)) return;
+
+  $('lat').value = nLat.toFixed(6);
+  $('lon').value = nLon.toFixed(6);
+  currentLocationName = name || `${nLat.toFixed(2)}°, ${nLon.toFixed(2)}°`;
+  $('locBadge').textContent = `📍 ${currentLocationName} (${formatCoords(nLat, nLon)})`;
+  
+  try {
+    localStorage.setItem('regioweer_loc', JSON.stringify({ lat: nLat, lon: nLon, name: currentLocationName }));
+  } catch (_) {}
+
+  updateUrlParams(nLat, nLon, currentLocationName);
+  renderPresets();
+}
+
+$('presetsWrap').addEventListener('click', e => {
+  const del = e.target.closest('.chip-del');
+  if (del) {
+    e.stopPropagation();
+    const nameToDel = del.dataset.del;
+    sessionSearches = sessionSearches.filter(s => s.name !== nameToDel);
+    try { sessionStorage.setItem('regioweer_session_presets', JSON.stringify(sessionSearches)); } catch (_) {}
+    renderPresets();
+    return;
+  }
+
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  setLocation(chip.dataset.lat, chip.dataset.lon, chip.dataset.name);
+  $('citySearch').value = '';
+  hideError();
+  setStatus(`Locatie gewijzigd naar ${currentLocationName}. Tik op 'Verwachting ophalen'.`, 0);
+});
+
+function loadSavedLocation() {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('lat') && urlParams.has('lon')) {
+    setLocation(urlParams.get('lat'), urlParams.get('lon'), urlParams.get('name') || '');
+    return;
+  }
+  try {
+    const saved = JSON.parse(localStorage.getItem('regioweer_loc'));
+    if (saved?.lat && saved?.lon) {
+      setLocation(saved.lat, saved.lon, saved.name);
+      return;
+    }
+  } catch (_) {}
+  setLocation(52.019260, 5.172830, 'Houten');
+}
+loadSavedLocation();
+
+const handleManualCoords = () => {
+  const lat = parseFloat($('lat').value);
+  const lon = parseFloat($('lon').value);
+  if (Number.isFinite(lat) && Number.isFinite(lon)) {
+    setLocation(lat, lon, 'Aangepast');
+    hideError();
+    setStatus("Coördinaten gewijzigd. Tik op 'Verwachting ophalen'.", 0);
+  }
+};
+$('lat').addEventListener('change', handleManualCoords);
+$('lon').addEventListener('change', handleManualCoords);
+
+$('model').addEventListener('change', () => { hideError(); setStatus("Weermodel gewijzigd. Tik op 'Verwachting ophalen'.", 0); });
+$('days').addEventListener('change', () => {
+  $('multiPng').textContent = `${$('days').value}-daagse figuur opslaan`;
+  setStatus("Aantal dagen gewijzigd. Tik op 'Verwachting ophalen'.", 0);
+});
+$('date').addEventListener('change', () => setStatus("Startdatum gewijzigd. Tik op 'Verwachting ophalen'.", 0));
+$('includeToday').addEventListener('change', () => setStatus("Optie 'Vandaag' gewijzigd. Tik op 'Verwachting ophalen'.", 0));
+
+$('gpsBtn').onclick = () => {
+  if (!navigator.geolocation) {
+    setStatus('Geolocatie wordt niet ondersteund door browser.', 0);
+    return;
+  }
+  setStatus('GPS-positie bepalen…', 25);
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      setLocation(pos.coords.latitude, pos.coords.longitude, 'Mijn GPS-locatie');
+      setStatus("GPS-locatie ingesteld. Tik op 'Verwachting ophalen'.", 100);
+      hideError();
+    },
+    err => {
+      setStatus(err.code === 1 ? 'Locatietoegang geweigerd.' : 'Kon GPS niet ophalen.', 0);
+    },
+    { timeout: 10000, enableHighAccuracy: true }
+  );
+};
+
+let searchDebounce = null;
+const searchInput = $('citySearch');
+const geoResults = $('geoResults');
+
+searchInput.addEventListener('input', () => {
+  clearTimeout(searchDebounce);
+  if (searchAbortController) searchAbortController.abort();
+
+  const q = searchInput.value.trim();
+  if (q.length < 2) {
+    geoResults.style.display = 'none';
+    return;
+  }
+
+  searchDebounce = setTimeout(async () => {
+    searchAbortController = new AbortController();
+    try {
+      const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=10&language=nl&format=json`, {
+        signal: searchAbortController.signal
+      });
+      const data = await res.json();
+      geoResults.innerHTML = '';
+
+      if (!data.results?.length) {
+        const div = document.createElement('div');
+        div.className = 'geo-item';
+        div.style.color = 'var(--text-muted)';
+        div.textContent = `Geen locaties gevonden voor "${q}"`;
+        geoResults.appendChild(div);
+        geoResults.style.display = 'block';
+        return;
+      }
+
+      const seen = new Set();
+      data.results.forEach(item => {
+        const key = `${item.name}|${item.admin1 || ''}|${item.country || ''}`.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+
+        const row = document.createElement('div');
+        row.className = 'geo-item';
+        row.tabIndex = 0;
+        row.role = 'option';
+        row.dataset.lat = item.latitude;
+        row.dataset.lon = item.longitude;
+        row.dataset.name = item.name;
+
+        const strong = document.createElement('b');
+        strong.textContent = item.name;
+        const adminSpan = document.createElement('span');
+        adminSpan.className = 'admin';
+        adminSpan.textContent = [item.admin1, item.country].filter(Boolean).join(', ');
+
+        row.append(strong, adminSpan);
+        geoResults.appendChild(row);
+      });
+      geoResults.style.display = 'block';
+    } catch (e) {
+      if (e.name !== 'AbortError') geoResults.style.display = 'none';
+    }
+  }, 300);
+});
+
+function selectGeoItem(item) {
+  if (!item?.dataset?.lat) return;
+  const { lat, lon, name } = item.dataset;
+  addSessionPreset(lat, lon, name);
+  setLocation(lat, lon, name);
+  searchInput.value = name;
+  geoResults.style.display = 'none';
+  hideError();
+  setStatus(`Locatie "${name}" geselecteerd. Tik op 'Verwachting ophalen'.`, 0);
+}
+
+geoResults.addEventListener('click', e => selectGeoItem(e.target.closest('.geo-item')));
+geoResults.addEventListener('keydown', e => {
+  if (e.key === 'Enter') selectGeoItem(e.target.closest('.geo-item'));
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('.loc-input-wrap')) geoResults.style.display = 'none';
+});
+
+$('btnCarousel').onclick = () => setLayoutMode('carousel');
+$('btnGrid').onclick = () => setLayoutMode('grid');
+
+function setLayoutMode(mode) {
+  const c = $('results');
+  if (mode === 'carousel') {
+    c.className = 'cards mode-carousel';
+    $('btnCarousel').classList.add('active');
+    $('btnGrid').classList.remove('active');
+    $('scrollPrev').style.display = 'inline-flex';
+    $('scrollNext').style.display = 'inline-flex';
+  } else {
+    c.className = 'cards mode-grid';
+    $('btnGrid').classList.add('active');
+    $('btnCarousel').classList.remove('active');
+    $('scrollPrev').style.display = 'none';
+    $('scrollNext').style.display = 'none';
+  }
+}
+
+$('scrollPrev').onclick = () => $('results').scrollBy({ left: -220, behavior: 'smooth' });
+$('scrollNext').onclick = () => $('results').scrollBy({ left: 220, behavior: 'smooth' });
+
+function degreesToDutchCompass(deg) {
+  if (!Number.isFinite(deg)) return '';
+  const dirs = ['N', 'NNO', 'NO', 'ONO', 'O', 'OZO', 'ZO', 'ZZO', 'Z', 'ZZW', 'ZW', 'WZW', 'W', 'WNW', 'NW', 'NNW'];
+  return dirs[Math.round(deg / 22.5) % 16];
+}
+
+function kmhToBeaufort(kmh) {
+  if (!Number.isFinite(kmh)) return 0;
+  const limits = [1, 5, 11, 19, 28, 38, 49, 61, 74, 88, 102, 117];
+  for (let i = 0; i < limits.length; i++) if (kmh <= limits[i]) return i;
+  return 12;
+}
+
+function weightedAvgWindDir(itemsWithWeights) {
+  let u = 0, v = 0, totalW = 0;
+  for (const { item, weight } of itemsWithWeights) {
+    if (item?.windDirDeg != null) {
+      const rad = item.windDirDeg * Math.PI / 180;
+      u += weight * (-Math.sin(rad));
+      v += weight * (-Math.cos(rad));
+      totalW += weight;
+    }
+  }
+  if (!totalW) return null;
+  let deg = Math.atan2(-u, -v) * 180 / Math.PI;
+  return deg < 0 ? deg + 360 : deg;
+}
+
+$('date').value = getLocalDateStr();
+
+function initGfsDate() {
+  const now = new Date();
+  const utcHour = now.getUTCHours() + now.getUTCMinutes() / 60;
+  let gfsRun = '00';
+  let gfsDateObj = new Date(now);
+
+  if (utcHour >= 22.5) gfsRun = '18';
+  else if (utcHour >= 16.5) gfsRun = '12';
+  else if (utcHour >= 10.5) gfsRun = '06';
+  else if (utcHour >= 4.5)  gfsRun = '00';
+  else {
+    gfsDateObj.setUTCDate(gfsDateObj.getUTCDate() - 1);
+    gfsRun = '18';
+  }
+  $('gfsDate').value = getLocalDateStr(gfsDateObj);
+  $('gfsRun').value = gfsRun;
+}
+initGfsDate();
+
+function nextUtcSlot(step, now = new Date()) {
+  const t = now.getTime(), hour = now.getUTCHours();
+  const base = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0);
+  let slot = Math.floor(hour / step) * step;
+  let candidate = base + slot * 3600000;
+  if (candidate <= t) candidate += step * 3600000;
   return new Date(candidate);
 }
-function hmLocal(d){return d.toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit',hour12:false})}
-function hmUtc(d){return String(d.getUTCHours()).padStart(2,'0')+':00 UTC'}
-function countdown(to,now=new Date()){let ms=Math.max(0,to-now),m=Math.ceil(ms/60000),h=Math.floor(m/60);m%=60;return h?`${h}u ${m}m`:`${m} min`}
-function availabilityText(next,delay){
-  const a=new Date(next.getTime()+delay[0]*3600000),b=new Date(next.getTime()+delay[1]*3600000);
-  return `uitvoer ca. ${hmLocal(a)}–${hmLocal(b)}`;
-}
-function renderRunSchedule(){
-  const box=$('runSchedule'); if(!box)return; const now=new Date();
-  box.innerHTML=RUN_SCHEDULES.map(r=>{const n=nextUtcSlot(r.step,now);return `<div class="runrow"><div><div class="runname">${r.name}</div><div class="runcad">elke ${r.step===1?'1 uur':r.step+' uur'}</div></div><div class="runnext"><b>${hmLocal(n)}</b> (${hmUtc(n)})<div class="runhint">over ${countdown(n,now)} · ${availabilityText(n,r.delay)}</div></div></div>`}).join('');
-}
-renderRunSchedule(); setInterval(renderRunSchedule,30000);
-function runIso(){return `${$('date').value}T${$('run').value}:00`}
-function apiUrl(m,visual=false){const lat=$('lat').value,lon=$('lon').value;const vars=visual?'temperature_2m,precipitation,sunshine_duration,weather_code':'temperature_2m';return `https://single-runs-api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&run=${runIso()}&models=${encodeURIComponent(m.code)}&hourly=${vars}&timezone=Europe%2FAmsterdam&forecast_hours=${m.hours}`}
-function extraHourlyUrl(m,v){const lat=$('lat').value,lon=$('lon').value;return `https://single-runs-api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&run=${runIso()}&models=${encodeURIComponent(m.code)}&hourly=${encodeURIComponent(v)}&timezone=Europe%2FAmsterdam&forecast_hours=${m.hours}`}
-function mergeHourlyExtra(rows,j,v){if(!j?.hourly?.time)return rows;const map=Object.fromEntries(rows.map(r=>[r.date,r]));const vals=j.hourly[v]||[];for(let i=0;i<j.hourly.time.length;i++){const r=map[j.hourly.time[i].slice(0,10)],val=vals[i];if(!r||val==null||!Number.isFinite(+val))continue;const n=+val;if(v==='uv_index')r.uv=Number.isFinite(r.uv)?Math.max(r.uv,n):n;else if(v==='wind_gusts_10m')r.gust=Number.isFinite(r.gust)?Math.max(r.gust,n):n;else if(v==='snowfall')r.snow=(Number.isFinite(r.snow)?r.snow:0)+n;else if(v==='precipitation_probability')r.pop=Number.isFinite(r.pop)?Math.max(r.pop,n):n;}return rows}
-async function fetchOneExtra(m,rows,v){try{let r=await fetch(extraHourlyUrl(m,v));let j=await r.json();if(!r.ok||j.error)return rows;return mergeHourlyExtra(rows,j,v)}catch(e){console.warn(v+' niet beschikbaar voor '+m.name,e);return rows}}
-async function fetchExtras(m,rows){for(const v of ['precipitation_probability','uv_index','wind_gusts_10m','snowfall'])rows=await fetchOneExtra(m,rows,v);return rows}
-async function fetchModel(key,visual=true,runOverride=null){
- let m=MODELS[key];
- let codes=[m.code,...(m.aliases||[])];
- let lastErr='';
- for(const code of codes){
-   const mm={...m,code};
-   try{
-     // GFS: eerst alleen temperatuur ophalen. Zo kan een beschikbare GFS025-run
-     // niet worden geblokkeerd door een extra variabele die nog via GFS013 loopt.
-     let coreVisual = key==='gfs' ? false : visual;
-     let url=apiUrl(mm,coreVisual);
-     if(runOverride) url=url.replace(encodeURIComponent(runIso()),encodeURIComponent(runOverride));
-     let r=await fetch(url,{cache:'no-store'});let j=await r.json();
-     if(!r.ok||j.error) throw new Error(j.reason||`HTTP ${r.status}`);
-     if(!j.hourly?.time)throw new Error('Geen uurgegevens');
-     let rows=hourlyToDaily(j.hourly);rows._modelUsed=mm;rows._runUsed=runOverride||runIso();
-     // GFS-visuele velden zijn aanvullend: mislukken mag de run niet blokkeren.
-     if(key==='gfs' && visual){
-       for(const v of ['precipitation','sunshine_duration','weather_code']){
-         try{
-           let eu=extraHourlyUrl(mm,v);
-           if(runOverride) eu=eu.replace(encodeURIComponent(runIso()),encodeURIComponent(runOverride));
-           let er=await fetch(eu,{cache:'no-store'}), ej=await er.json();
-           if(er.ok&&!ej.error&&ej.hourly?.time) rows=mergeGfsVisual(rows,ej,v);
-         }catch(e){console.warn('GFS extra '+v+' niet beschikbaar',e)}
-       }
-     }
-     return rows
-   }catch(e){lastErr=e.message;console.warn('GFS/modelcode '+code+' mislukt:',e.message)}
- }
- throw new Error(`${m.name}: ${lastErr}`)
-}
-function mergeGfsVisual(rows,j,v){
- const map=Object.fromEntries(rows.map(r=>[r.date,r]));
- const vals=j.hourly?.[v]||[];
- for(let i=0;i<(j.hourly?.time||[]).length;i++){
-   const r=map[j.hourly.time[i].slice(0,10)], val=vals[i]; if(!r||val==null)continue;
-   if(v==='precipitation')r.precip=(Number.isFinite(r.precip)?r.precip:0)+(+val||0);
-   else if(v==='sunshine_duration')r.sun=(Number.isFinite(r.sun)?r.sun:0)+(+val||0)/3600;
-   else if(v==='weather_code'){if(!Array.isArray(r.codes))r.codes=[];r.codes.push(+val)}
- }
- return rows
-}
-function hourlyToDaily(h){
- const map={};
- for(let i=0;i<h.time.length;i++){
-   let d=h.time[i].slice(0,10),hr=h.time[i].slice(11,13),t=h.temperature_2m?.[i];
-   if(!map[d])map[d]={date:d,max:-99,min:99,precip:0,sun:0,snow:0,pop:null,uv:null,gust:null,codes:[],hours:new Set()};
-   let o=map[d]; o.hours.add(hr);
-   if(t!=null){o.max=Math.max(o.max,+t);o.min=Math.min(o.min,+t)}
-   if(h.precipitation?.[i]!=null)o.precip+=+h.precipitation[i];
-   if(h.sunshine_duration?.[i]!=null)o.sun+=+h.sunshine_duration[i]/3600;
-      if(h.weather_code?.[i]!=null)o.codes.push(+h.weather_code[i]);
- }
- return Object.values(map).filter(x=>x.max>-90).map(x=>({...x,complete:x.hours.has('00')&&x.hours.has('23')&&x.hours.size>=23})).sort((a,b)=>a.date.localeCompare(b.date))
-}
-function byDate(rows){return Object.fromEntries(rows.map(x=>[x.date,x]))}
-function localDatePlus(offset){const d=new Date(`${$('date').value}T12:00:00`);d.setDate(d.getDate()+offset);return d.toLocaleDateString('sv-SE')}
-function avg(vals,k){let a=vals.map(v=>v?.[k]).filter(v=>Number.isFinite(v));return a.length?a.reduce((x,y)=>x+y,0)/a.length:null}
-function maxv(vals,k){let a=vals.map(v=>v?.[k]).filter(v=>Number.isFinite(v));return a.length?Math.max(...a):null}
-function pct(n,d){return d?Math.round(n/d*100):null}
-function isWinterDate(date){const m=+date.slice(5,7);return m===11||m===12||m===1||m===2||m===3}
-function uvLabel(v){if(!Number.isFinite(v))return '';if(v<3)return 'Laag';if(v<6)return 'Matig';if(v<8)return 'Hoog';if(v<11)return 'Zeer hoog';return 'Extreem'}
-function weatherType(r){
-  const sun=Number.isFinite(r.sun)?r.sun:0, rain=Number.isFinite(r.precip)?r.precip:0, pop=Number.isFinite(r.pop)?r.pop:0;
-  if(rain>=5 && sun<2)return 'rain';
-  if(rain>=0.1){if(sun>=4)return 'sunshowers';return 'showers'}
-  if(sun>=7)return 'sun';if(sun>=2.5)return 'partly';return 'cloud'
-}
-function forecastText(r){
-  const sun=Number.isFinite(r.sun)?r.sun:0, rain=Number.isFinite(r.precip)?r.precip:0, pop=Number.isFinite(r.pop)?r.pop:0;
-  if(rain>=5 && sun<2)return 'Regenachtig';
-  if(rain>=0.1 && sun>=7)return pop>=50?'Veel zon, enkele buien':'Veel zon, kans op een bui';
-  if(rain>=0.1 && sun>=3)return pop>=50?'Zon en buien':'Zon en kans op een bui';
-  if(rain>=0.1)return rain>=5?'Perioden met regen':'Kans op een bui';
-  if(sun>=8)return 'Veel zon';if(sun>=4)return 'Geregeld zon';if(sun>=1.5)return 'Af en toe zon';return 'Veel bewolking'
-}
-function iconFor(t){return {sun:'☀️',partly:'🌤️',cloud:'☁️',sunshowers:'🌦️',showers:'🌦️',rain:'🌧️'}[t]||'☁️'}
-function fmt(n,d=1){return Number.isFinite(n)?n.toFixed(d).replace('.',','):'n.b.'}
-function buildMix(data){
- let maps={};for(const [k,v] of Object.entries(data))maps[k]=byDate(v);let out=[];
- for(let off=1;off<=10;off++){
-   let date=localDatePlus(off),keys;
-   if(off===1) keys=['harmonie','arome','icon','ecmwf','gfs','ukmo','arpege'];
-   else if(off===2) keys=['harmonie','icon','ecmwf','gfs','ukmo','arpege'];
-   else if(off<=4) keys=['icon','ecmwf','gfs','ukmo','arpege','gem'];
-   else if(off<=7) keys=['ecmwf','gfs','ukmo','gem','aifs'];
-   else keys=['ecmwf','gfs','gem','aifs'];
-   // KNMI HARMONIE Europe is a fallback, not an extra double weight.
-   if(off<=2 && !maps.harmonie?.[date] && maps.harmonie_eu?.[date]) keys=keys.map(k=>k==='harmonie'?'harmonie_eu':k);
-   let vals=keys.map(k=>maps[k]?.[date]).filter(Boolean);if(!vals.length)continue;
-   let gustVals=vals.map(v=>v.gust).filter(Number.isFinite), snowVals=vals.map(v=>v.snow).filter(Number.isFinite);
-   let probVals=vals.map(v=>v.pop).filter(Number.isFinite);let precipAgreement=pct(vals.filter(v=>v.precip>=0.1).length,vals.length);let apiPop=probVals.length?probVals.reduce((a,b)=>a+b,0)/probVals.length:null;let finalPop=Number.isFinite(apiPop)?Math.max(apiPop,precipAgreement??0):precipAgreement;let r={date,max:avg(vals,'max'),min:avg(vals,'min'),precip:avg(vals,'precip'),sun:avg(vals,'sun'),pop:finalPop,uv:avg(vals,'uv'),gust:maxv(vals,'gust'),gustChance:pct(gustVals.filter(v=>v>=75).length,gustVals.length),snow:avg(vals,'snow'),snowChance:pct(snowVals.filter(v=>v>0.1).length,snowVals.length),count:vals.length,complete:vals.every(v=>v.complete)};
-   r.type=weatherType(r);out.push(r)
- }
- return out
-}
-function pickSingle(rows,key){const base=$('date').value;return rows.filter(r=>key==='gfs'?r.date>=base:r.date>base).slice(0,10).map(r=>{let pop=Number.isFinite(r.pop)?r.pop:null;if(r.precip>=0.1)pop=Math.max(pop??0,100);let o={...r,pop,count:1,gustChance:Number.isFinite(r.gust)?(r.gust>=75?100:0):null,snowChance:Number.isFinite(r.snow)?(r.snow>0.1?100:0):null};o.type=weatherType(o);return o})}
-function show(rows){
- const c=$('results');c.innerHTML='';
- for(const r of rows){let d=new Date(r.date+'T12:00:00');let winter=isWinterDate(r.date);let extra=`☂ ${Number.isFinite(r.pop)?Math.round(r.pop)+'%':'—'}<br>UV ${Number.isFinite(r.uv)?fmt(r.uv):'n.b.'}`;if(Number.isFinite(r.gust)&&r.gust>=60)extra+=`<br>💨 ${Math.round(r.gust)} km/u`;if(winter)extra+=`<br>❄ ${Number.isFinite(r.snowChance)?r.snowChance+'%':'n.b.'}`;
- c.insertAdjacentHTML('beforeend',`<article class="card"><div class="day">${NL[d.getDay()]}</div><div class="date">${d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'})}</div><div class="icon">${r.complete?iconFor(r.type):''}</div><div style="font-size:12px;font-weight:700;color:#30465f;min-height:30px;text-align:center;margin-top:-4px">${r.complete?forecastText(r):''}</div><div class="temps"><span class="max">${Math.round(r.max)}°</span> / <span class="min">${Math.round(r.min)}°</span></div><div class="meta">☀ ${fmt(r.sun)} u<br>💧 ${fmt(r.precip)} mm<br>${extra}</div></article>`)}
-}
-function setStatus(t,p){$('status').textContent=t;$('prog').style.width=`${p}%`}
 
-function renderGfs(rows){
- const t=$('gfsTable');
- t.innerHTML='<div class="gfshead"><div class="gfscell">Datum</div><div class="gfscell">TX</div><div class="gfscell">TN</div></div>';
- for(const r of rows){
-   const d=new Date(r.date+'T12:00:00');
-   t.insertAdjacentHTML('beforeend',`<div class="gfsrow"><div class="gfscell">${d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'})}</div><div class="gfscell"><b>${fmt(r.max)}°</b></div><div class="gfscell">${fmt(r.min)}°</div></div>`);
- }
- $('copyTx').disabled=$('copyTn').disabled=!rows.length;
+function hmLocal(d) { return d.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', hour12: false }); }
+function hmUtc(d) { return String(d.getUTCHours()).padStart(2, '0') + ':00 UTC'; }
+function countdown(to, now = new Date()) {
+  const ms = Math.max(0, to - now), m = Math.ceil(ms / 60000), h = Math.floor(m / 60);
+  return h ? `${h}u ${m % 60}m` : `${m} min`;
 }
-function cycleIsoBack(hours){
- const d=new Date(runIso()+'Z');d.setUTCHours(d.getUTCHours()-hours);return d.toISOString().slice(0,16)
-}
-async function loadGfsRunTable(){
- let lastErr=null;
- // Voor Excel altijd eerst de nieuwste live GFS proberen.
- try{
-   const lat=$('lat').value,lon=$('lon').value;
-   const liveUrl=`https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&models=gfs_global&hourly=temperature_2m&timezone=Europe%2FAmsterdam&forecast_hours=384`;
-   const r=await fetch(liveUrl,{cache:'no-store'}),j=await r.json();
-   if(!r.ok||j.error)throw new Error(j.reason||`HTTP ${r.status}`);
-   if(!j.hourly?.time)throw new Error('Geen live GFS-uurgegevens');
-   const rows=hourlyToDaily(j.hourly);
-   if(!rows?.length)throw new Error('Geen live GFS-dagwaarden');
-   lastGfsRows=rows.filter(x=>x.date>=$('date').value);
-   renderGfs(lastGfsRows);
-   $('status').textContent='Nieuwste live GFS geladen voor TX/TN. Modelgegevens ophalen…';
-   return;
- }catch(e){
-   lastErr=e;
-   console.warn('Nieuwste live GFS TX/TN niet beschikbaar:',e);
- }
- // Alleen als live GFS mislukt: gekozen Single Run en oudere cycli proberen.
- const attempts=[0,6,12,18,24,30];
- for(const back of attempts){
-   const candidate=back===0?runIso():cycleIsoBack(back);
-   try{
-     const rows=await fetchModel('gfs',false,candidate);
-     if(!rows?.length)throw new Error('Geen GFS-dagwaarden');
-     lastGfsRows=rows.filter(r=>r.date>=$('date').value);
-     renderGfs(lastGfsRows);
-     const used=(rows._runUsed||candidate).replace('T',' ').replace(':00',' UTC');
-     $('status').textContent=`Live GFS niet beschikbaar; GFS ${used} geladen voor TX/TN. Modelgegevens ophalen…`;
-     return;
-   }catch(e){
-     lastErr=e;
-     console.warn(`GFS TX/TN ${candidate} niet beschikbaar:`,e);
-   }
- }
- lastGfsRows=[];renderGfs([]);
- console.warn('GFS-run tabel: geen bruikbare GFS-data gevonden',lastErr);
-}
-async function copyGfs(kind){
- const vals=lastGfsRows.map(r=>fmt(r[kind]));
- try{await navigator.clipboard.writeText(vals.join('\n'));setStatus(`${kind==='max'?'TX':'TN'} gekopieerd.`,100)}
- catch(e){setStatus('Kopiëren lukte niet; houd de waarden ingedrukt om ze handmatig te kopiëren.',100)}
-}
-$('copyTx').onclick=()=>copyGfs('max');
-$('copyTn').onclick=()=>copyGfs('min');
 
-$('load').onclick=async()=>{
-  const q=$('place').value.trim();
-  const saved=(()=>{try{return JSON.parse(localStorage.getItem('regioweer-place')||'null')}catch(e){return null}})();
-  if(q && (!saved || saved.name!==q)){const ok=await findPlace();if(!ok)return;}lastRows=[];lastGfsRows=[];renderGfs([]);$('csv').disabled=$('png').disabled=$('fivepng').disabled=true;try{setStatus('GFS-run en modelgegevens ophalen…',5);await loadGfsRunTable();setStatus('Modelgegevens ophalen…',10);if($('model').value==='mix'){let order=['gfs','ecmwf','aifs','icon','ukmo','gem','arome','arpege','harmonie','harmonie_eu'],data={};for(let i=0;i<order.length;i++){let k=order[i];setStatus(`${MODELS[k].name} ophalen…`,10+i*7);try{data[k]=await fetchModel(k,true)}catch(e){console.warn(e);data[k]=[]}}lastRows=buildMix(data);if(lastRows.length<5)throw new Error('Te weinig modeldata beschikbaar voor deze run. Probeer een oudere run of andere cyclus.');show(lastRows);$('csv').disabled=$('png').disabled=$('fivepng').disabled=false;setStatus(`Basis klaar – ${lastRows.length} dagen. Extra UV/wind/sneeuw ophalen…`,82);for(let i=0;i<order.length;i++){let k=order[i],rows=data[k];if(!rows?.length)continue;let mm=rows._modelUsed||MODELS[k];try{data[k]=await fetchExtras(mm,rows)}catch(e){console.warn('Extra data '+k,e)}}lastRows=buildMix(data);show(lastRows);setStatus(`Klaar – ${lastRows.length} dagen.`,100)}else{let key=$('model').value,rows=await fetchModel(key,true);lastRows=pickSingle(rows,key);show(lastRows);$('csv').disabled=$('png').disabled=$('fivepng').disabled=false;setStatus(`Basis klaar – ${lastRows.length} dagen. Extra UV/wind/sneeuw ophalen…`,85);try{rows=await fetchExtras(rows._modelUsed||MODELS[key],rows);lastRows=pickSingle(rows,key);show(lastRows)}catch(e){console.warn('Extra data',e)}setStatus(`Klaar – ${lastRows.length} dagen.`,100)}}catch(e){setStatus('Fout: '+e.message,0)}};
-function download(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
-$('csv').onclick=()=>{let lines=['Datum;TX (°C);TN (°C);Zon (uur);Neerslag (mm);Neerslagkans (%);UV-index;Max windstoot (km/u);Kans zware windstoten (drempel >=75 km/u) (%);Sneeuwkans (%);Modellen'];for(const r of lastRows)lines.push([r.date,fmt(r.max),fmt(r.min),fmt(r.sun),fmt(r.precip),Number.isFinite(r.pop)?Math.round(r.pop):'',fmt(r.uv),Number.isFinite(r.gust)?Math.round(r.gust):'',Number.isFinite(r.gustChance)?r.gustChance:'',isWinterDate(r.date)&&Number.isFinite(r.snowChance)?r.snowChance:'',r.count].join(';'));download(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),`regioweer-${$('date').value}-${$('run').value}z.csv`)};
-function drawWeather(ctx,t,cx,cy,s){ctx.save();ctx.lineWidth=3;ctx.lineCap='round';function sun(x,y,r){ctx.strokeStyle='#f3a712';ctx.fillStyle='#ffd54a';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();for(let a=0;a<8;a++){let q=a*Math.PI/4;ctx.beginPath();ctx.moveTo(x+Math.cos(q)*(r+5),y+Math.sin(q)*(r+5));ctx.lineTo(x+Math.cos(q)*(r+12),y+Math.sin(q)*(r+12));ctx.stroke()}}function cloud(x,y){ctx.fillStyle='#d7e0e8';ctx.strokeStyle='#91a1b2';ctx.beginPath();ctx.arc(x-18,y,15,Math.PI,0);ctx.arc(x,y-11,20,Math.PI,0);ctx.arc(x+22,y,14,Math.PI,0);ctx.lineTo(x+34,y+13);ctx.lineTo(x-30,y+13);ctx.closePath();ctx.fill();ctx.stroke()}function drops(y,heavy=false){ctx.strokeStyle='#287dcc';for(let xx=-18;xx<=18;xx+=18){ctx.beginPath();ctx.moveTo(cx+xx,y);ctx.lineTo(cx+xx-4,y+11+(heavy?5:0));ctx.stroke()}}if(t==='sun')sun(cx,cy,22);else if(t==='partly'){sun(cx-14,cy-13,17);cloud(cx+5,cy+5)}else if(t==='sunshowers'){sun(cx-17,cy-16,17);cloud(cx+6,cy+2);drops(cy+23,false)}else{cloud(cx,cy-3);if(t==='showers'||t==='rain')drops(cy+20,t==='rain')}ctx.restore()}
-$('png').onclick=()=>{const W=1500,H=500,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.fillStyle='#f7fbff';x.fillRect(0,0,W,H);x.fillStyle='#0b63ce';x.fillRect(0,0,W,72);x.fillStyle='white';x.font='700 31px Arial';x.fillText('Regioweer – modelmix',32,45);let n=lastRows.length,cw=(W-40)/n;for(let i=0;i<n;i++){let r=lastRows[i],left=20+i*cw,mid=left+cw/2,d=new Date(r.date+'T12:00:00');if(i){x.strokeStyle='#d7e2ee';x.beginPath();x.moveTo(left,88);x.lineTo(left,H-24);x.stroke()}x.textAlign='center';x.fillStyle='#23344a';x.font='700 20px Arial';x.fillText(NL[d.getDay()].toUpperCase(),mid,112);x.font='16px Arial';x.fillStyle='#63748a';x.fillText(d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'}),mid,137);if(r.complete)drawWeather(x,r.type,mid,190,1);x.font='700 28px Arial';x.fillStyle='#df4e3a';x.fillText(`${Math.round(r.max)}°`,mid-27,273);x.fillStyle='#2070c7';x.fillText(`${Math.round(r.min)}°`,mid+28,273);x.font='16px Arial';x.fillStyle='#394c63';x.fillText(`☀ ${fmt(r.sun)} uur`,mid,322);x.fillText(`💧 ${fmt(r.precip)} mm`,mid,352);x.font='13px Arial';x.fillStyle='#718096';if(r.count>1)x.fillText(`${r.count} modellen`,mid,386)}x.textAlign='left';x.font='13px Arial';x.fillStyle='#718096';x.fillText(`Run ${$('date').value} ${$('run').value} UTC · beste-modelmix`,24,474);c.toBlob(b=>download(b,`regioweer-verwachting-${$('date').value}.png`),'image/png')};
-
-async function getSunTimes(rows){
-  try{
-    const lat=$('lat').value,lon=$('lon').value;
-    const start=rows[0]?.date,end=rows[rows.length-1]?.date;if(!start||!end)return {};
-    const u=`https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&daily=sunrise,sunset&timezone=Europe%2FAmsterdam&start_date=${start}&end_date=${end}`;
-    const r=await fetch(u,{cache:'no-store'}),j=await r.json();if(!r.ok||!j?.daily?.time)return {};
-    const out={};for(let i=0;i<j.daily.time.length;i++)out[j.daily.time[i]]={rise:(j.daily.sunrise?.[i]||'').slice(11,16),set:(j.daily.sunset?.[i]||'').slice(11,16)};return out;
-  }catch(e){console.warn('Zon op/onder niet beschikbaar',e);return {}}
+function renderRunSchedule() {
+  const box = $('runSchedule');
+  if (!box) return;
+  const now = new Date();
+  box.innerHTML = RUN_SCHEDULES.map(r => {
+    const n = nextUtcSlot(r.step, now);
+    const a = new Date(n.getTime() + r.delay[0] * 3600000);
+    const b = new Date(n.getTime() + r.delay[1] * 3600000);
+    return `<div class="runrow">
+      <div><div class="runname">${escapeHtml(r.name)}</div><div class="runcad">elke ${r.step === 1 ? '1 uur' : r.step + ' uur'}</div></div>
+      <div class="runnext"><b>${hmLocal(n)}</b> (${hmUtc(n)})
+        <div class="runhint">over ${countdown(n, now)} · ca. ${hmLocal(a)}–${hmLocal(b)}</div>
+      </div>
+    </div>`;
+  }).join('');
 }
-async function drawFiveDayFigure(){
-  const base=$('date').value;const rows=lastRows.filter(r=>r.date>base).slice(0,5); if(!rows.length){setStatus('Geen complete 5-daagse vanaf morgen beschikbaar.',0);return}
-  const sunTimes=await getSunTimes(rows);
-  const W=1500,H=900,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
-  const grad=x.createLinearGradient(0,0,W,0);grad.addColorStop(0,'#0664c8');grad.addColorStop(1,'#4c91df');x.fillStyle=grad;roundRect(x,0,0,W,112,0);x.fill();
-  x.fillStyle='#fff';x.textAlign='left';x.font='700 42px Arial';x.fillText('Regioweer',42,50);x.font='700 28px Arial';x.fillStyle='#d6e8ff';x.fillText('5-daagse verwachting',42,88);
-  x.textAlign='right';x.font='22px Arial';x.fillStyle='#fff';x.fillText('Lokaal weer · alle modellen · één overzicht',W-40,68);
-  const pad=20,gap=10,cw=(W-pad*2-gap*4)/5,top=130,ch=690;
-  for(let i=0;i<rows.length;i++){
-    const r=rows[i],left=pad+i*(cw+gap),mid=left+cw/2,d=new Date(r.date+'T12:00:00'),winter=isWinterDate(r.date);
-    x.fillStyle='#f8fbff';x.shadowColor='rgba(20,50,80,.12)';x.shadowBlur=10;x.shadowOffsetY=3;roundRect(x,left,top,cw,ch,18);x.fill();x.shadowColor='transparent';
-    x.textAlign='center';x.fillStyle='#10274d';x.font='700 27px Arial';x.fillText(`${NL[d.getDay()].toUpperCase()} ${d.toLocaleDateString('nl-NL',{day:'2-digit',month:'short'})}`,mid,174);
-    drawWeather(x,r.type||weatherType(r),mid,252,1.15);
-    const typeLabel=forecastText(r);x.font='700 16px Arial';x.fillStyle='#23364f';x.fillText(typeLabel,mid,315);
-    x.font='700 39px Arial';x.fillStyle='#d81d2c';x.fillText(`${Math.round(r.max)}°`,mid-42,378);x.fillStyle='#1267cc';x.fillText(`${Math.round(r.min)}°`,mid+42,378);
-    x.font='13px Arial';x.fillStyle='#6e7f94';x.fillText('Max',mid-42,402);x.fillText('Min',mid+42,402);
-    const lines=[
-      ['☀',`Zonuren`,`${fmt(r.sun)} u`],
-      ['💧','Neerslag',`${fmt(r.precip)} mm`],
-      ['☂','Kans op neerslag',Number.isFinite(r.pop)?`${Math.round(r.pop)}%`:'—'],
-      ['UV','UV-index',Number.isFinite(r.uv)?`${Math.round(r.uv)} · ${uvLabel(r.uv)}`:'n.b.'],
-      ['☀','Zon op / onder',sunTimes[r.date]?.rise&&sunTimes[r.date]?.set?`${sunTimes[r.date].rise} / ${sunTimes[r.date].set}`:'n.b.']
-    ];
-    if(winter) lines.splice(3,0,['❄','Sneeuwkans',Number.isFinite(r.snowChance)?`${r.snowChance}%`:'n.b.']);
-    if(Number.isFinite(r.gust)&&r.gust>=60) lines.push(['💨','Max. windstoot',`${Math.round(r.gust)} km/u`]);
-    if(Number.isFinite(r.gustChance)&&r.gustChance>0) lines.push(['⚠','Kans ≥ 75 km/u',`${r.gustChance}%`]);
-    let y=452;for(const [ico,label,val] of lines){x.textAlign='left';x.font='18px Arial';x.fillStyle='#116bd0';x.fillText(ico,left+16,y);x.font='15px Arial';x.fillStyle='#21364f';x.fillText(label,left+48,y);x.textAlign='right';x.font='700 15px Arial';x.fillStyle='#142b4e';x.fillText(val,left+cw-14,y);x.strokeStyle='#dce7f3';x.beginPath();x.moveTo(left+14,y+14);x.lineTo(left+cw-14,y+14);x.stroke();y+=54;}
+renderRunSchedule();
+setInterval(renderRunSchedule, 60000);
+
+class ModelDomainError extends Error {
+  constructor(message, suggestedModel = 'mix') {
+    super(message);
+    this.name = 'ModelDomainError';
+    this.suggestedModel = suggestedModel;
   }
-  x.textAlign='left';x.font='14px Arial';x.fillStyle='#5f7186';x.fillText(`Run ${$('date').value} ${$('run').value} UTC · ${$('place').value || ($('lat').value+' N, '+$('lon').value+' E')}`,28,862);
-  x.textAlign='right';x.fillText('HARMONIE · AROME · ICON · ECMWF · GFS · UKMO · GEM · AIFS',W-28,862);if(rows.some(r=>Number.isFinite(r.gustChance)&&r.gustChance>0)){x.textAlign='left';x.font='12px Arial';x.fillStyle='#7b8899';x.fillText('Kans ≥ 75 km/u = aandeel modellen dat zware windstoten berekent',28,885);}
-  c.toBlob(b=>download(b,`regioweer-5-daagse-${$('date').value}.png`),'image/png');
 }
-function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath()}
-$('fivepng').onclick=drawFiveDayFigure;
 
+async function fetchModel(key, baseDate, numDays, includeToday, signal) {
+  const m = MODELS[key];
+  const lat = parseFloat($('lat').value);
+  const lon = parseFloat($('lon').value);
 
-let lastPlumeCanvas=null;
-$('plumeOpen').onclick=()=>{$('plumePanel').classList.toggle('hidden');if(!$('plumePanel').classList.contains('hidden'))$('plumePanel').scrollIntoView({behavior:'smooth',block:'start'})};
-function plumePercentile(a,p){const b=a.filter(Number.isFinite).sort((x,y)=>x-y);if(!b.length)return null;const q=(b.length-1)*p,i=Math.floor(q),f=q-i;return b[i+1]!==undefined?b[i]+f*(b[i+1]-b[i]):b[i]}
-function ensembleKeys(hourly,prefix){return Object.keys(hourly||{}).filter(k=>k===prefix||k.startsWith(prefix+'_member'))}
-async function loadPlume(){
- const lat=$('lat').value,lon=$('lon').value,model=$('plumeModel').value;
- $('plumeStatus').textContent='Pluim ophalen…';$('plumeSave').disabled=true;
- try{
-  const u=`https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&hourly=temperature_2m,precipitation&forecast_days=10&timezone=Europe%2FAmsterdam&models=${encodeURIComponent(model)}`;
-  const r=await fetch(u,{cache:'no-store'}),j=await r.json();if(!r.ok||j.error)throw new Error(j.reason||`HTTP ${r.status}`);
-  const h=j.hourly||{},times=h.time||[],tkeys=ensembleKeys(h,'temperature_2m'),pkeys=ensembleKeys(h,'precipitation');if(!times.length||tkeys.length<2)throw new Error('Geen ensembleleden ontvangen');
-  drawPlume(h,times,tkeys,pkeys,model);$('plumeStatus').textContent=`Klaar · ${tkeys.length} ensembleleden · nieuwste beschikbare run`; $('plumeSave').disabled=false;
- }catch(e){$('plumeStatus').textContent='Fout: '+e.message}
-}
-function drawPlume(h,times,tkeys,pkeys,model){
- const c=$('plumeCanvas'),W=1200,H=650;c.width=W;c.height=H;const x=c.getContext('2d');x.fillStyle='#f8fbff';x.fillRect(0,0,W,H);
- const L=62,R=24,T=58,tempH=390,precTop=490,precH=105;let indices=[];for(let i=0;i<times.length;i+=3)indices.push(i);if(indices[indices.length-1]!==times.length-1)indices.push(times.length-1);
- let all=[];for(const k of tkeys)for(const i of indices){let v=+h[k]?.[i];if(Number.isFinite(v))all.push(v)};let mn=Math.floor(Math.min(...all)-2),mx=Math.ceil(Math.max(...all)+2);if(!Number.isFinite(mn)||!Number.isFinite(mx)||mn===mx){mn=0;mx=30}
- const px=i=>L+(W-L-R)*(i/(indices.length-1));const py=v=>T+tempH-(v-mn)/(mx-mn)*tempH;
- x.strokeStyle='#d9e3ef';x.lineWidth=1;x.fillStyle='#60728a';x.font='13px Arial';x.textAlign='right';for(let n=0;n<=5;n++){let v=mn+(mx-mn)*n/5,y=py(v);x.beginPath();x.moveTo(L,y);x.lineTo(W-R,y);x.stroke();x.fillText(v.toFixed(0)+'°',L-8,y+4)}
- // ensembleleden
- for(const k of tkeys){x.strokeStyle='rgba(32,112,199,.16)';x.lineWidth=1;x.beginPath();let started=false;indices.forEach((ii,j)=>{let v=+h[k]?.[ii];if(!Number.isFinite(v))return;let xx=px(j),yy=py(v);if(!started){x.moveTo(xx,yy);started=true}else x.lineTo(xx,yy)});x.stroke()}
- // p10-p90 en gemiddelde
- let mean=[],p10=[],p90=[];indices.forEach(ii=>{let a=tkeys.map(k=>+h[k]?.[ii]).filter(Number.isFinite);mean.push(a.length?a.reduce((s,v)=>s+v,0)/a.length:null);p10.push(plumePercentile(a,.1));p90.push(plumePercentile(a,.9))});
- x.fillStyle='rgba(11,99,206,.10)';x.beginPath();p90.forEach((v,j)=>{if(v==null)return;j?x.lineTo(px(j),py(v)):x.moveTo(px(j),py(v))});for(let j=p10.length-1;j>=0;j--){let v=p10[j];if(v!=null)x.lineTo(px(j),py(v))}x.closePath();x.fill();
- x.strokeStyle='#0b63ce';x.lineWidth=3;x.beginPath();mean.forEach((v,j)=>{if(v==null)return;j?x.lineTo(px(j),py(v)):x.moveTo(px(j),py(v))});x.stroke();
- // daglijnen/labels
- x.textAlign='center';x.fillStyle='#53677e';x.font='12px Arial';let lastDay='';indices.forEach((ii,j)=>{let day=times[ii].slice(0,10);if(day!==lastDay){x.strokeStyle='#e1e8f1';x.beginPath();x.moveTo(px(j),T);x.lineTo(px(j),precTop+precH);x.stroke();let d=new Date(day+'T12:00:00');x.fillText(NL[d.getDay()]+' '+d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'}),px(j)+28,H-15);lastDay=day}});
- // neerslag ensemblegemiddelde onderin
- let pmean=indices.map(ii=>{let a=pkeys.map(k=>+h[k]?.[ii]).filter(Number.isFinite);return a.length?a.reduce((s,v)=>s+v,0)/a.length:0});let pmax=Math.max(1,...pmean);x.fillStyle='rgba(30,126,205,.55)';pmean.forEach((v,j)=>{let bw=Math.max(1,(W-L-R)/indices.length*.8),hh=v/pmax*precH;x.fillRect(px(j)-bw/2,precTop+precH-hh,bw,hh)});
- x.textAlign='left';x.fillStyle='#162b49';x.font='700 24px Arial';x.fillText('Temperatuurpluim',L,32);x.font='14px Arial';x.fillStyle='#617389';x.fillText(`${$('place').value} · ${$('plumeModel').options[$('plumeModel').selectedIndex].text}`,L,52);x.fillStyle='#53677e';x.fillText('Gemiddelde neerslag per 3 uur',L,precTop-10);x.fillStyle='#0b63ce';x.fillRect(W-260,20,26,4);x.fillStyle='#43566f';x.fillText('ensemblegemiddelde',W-225,26);lastPlumeCanvas=c;
-}
-$('plumeLoad').onclick=loadPlume;
-$('plumeSave').onclick=()=>{if(!lastPlumeCanvas)return;lastPlumeCanvas.toBlob(b=>download(b,`regioweer-pluim-${$('place').value||'locatie'}.png`),'image/png')};
+  if (key === 'harmonie' && (lat < 49 || lat > 56.5 || lon < 0 || lon > 11)) {
+    throw new ModelDomainError(`KNMI HARMONIE NL is een regionaal weermodel en dekt alleen Nederland en de Benelux. Voor ${currentLocationName} kun je ECMWF IFS of het wereldwijde ensemble gebruiken.`, 'mix');
+  }
+  if (key === 'icon_d2' && (lat < 42.5 || lat > 56.5 || lon < 1.5 || lon > 18)) {
+    throw new ModelDomainError(`DWD ICON-D2 heeft alleen dekking binnen Centraal-Europa (Duitsland, Benelux, Alpen). Voor ${currentLocationName} is dit model niet beschikbaar.`, 'mix');
+  }
+  if ((key === 'icon_eu' || key === 'arpege') && (lat < 28 || lat > 72 || lon < -32 || lon > 45)) {
+    throw new ModelDomainError(`${m.name} is beperkt tot het Europese continent. Gebruik voor ${currentLocationName} ECMWF IFS of GFS.`, 'ecmwf');
+  }
 
+  const vars = 'temperature_2m,apparent_temperature,precipitation,sunshine_duration,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,snowfall';
+  const effectiveDays = Math.min(numDays, m.maxDays);
+  const startObj = new Date(`${baseDate}T12:00:00`);
+  const endObj = new Date(startObj);
+  endObj.setDate(endObj.getDate() + effectiveDays + (includeToday ? 0 : 1));
+  const endDateStr = getLocalDateStr(endObj);
 
-let lastRiskCanvas=null;
-$('riskOpen').onclick=()=>{$('riskPanel').classList.toggle('hidden');if(!$('riskPanel').classList.contains('hidden'))$('riskPanel').scrollIntoView({behavior:'smooth',block:'start'})};
-function probabilityColor(p){
-  if(!Number.isFinite(p))return '#f5f7fa';
-  if(p>=80)return '#ff6958'; if(p>=60)return '#ff9f59'; if(p>=40)return '#ffd45f'; if(p>=20)return '#fff09a'; if(p>0)return '#fffbe0'; return '#f5f7fa';
+  const todayStr = getLocalDateStr();
+  const endpoint = baseDate < todayStr
+    ? 'https://historical-forecast-api.open-meteo.com/v1/forecast'
+    : 'https://api.open-meteo.com/v1/forecast';
+
+  const url = `${endpoint}?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&models=${encodeURIComponent(m.code)}&hourly=${encodeURIComponent(vars)}&start_date=${baseDate}&end_date=${endDateStr}&timezone=Europe%2FAmsterdam`;
+
+  const res = await fetch(url, { signal });
+  const rawText = await res.text();
+  
+  let data;
+  try {
+    const cleanText = rawText.replace(/:\s*nan\b/gi, ': null').replace(/:\s*-?infinity\b/gi, ': null');
+    data = JSON.parse(cleanText);
+  } catch (_) {
+    throw new ModelDomainError(`Weermodel ${m.name} levert geen geldige gegevens op deze locatie. Mogelijk valt de gekozen locatie buiten het domein.`, 'mix');
+  }
+
+  if (!res.ok || data.error || !data.hourly?.time) {
+    const reason = (data.reason || '').toLowerCase();
+    if (reason.includes('domain') || reason.includes('location') || !res.ok) {
+      throw new ModelDomainError(`Het weermodel ${m.name} is niet beschikbaar voor ${currentLocationName}.`, 'mix');
+    }
+    throw new Error(data.reason || `${m.name} niet beschikbaar voor deze periode.`);
+  }
+
+  const rows = hourlyToDaily(data.hourly, baseDate, includeToday);
+  rows._modelUsed = m;
+  return rows;
 }
-function dailyGroups(times){let g={};times.forEach((t,i)=>{let d=t.slice(0,10);(g[d]||(g[d]=[])).push(i)});return g}
-function memberDailyValues(h,keys,groups,mode){
-  let out={};for(const d of Object.keys(groups)){out[d]=[];for(const k of keys){let vals=groups[d].map(i=>+h[k]?.[i]).filter(Number.isFinite);if(!vals.length){out[d].push(null);continue}out[d].push(mode==='min'?Math.min(...vals):Math.max(...vals))}}return out
+
+async function fetchUvData(lat, lon, baseDate, numDays, signal) {
+  try {
+    const todayStr = getLocalDateStr();
+    const endpoint = baseDate < todayStr
+      ? 'https://historical-forecast-api.open-meteo.com/v1/forecast'
+      : 'https://api.open-meteo.com/v1/forecast';
+
+    const startObj = new Date(`${baseDate}T12:00:00`);
+    const endObj = new Date(startObj);
+    endObj.setDate(endObj.getDate() + numDays + 1);
+    const endDateStr = getLocalDateStr(endObj);
+
+    const res = await fetch(`${endpoint}?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&daily=uv_index_max&start_date=${baseDate}&end_date=${endDateStr}&timezone=Europe%2FAmsterdam`, { signal });
+    const j = await res.json();
+    if (j?.daily?.time && j?.daily?.uv_index_max) {
+      return Object.fromEntries(j.daily.time.map((d, i) => [d, j.daily.uv_index_max[i]]));
+    }
+  } catch (e) {
+    if (e.name !== 'AbortError') console.warn('UV fetch error:', e);
+  }
+  return {};
 }
-function probFrom(values,pred){const v=(values||[]).filter(Number.isFinite);return v.length?Math.round(100*v.filter(pred).length/v.length):null}
-async function loadRisks(){
- const lat=$('lat').value,lon=$('lon').value,model=$('riskModel').value;
- $('riskStatus').textContent='Kansen ophalen…';$('riskSave').disabled=true;
- try{
-  const u=`https://ensemble-api.open-meteo.com/v1/ensemble?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&hourly=temperature_2m,wind_gusts_10m&forecast_days=10&timezone=Europe%2FAmsterdam&wind_speed_unit=kmh&models=${encodeURIComponent(model)}`;
-  const r=await fetch(u,{cache:'no-store'}),j=await r.json();if(!r.ok||j.error)throw new Error(j.reason||`HTTP ${r.status}`);
-  const h=j.hourly||{},times=h.time||[];if(!times.length)throw new Error('Geen ensembledata ontvangen');
-  const tkeys=ensembleKeys(h,'temperature_2m'),gkeys=ensembleKeys(h,'wind_gusts_10m');
-  if(tkeys.length<2)throw new Error('Te weinig ensembleleden ontvangen');
-  const groups=dailyGroups(times),dates=Object.keys(groups).slice(0,10);
-  const tmax=memberDailyValues(h,tkeys,groups,'max'),tmin=memberDailyValues(h,tkeys,groups,'min');
-  const gust=memberDailyValues(h,gkeys,groups,'max');
-  const rows=[
-   {label:'Windstoten ≥75 km/u',icon:'💨',vals:dates.map(d=>probFrom(gust[d],v=>v>=75))},
-   {label:'Maximumtemperatuur ≥20°C',icon:'🌡️',vals:dates.map(d=>probFrom(tmax[d],v=>v>=20))},
-   {label:'Maximumtemperatuur ≥25°C',icon:'🌡️',vals:dates.map(d=>probFrom(tmax[d],v=>v>=25))},
-   {label:'Maximumtemperatuur ≥30°C',icon:'🔥',vals:dates.map(d=>probFrom(tmax[d],v=>v>=30))},
-   {label:'Vorst (minimum <0°C)',icon:'❄️',vals:dates.map(d=>probFrom(tmin[d],v=>v<0))},
-   {label:'Matige vorst (minimum ≤-5°C)',icon:'🥶',vals:dates.map(d=>probFrom(tmin[d],v=>v<=-5))}
+
+function hourlyToDaily(h, baseDate, includeToday) {
+  const map = {};
+  for (let i = 0; i < h.time.length; i++) {
+    const timeStr = h.time[i];
+    const d = timeStr.slice(0, 10);
+    const hourStr = timeStr.slice(11, 16);
+
+    if (!includeToday && d <= baseDate) continue;
+    if (includeToday && d < baseDate) continue;
+
+    const t = h.temperature_2m?.[i];
+    const app = h.apparent_temperature?.[i];
+    const p = h.precipitation?.[i];
+    const c = h.weather_code?.[i];
+    const spd = h.wind_speed_10m?.[i] != null ? +h.wind_speed_10m[i] : null;
+    const dir = h.wind_direction_10m?.[i] != null ? +h.wind_direction_10m[i] : null;
+    const gst = h.wind_gusts_10m?.[i] != null ? +h.wind_gusts_10m[i] : null;
+
+    if (!map[d]) {
+      map[d] = {
+        date: d, max: -Infinity, min: Infinity, apparentMax: -Infinity, apparentMin: Infinity,
+        precip: 0, sun: 0, snow: 0, pop: null, uv: null, windSpeed: 0, windDirDeg: null,
+        gust: 0, codes: [], hourly: []
+      };
+    }
+    const o = map[d];
+
+    if (t != null && Number.isFinite(+t)) {
+      o.max = Math.max(o.max, +t);
+      o.min = Math.min(o.min, +t);
+    }
+    if (app != null && Number.isFinite(+app)) {
+      o.apparentMax = Math.max(o.apparentMax, +app);
+      o.apparentMin = Math.min(o.apparentMin, +app);
+    }
+    if (p != null && Number.isFinite(+p)) o.precip += +p;
+    if (h.sunshine_duration?.[i] != null && Number.isFinite(+h.sunshine_duration[i])) o.sun += +h.sunshine_duration[i] / 3600;
+    if (c != null) o.codes.push(+c);
+    if (h.snowfall?.[i] != null && Number.isFinite(+h.snowfall[i])) o.snow += +h.snowfall[i];
+
+    if (spd != null && spd >= o.windSpeed) {
+      o.windSpeed = spd;
+      if (dir != null) o.windDirDeg = dir;
+    }
+    if (gst != null) o.gust = Math.max(o.gust, gst);
+
+    o.hourly.push({
+      time: hourStr,
+      temp: t != null ? +t : null,
+      apparent: app != null ? +app : null,
+      precip: p != null ? +p : 0,
+      code: c != null ? +c : 0,
+      windSpeed: spd,
+      windDir: dir
+    });
+  }
+  return Object.values(map)
+    .filter(x => Number.isFinite(x.max) && Number.isFinite(x.min))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function localDatePlus(baseDate, offset) {
+  const d = new Date(`${baseDate}T12:00:00`);
+  d.setDate(d.getDate() + offset);
+  return getLocalDateStr(d);
+}
+
+function getModelWeight(modelKey, dayOffset, isGlobalLocation) {
+  if (isGlobalLocation) {
+    if (dayOffset <= 5) return { ecmwf: 0.50, ukmo: 0.30, gfs: 0.20 }[modelKey] || 0;
+    return { ecmwf: 0.55, ukmo: 0.30, gfs: 0.15 }[modelKey] || 0;
+  }
+  if (dayOffset <= 2) return { harmonie: 0.35, icon_d2: 0.30, ecmwf: 0.20, ukmo: 0.10, gfs: 0.05 }[modelKey] || 0;
+  if (dayOffset <= 5) return { ecmwf: 0.40, ukmo: 0.25, icon_eu: 0.20, arpege: 0.10, gfs: 0.05 }[modelKey] || 0;
+  return { ecmwf: 0.55, ukmo: 0.30, gfs: 0.15 }[modelKey] || 0;
+}
+
+function weightedAvg(itemsWithWeights, key) {
+  let sum = 0, totalW = 0;
+  for (const { item, weight } of itemsWithWeights) {
+    const val = item?.[key];
+    if (Number.isFinite(val)) {
+      sum += val * weight;
+      totalW += weight;
+    }
+  }
+  return totalW ? sum / totalW : null;
+}
+
+function weatherType(r) {
+  const hasPrecip = Number.isFinite(r.precip) && r.precip >= 0.15;
+  const tMax = r.max;
+  const tMin = r.min;
+
+  const isFreezing = Number.isFinite(tMax) && tMax <= 0.0;
+  const isBorderlineSnow = Number.isFinite(tMax) && tMax <= 2.5 && Number.isFinite(tMin) && tMin <= 0.5;
+  const hasSnowfall = (r.snow != null && r.snow > 0.05) || (r.snowChance != null && r.snowChance >= 45);
+
+  const snowCodes = [71, 73, 75, 77, 85, 86];
+  const sleetCodes = [68, 69, 83, 84];
+  const freezingRainCodes = [56, 57, 66, 67];
+
+  const hasSnowCode = r.codes?.some(c => snowCodes.includes(c));
+  const hasSleetCode = r.codes?.some(c => sleetCodes.includes(c));
+  const hasFreezingRain = r.codes?.some(c => freezingRainCodes.includes(c));
+
+  if (hasFreezingRain || (hasPrecip && isFreezing && tMin < -2 && !hasSnowfall && !hasSnowCode)) {
+    return 'freezing_rain';
+  }
+
+  if (hasPrecip || hasSnowfall || hasSnowCode) {
+    if (hasSnowCode || hasSnowfall || isFreezing) {
+      return (r.precip >= 2.5 || (r.snow && r.snow >= 2)) ? 'snow' : 'snow_showers';
+    }
+    if (hasSleetCode || isBorderlineSnow) return 'sleet';
+    if (r.precip >= 5) return 'rain';
+    return 'showers';
+  }
+
+  if (r.sun >= 6) return 'sun';
+  if (r.sun >= 2) return 'partly';
+  return 'cloud';
+}
+
+function isSnowApplicable(r) {
+  return (Number.isFinite(r.snowChance) && r.snowChance > 0) ||
+         (Number.isFinite(r.snow) && r.snow > 0.05) ||
+         (Number.isFinite(r.max) && r.max <= 3.0 && r.precip >= 0.15);
+}
+
+function uvLabel(v) {
+  if (!Number.isFinite(v)) return '';
+  if (v < 3) return 'Laag';
+  if (v < 6) return 'Matig';
+  if (v < 8) return 'Hoog';
+  if (v < 11) return 'Zeer hoog';
+  return 'Extreem';
+}
+
+function iconFor(t) {
+  return {
+    sun: '☀️', partly: '🌤️', cloud: '☁️', showers: '🌦️', rain: '🌧️',
+    sleet: '🌨️', snow_showers: '🌨️', snow: '❄️', freezing_rain: '🧊'
+  }[t] || '☁️';
+}
+
+function conditionText(t) {
+  return {
+    sun: 'Zonnig', partly: 'Half bewolkt', cloud: 'Bewolkt', showers: 'Regenbuien',
+    rain: 'Regen', sleet: 'Natte sneeuw', snow_showers: 'Sneeuwbuien',
+    snow: 'Sneeuw', freezing_rain: 'IJzel'
+  }[t] || 'Bewolkt';
+}
+
+function fmt(n, d = 1) { return Number.isFinite(n) ? n.toFixed(d).replace('.', ',') : 'n.b.'; }
+
+function buildWeightedMix(data, numDays, includeToday, baseDate) {
+  const maps = {};
+  for (const [k, v] of Object.entries(data)) {
+    maps[k] = Object.fromEntries(v.map(x => [x.date, x]));
+  }
+  const out = [];
+  const startOffset = includeToday ? 0 : 1;
+  const endOffset = includeToday ? (numDays - 1) : numDays;
+  const isGlobalLocation = !data.harmonie && !data.icon_d2;
+
+  for (let off = startOffset; off <= endOffset; off++) {
+    const date = localDatePlus(baseDate, off);
+    const dayIndex = Math.max(1, off);
+    const activeModels = [];
+
+    for (const [k, map] of Object.entries(maps)) {
+      const row = map[date];
+      if (row) {
+        const weight = getModelWeight(k, dayIndex, isGlobalLocation);
+        if (weight > 0) activeModels.push({ key: k, item: row, weight });
+      }
+    }
+
+    if (!activeModels.length) continue;
+
+    const totalWeight = activeModels.reduce((acc, curr) => acc + curr.weight, 0);
+    const gustVals = activeModels.map(m => m.item.gust).filter(Number.isFinite);
+    const snowVals = activeModels.map(m => m.item.snow).filter(Number.isFinite);
+    const windDirDeg = weightedAvgWindDir(activeModels);
+
+    const rainWeight = activeModels
+      .filter(m => m.item.precip >= 0.1)
+      .reduce((acc, curr) => acc + curr.weight, 0);
+
+    const maxT = weightedAvg(activeModels, 'max');
+    const minT = weightedAvg(activeModels, 'min');
+    const apparentMax = weightedAvg(activeModels, 'apparentMax');
+    const precipVal = weightedAvg(activeModels, 'precip');
+
+    const maxVals = activeModels.map(m => m.item.max).filter(Number.isFinite);
+    let confidence = { label: 'Zekerheid: Hoog', class: 'conf-high' };
+    if (maxVals.length > 1) {
+      const mean = maxVals.reduce((a, b) => a + b, 0) / maxVals.length;
+      const stdDev = Math.sqrt(maxVals.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / maxVals.length);
+      if (stdDev > 2.2) confidence = { label: 'Zekerheid: Laag', class: 'conf-low' };
+      else if (stdDev > 1.0) confidence = { label: 'Zekerheid: Matig', class: 'conf-mid' };
+    }
+
+    let snowChance = null;
+    if (Number.isFinite(maxT) && maxT <= 0.5 && precipVal >= 0.1) {
+      snowChance = totalWeight ? Math.round((rainWeight / totalWeight) * 100) : 100;
+    } else if (snowVals.length) {
+      const snowWeight = activeModels.filter(m => m.item.snow > 0.05).reduce((acc, curr) => acc + curr.weight, 0);
+      snowChance = totalWeight ? Math.round((snowWeight / totalWeight) * 100) : 0;
+    }
+
+    let snowAccum = weightedAvg(activeModels, 'snow');
+    if ((snowAccum == null || snowAccum === 0) && Number.isFinite(maxT) && maxT <= 0 && precipVal > 0) {
+      snowAccum = precipVal * 1.0;
+    }
+
+    const primeModel = activeModels.find(m => m.key === 'harmonie') || 
+                       activeModels.find(m => m.key === 'ecmwf') || 
+                       activeModels[0];
+
+    const r = {
+      date,
+      max: maxT,
+      min: minT,
+      apparentMax: Number.isFinite(apparentMax) ? apparentMax : maxT,
+      precip: precipVal,
+      sun: weightedAvg(activeModels, 'sun'),
+      pop: totalWeight ? Math.round((rainWeight / totalWeight) * 100) : null,
+      uv: null,
+      windSpeed: weightedAvg(activeModels, 'windSpeed'),
+      windDirDeg,
+      windDir: degreesToDutchCompass(windDirDeg),
+      gust: gustVals.length ? Math.max(...gustVals) : null,
+      gustChance: gustVals.length ? Math.round((gustVals.filter(v => v >= 75).length / gustVals.length) * 100) : null,
+      snow: snowAccum,
+      snowChance: snowChance,
+      confidence,
+      count: activeModels.length,
+      codes: [].concat(...activeModels.map(m => m.item.codes || [])),
+      hourly: primeModel?.item?.hourly || []
+    };
+    r.type = weatherType(r);
+    out.push(r);
+  }
+  return out;
+}
+
+function renderTempChart(rows) {
+  const box = $('chartBox');
+  if (!rows || rows.length < 2) {
+    box.innerHTML = '';
+    $('chartPanel').classList.add('hidden');
+    return;
+  }
+  $('chartPanel').classList.remove('hidden');
+
+  const containerW = box.clientWidth || 800;
+  const minW = Math.max(640, rows.length * 85);
+  const W = Math.max(containerW, minW);
+  const H = 210, padL = 40, padR = 30, padT = 30, padB = 35;
+  const cW = W - padL - padR, cH = H - padT - padB;
+
+  const maxVals = rows.map(r => r.max).filter(Number.isFinite);
+  const minVals = rows.map(r => r.min).filter(Number.isFinite);
+  if (!maxVals.length) return;
+
+  const highest = Math.ceil(Math.max(...maxVals) + 1.5);
+  const lowest = Math.floor(Math.min(...minVals) - 1.5);
+  const range = (highest - lowest) || 1;
+
+  const getX = i => padL + (i / (rows.length - 1)) * cW;
+  const getY = temp => padT + ((highest - temp) / range) * cH;
+
+  const maxCoords = rows.map((r, i) => ({ x: getX(i), y: getY(r.max), val: Math.round(r.max) }));
+  const minCoords = rows.map((r, i) => ({ x: getX(i), y: getY(r.min), val: Math.round(r.min) }));
+
+  const maxPathD = maxCoords.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt.x} ${pt.y}`).join(' ');
+  const minPathD = minCoords.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt.x} ${pt.y}`).join(' ');
+
+  const areaD = [
+    ...maxCoords.map((pt, i) => `${i === 0 ? 'M' : 'L'} ${pt.x} ${pt.y}`),
+    ...[...minCoords].reverse().map(pt => `L ${pt.x} ${pt.y}`),
+    'Z'
+  ].join(' ');
+
+  const gridLines = [];
+  const step = range > 14 ? 4 : 2;
+  const startYVal = Math.ceil(lowest / step) * step;
+  for (let v = startYVal; v <= highest; v += step) {
+    const yPos = getY(v);
+    gridLines.push(`<line x1="${padL - 10}" y1="${yPos}" x2="${W - padR}" y2="${yPos}" stroke="var(--chart-grid)" stroke-width="1.2"/>
+      <text x="${padL - 14}" y="${yPos + 4}" font-size="10" font-weight="700" fill="var(--chart-text)" text-anchor="end">${v}°</text>`);
+  }
+
+  const maxDots = maxCoords.map((pt, idx) => `
+    <circle cx="${pt.x}" cy="${pt.y}" r="5.5" fill="var(--temp-max)" stroke="var(--panel-bg)" stroke-width="2.5"><title>${rows[idx].date}: Max ${pt.val}°C</title></circle>
+    <text x="${pt.x}" y="${pt.y - 10}" font-size="11" font-weight="900" fill="var(--temp-max)" text-anchor="middle">${pt.val}°</text>
+  `).join('');
+
+  const minDots = minCoords.map((pt, idx) => `
+    <circle cx="${pt.x}" cy="${pt.y}" r="5.5" fill="var(--temp-min)" stroke="var(--panel-bg)" stroke-width="2.5"><title>${rows[idx].date}: Min ${pt.val}°C</title></circle>
+    <text x="${pt.x}" y="${pt.y + 18}" font-size="11" font-weight="900" fill="var(--temp-min)" text-anchor="middle">${pt.val}°</text>
+  `).join('');
+
+  const xLabels = rows.map((r, i) => {
+    const d = new Date(r.date + 'T12:00:00');
+    return `<text x="${getX(i)}" y="${H - 10}" font-size="11" font-weight="800" fill="var(--text-muted)" text-anchor="middle">${NL[d.getDay()]} ${d.getDate()}</text>`;
+  }).join('');
+
+  box.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block;width:${W > containerW ? W + 'px' : '100%'};min-width:${minW}px;height:auto;">
+      <defs>
+        <linearGradient id="tempBandGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--temp-max)" stop-opacity="0.18" />
+          <stop offset="100%" stop-color="var(--temp-min)" stop-opacity="0.18" />
+        </linearGradient>
+      </defs>
+      ${gridLines.join('')}
+      <path d="${areaD}" fill="url(#tempBandGrad)" stroke="none" />
+      <path d="${maxPathD}" fill="none" stroke="var(--temp-max)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="${minPathD}" fill="none" stroke="var(--temp-min)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      ${maxDots}
+      ${minDots}
+      ${xLabels}
+    </svg>
+  `;
+}
+
+function show(rows) {
+  const c = $('results');
+  c.innerHTML = '';
+  $('resultsTitle').textContent = `Verwachting · ${currentLocationName} (${rows.length} dagen)`;
+
+  rows.forEach((r, idx) => {
+    const d = new Date(r.date + 'T12:00:00');
+    const bft = kmhToBeaufort(r.windSpeed);
+    const windDirStr = r.windDir ? ` ${r.windDir}` : '';
+    const uvTxt = Number.isFinite(r.uv) ? `${fmt(r.uv)} (${uvLabel(r.uv)})` : 'n.b.';
+
+    let snowRow = '';
+    if (isSnowApplicable(r)) {
+      const snowText = (r.snow != null && r.snow > 0.1)
+        ? `${fmt(r.snow)} cm (${r.snowChance ?? 100}%)`
+        : `${r.snowChance ?? 100}%`;
+      snowRow = `<div class="meta-row"><span>❄ Sneeuw</span><b>${escapeHtml(snowText)}</b></div>`;
+    }
+
+    const gustStr = (r.gust && r.gust >= 45) ? ` · ${Math.round(r.gust)} km/u` : '';
+
+    c.insertAdjacentHTML('beforeend', `
+      <article class="card" data-idx="${idx}" tabindex="0" role="button" aria-label="Details voor ${NL[d.getDay()]} ${d.getDate()}">
+        <div class="day-badge">${NL[d.getDay()]} ${d.getDate()}</div>
+        <div class="date-badge">${d.toLocaleDateString('nl-NL', { month: 'long' })}</div>
+        <div class="icon">${iconFor(r.type)}</div>
+        <div class="condition-txt">${escapeHtml(conditionText(r.type))}</div>
+        <div class="temps">
+          <span class="max">${Math.round(r.max)}°</span><span class="sep">/</span><span class="min">${Math.round(r.min)}°</span>
+        </div>
+        <div class="feel-badge">Gevoel: ${Math.round(r.apparentMax)}°</div>
+        <div class="card-meta">
+          <div class="meta-row"><span>☀ Zon</span><b>${fmt(r.sun)} u</b></div>
+          <div class="meta-row"><span>💧 Neerslag</span><b>${fmt(r.precip)} mm <small style="color:var(--text-muted);font-weight:600">(${r.pop ?? 0}%)</small></b></div>
+          <div class="meta-row"><span>☀️ UV-index</span><b>${escapeHtml(uvTxt)}</b></div>
+          <div class="meta-row"><span>💨 Wind</span><b>${bft} Bft${escapeHtml(windDirStr)}${escapeHtml(gustStr)}</b></div>
+          ${snowRow}
+        </div>
+        <span class="conf-pill ${r.confidence.class}">${escapeHtml(r.confidence.label)}</span>
+      </article>`);
+  });
+}
+
+function renderHourlyMeteogram(hourly) {
+  const box = $('meteogramWrap');
+  if (!hourly || hourly.length < 2) {
+    box.innerHTML = '';
+    return;
+  }
+
+  const containerW = box.clientWidth || 760;
+  const minW = Math.max(620, hourly.length * 28);
+  const W = Math.max(containerW, minW);
+  const H = 108, padL = 30, padR = 30, padT = 20, padB = 22;
+  const cW = W - padL - padR, cH = H - padT - padB;
+
+  const temps = hourly.map(h => h.temp).filter(Number.isFinite);
+  const precips = hourly.map(h => h.precip || 0);
+
+  const highest = Math.ceil(Math.max(...temps) + 1);
+  const lowest = Math.floor(Math.min(...temps) - 1);
+  const range = (highest - lowest) || 1;
+  const maxPrecip = Math.max(1.5, ...precips);
+
+  const getX = i => padL + (i / (hourly.length - 1)) * cW;
+  const getY = temp => padT + ((highest - temp) / range) * cH;
+
+  const pts = hourly.map((h, i) => ({ x: getX(i), y: getY(h.temp), temp: h.temp, precip: h.precip || 0 }));
+  const lineD = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const areaD = `${lineD} L ${pts[pts.length - 1].x} ${H - padB} L ${pts[0].x} ${H - padB} Z`;
+
+  const rainBars = pts.map((p, i) => {
+    if (p.precip <= 0) return '';
+    const barH = Math.min(cH, (p.precip / maxPrecip) * cH);
+    const barY = H - padB - barH;
+    return `<rect x="${p.x - 4}" y="${barY}" width="8" height="${barH}" rx="2" fill="var(--temp-min)" opacity="0.65"><title>${hourly[i].time}: ${fmt(p.precip)} mm</title></rect>`;
+  }).join('');
+
+  const labels = pts.map((p, i) => {
+    if (i % 3 !== 0 && i !== pts.length - 1) return '';
+    return `
+      <circle cx="${p.x}" cy="${p.y}" r="3.5" fill="var(--temp-max)" stroke="var(--modal-bg)" stroke-width="2"><title>${hourly[i].time}: ${Math.round(p.temp)}°C</title></circle>
+      <text x="${p.x}" y="${p.y - 7}" font-size="10" font-weight="800" fill="var(--temp-max)" text-anchor="middle">${Math.round(p.temp)}°</text>
+      <text x="${p.x}" y="${H - 6}" font-size="9" font-weight="700" fill="var(--text-muted)" text-anchor="middle">${hourly[i].time.slice(0, 2)}u</text>
+    `;
+  }).join('');
+
+  box.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" style="display:block;width:${W > containerW ? W + 'px' : '100%'};min-width:${minW}px;height:auto;">
+      <defs>
+        <linearGradient id="hourlyAreaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="var(--temp-max)" stop-opacity="0.16" />
+          <stop offset="100%" stop-color="var(--temp-max)" stop-opacity="0.0" />
+        </linearGradient>
+      </defs>
+      <line x1="${padL}" y1="${H - padB}" x2="${W - padR}" y2="${H - padB}" stroke="var(--chart-grid)" stroke-width="1"/>
+      ${rainBars}
+      <path d="${areaD}" fill="url(#hourlyAreaGrad)" />
+      <path d="${lineD}" fill="none" stroke="var(--temp-max)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      ${labels}
+    </svg>
+  `;
+}
+
+function openModal(idx) {
+  const dayData = lastRows[idx];
+  if (!dayData) return;
+
+  const d = new Date(dayData.date + 'T12:00:00');
+  $('modalDayTitle').textContent = `${NL[d.getDay()].toUpperCase()} ${d.getDate()} ${d.toLocaleDateString('nl-NL', { month: 'long' })}`;
+
+  const hourly = dayData.hourly || [];
+  const partsConfig = [
+    { name: 'Nacht', range: [0, 5] },
+    { name: 'Ochtend', range: [6, 11] },
+    { name: 'Middag', range: [12, 17] },
+    { name: 'Avond', range: [18, 23] }
   ];
-  drawRiskTable(dates,rows,model,tkeys.length,gkeys.length);$('riskStatus').textContent=`Klaar · ${tkeys.length} ensembleleden · ${dates.length} dagen`; $('riskSave').disabled=false;
- }catch(e){$('riskStatus').textContent='Fout: '+e.message}
-}
-function drawRiskTable(dates,rows,model,nTemp,nGust){
- const c=$('riskCanvas'),left=360,top=118,rowH=72,colW=82,W=Math.max(1100,left+dates.length*colW+20),H=top+rows.length*rowH+95;c.width=W;c.height=H;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,W,H);
- x.fillStyle='#0c3e7d';x.font='700 30px Arial';x.textAlign='left';x.fillText('Kans op weerfenomenen',24,42);x.font='15px Arial';x.fillStyle='#506781';x.fillText(`${$('place').value} · ${$('riskModel').options[$('riskModel').selectedIndex].text}`,24,68);x.fillText('Percentage = aandeel ensembleleden dat de drempel bereikt',24,90);
- x.textAlign='center';dates.forEach((d,i)=>{let dt=new Date(d+'T12:00:00');let cx=left+i*colW+colW/2;x.fillStyle='#20334d';x.font='700 15px Arial';x.fillText(NL[dt.getDay()].toUpperCase(),cx,105);x.font='13px Arial';x.fillStyle='#6a7b8e';x.fillText(dt.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'}),cx,124)});
- rows.forEach((row,ri)=>{let y=top+ri*rowH;x.fillStyle=ri%2?'#fbfcfe':'#f7faff';x.fillRect(0,y,W,rowH);x.textAlign='left';x.fillStyle='#20334d';x.font='20px Arial';x.fillText(row.icon,24,y+43);x.font='700 15px Arial';x.fillText(row.label,66,y+42);dates.forEach((d,i)=>{let p=row.vals[i],xx=left+i*colW;x.fillStyle=probabilityColor(p);x.fillRect(xx+1,y+1,colW-2,rowH-2);x.strokeStyle='#d7e0ea';x.strokeRect(xx+1,y+1,colW-2,rowH-2);x.textAlign='center';x.font='700 15px Arial';x.fillStyle='#17283f';x.fillText(Number.isFinite(p)?`${p}%`:'—',xx+colW/2,y+43)})});
- x.strokeStyle='#cbd6e2';x.beginPath();x.moveTo(left,top);x.lineTo(left,H-70);x.stroke();x.textAlign='left';x.fillStyle='#718096';x.font='12px Arial';x.fillText('Windstoten: max ≥75 km/u · Vorstkansen op basis van 2 m temperatuur.',24,H-42);x.fillText(`Beschikbare leden: temperatuur ${nTemp}, windstoten ${nGust||0}.`,24,H-20);lastRiskCanvas=c;
-}
-$('riskLoad').onclick=loadRisks;
-$('riskSave').onclick=()=>{if(!lastRiskCanvas)return;lastRiskCanvas.toBlob(b=>download(b,`regioweer-kansen-${$('place').value||'locatie'}.png`),'image/png')};
 
-let deferredInstall=null;
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;$('install').classList.remove('hidden')});
-$('install').onclick=async()=>{if(!deferredInstall)return;deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;$('install').classList.add('hidden')};
-window.addEventListener('appinstalled',()=>{$('install').classList.add('hidden');setStatus('Regioweer is als app geïnstalleerd.',100)});
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(console.error));}
-</script></body></html>
+  $('daypartsGrid').innerHTML = partsConfig.map(part => {
+    const partHours = hourly.slice(part.range[0], part.range[1] + 1);
+    if (!partHours.length) return '';
+    const temps = partHours.map(h => h.temp).filter(Number.isFinite);
+    const avgTemp = temps.length ? Math.round(temps.reduce((a, b) => a + b, 0) / temps.length) : '-';
+    const totalPrecip = partHours.reduce((acc, h) => acc + (h.precip || 0), 0);
+    const midHour = partHours[Math.floor(partHours.length / 2)];
+    const wType = weatherType({ precip: totalPrecip, max: avgTemp, min: avgTemp, sun: 0, codes: [midHour?.code || 0] });
+
+    return `
+      <div class="daypart-card">
+        <div class="daypart-name">${part.name}</div>
+        <div class="daypart-main">
+          <span class="daypart-temp">${avgTemp}°</span>
+          <span class="daypart-icon">${iconFor(wType)}</span>
+        </div>
+        <div class="daypart-sub">${totalPrecip > 0 ? fmt(totalPrecip) + ' mm' : 'Droog'}</div>
+      </div>
+    `;
+  }).join('');
+
+  $('hourlyRibbon').innerHTML = hourly.map(h => {
+    const bft = kmhToBeaufort(h.windSpeed);
+    const windRot = Number.isFinite(h.windDir) ? h.windDir + 180 : 0;
+    const wType = weatherType({ precip: h.precip, max: h.temp, min: h.temp, sun: 0, codes: [h.code] });
+
+    return `
+      <div class="hourly-col">
+        <div class="hourly-time">${escapeHtml(h.time)}</div>
+        <div class="hourly-icon">${iconFor(wType)}</div>
+        <div class="hourly-temp">${h.temp != null ? Math.round(h.temp) + '°' : '-'}</div>
+        <div class="hourly-feel">${h.apparent != null ? 'Gev. ' + Math.round(h.apparent) + '°' : ''}</div>
+        <div class="hourly-rain">${h.precip > 0 ? fmt(h.precip) + ' mm' : '<span style="opacity:0.35">-</span>'}</div>
+        <div class="hourly-wind" title="${h.windSpeed ? Math.round(h.windSpeed) + ' km/u' : ''}">
+          <span class="wind-arrow" style="transform:rotate(${windRot}deg);">↑</span>
+          <span>${bft}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  document.body.classList.add('modal-locked');
+  $('hourlyModal').classList.add('open');
+  $('hourlyModal').dataset.idx = idx;
+  renderHourlyMeteogram(hourly);
+  $('modalClose').focus();
+}
+
+function closeModal() {
+  $('hourlyModal').classList.remove('open');
+  document.body.classList.remove('modal-locked');
+}
+
+$('results').addEventListener('click', e => {
+  const card = e.target.closest('.card');
+  if (card) openModal(card.dataset.idx);
+});
+
+$('results').addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    const card = e.target.closest('.card');
+    if (card) {
+      e.preventDefault();
+      openModal(card.dataset.idx);
+    }
+  }
+});
+
+$('modalClose').onclick = closeModal;
+$('hourlyModal').onclick = e => { if (e.target === $('hourlyModal')) closeModal(); };
+window.addEventListener('keydown', e => { if (e.key === 'Escape' && $('hourlyModal').classList.contains('open')) closeModal(); });
+
+let resizeDebounce = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeDebounce);
+  resizeDebounce = setTimeout(() => {
+    if (lastRows.length) renderTempChart(lastRows);
+    if ($('hourlyModal').classList.contains('open')) {
+      const idx = $('hourlyModal').dataset.idx;
+      if (idx != null && lastRows[idx]) renderHourlyMeteogram(lastRows[idx].hourly || []);
+    }
+  }, 120);
+});
+
+function setStatus(t, p) {
+  $('status').textContent = t;
+  $('prog').style.width = `${p}%`;
+  $('prog').parentElement.setAttribute('aria-valuenow', p);
+}
+
+function showError(title, message, suggestedModel = null) {
+  $('errorTitle').textContent = title;
+  $('errorMessage').textContent = message;
+  const act = $('errorActions');
+  act.innerHTML = '';
+  
+  if (suggestedModel) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn-error-fix';
+    btn.textContent = `Wissel naar ${suggestedModel === 'mix' ? 'Mix modellen' : MODELS[suggestedModel]?.name || suggestedModel}`;
+    btn.onclick = () => {
+      $('model').value = suggestedModel;
+      hideError();
+      $('load').click();
+    };
+    act.appendChild(btn);
+  }
+  $('errorBox').classList.remove('hidden');
+}
+
+function hideError() {
+  $('errorBox').classList.add('hidden');
+}
+
+$('errorDismiss').onclick = hideError;
+
+function renderGfs(rows, runLabel = '') {
+  const t = $('gfsTable');
+  t.innerHTML = '<div class="gfshead"><div class="gfscell">Datum</div><div class="gfscell">TX</div><div class="gfscell">TN</div></div>';
+  if (!rows || !rows.length) {
+    $('copyTx').disabled =$('copyTn').disabled = true;
+    return;
+  }
+  for (const r of rows.slice(0, 10)) {
+    const d = new Date(r.date + 'T12:00:00');
+    t.insertAdjacentHTML('beforeend', `<div class="gfsrow"><div class="gfscell">${d.toLocaleDateString('nl-NL', { day: '2-digit', month: '2-digit' })}</div><div class="gfscell"><b style="color:var(--temp-max)">${fmt(r.max)}°</b></div><div class="gfscell" style="color:var(--temp-min)"><b>${fmt(r.min)}°</b></div></div>`);
+  }
+  $('copyTx').disabled =$('copyTn').disabled = false;
+  if (runLabel) {
+    $('gfsStatus').textContent = `Resultaten voor GFS-run: ${runLabel} (${rows.length} dagen geladen).`;
+  }
+}
+
+$('copyTx').onclick = () => copyClipboard(lastGfsRows.map(r => fmt(r.max)).join('\n'), 'TX gekopieerd naar klembord.');$('copyTn').onclick = () => copyClipboard(lastGfsRows.map(r => fmt(r.min)).join('\n'), 'TN gekopieerd naar klembord.');
+
+async function copyClipboard(text, msg) {
+  try {
+    await navigator.clipboard.writeText(text);
+    setStatus(msg, 100);
+  } catch (_) {
+    setStatus('Kopiëren niet toegestaan door browser.', 100);
+  }
+}
+
+async function loadGfsRunData() {
+  const lat = $('lat').value, lon =$('lon').value;
+  const gfsDate = $('gfsDate').value;
+  const gfsRun = $('gfsRun').value;
+  const btn = $('loadGfsBtn');
+
+  if (!gfsDate) {
+    $('gfsStatus').textContent = 'Selecteer eerst een geldige datum.';
+    return;
+  }
+
+  btn.disabled = true;
+  $('gfsStatus').textContent = `GFS-run ${gfsDate} ${gfsRun} UTC ophalen via Single Runs API…`;
+
+  try {
+    const runIso = `${gfsDate}T${gfsRun}:00`;
+    const url = `https://single-runs-api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&models=gfs_seamless&run=${encodeURIComponent(runIso)}&hourly=temperature_2m&timezone=Europe%2FAmsterdam`;
+
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (!res.ok || data.error) {
+      throw new Error(data.reason || `Run ${gfsRun} UTC op ${gfsDate} is niet beschikbaar.`);
+    }
+
+    if (!data.hourly?.time || !data.hourly?.temperature_2m) {
+      throw new Error('Geen temperatuurdata ontvangen voor deze run.');
+    }
+
+    const dayMap = {};
+    for (let i = 0; i < data.hourly.time.length; i++) {
+      const d = data.hourly.time[i].slice(0, 10);
+      const val = data.hourly.temperature_2m[i];
+      if (val == null || !Number.isFinite(+val)) continue;
+
+      if (!dayMap[d]) dayMap[d] = { date: d, max: -Infinity, min: Infinity };
+      dayMap[d].max = Math.max(dayMap[d].max, +val);
+      dayMap[d].min = Math.min(dayMap[d].min, +val);
+    }
+
+    const rows = Object.values(dayMap)
+      .filter(r => Number.isFinite(r.max) && Number.isFinite(r.min))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    if (!rows.length) throw new Error('Geen geldige dagwaarden gevonden in deze run.');
+
+    lastGfsRows = rows.slice(0, 10);
+    renderGfs(lastGfsRows, `${gfsDate} ${gfsRun} UTC`);
+  } catch (err) {
+    renderGfs([]);
+    $('gfsStatus').textContent = `Fout: ${err.message} (Tip: GFS runs zijn ca. 4–5 uur na run-tijd gereed).`;
+  } finally {
+    btn.disabled = false;
+  }
+}
+$('loadGfsBtn').onclick = loadGfsRunData;
+
+$('load').onclick = async () => {
+  if (forecastAbortController) forecastAbortController.abort();
+  forecastAbortController = new AbortController();
+  const signal = forecastAbortController.signal;
+
+  hideError();
+  ['csv', 'png', 'multiPng'].forEach(id => $(id).disabled = true);
+  
+  $('results').classList.add('loading-fade');$('chartPanel').classList.add('loading-fade');
+
+  try {
+    const selectedModel = $('model').value;
+    const numDays = parseInt($('days').value, 10) || 7;
+    const includeToday = $('includeToday').checked;
+    const baseDate = $('date').value || getLocalDateStr();
+    const lat = $('lat').value, lon =$('lon').value;
+
+    setStatus('Verwachting ophalen…', 25);
+    const uvPromise = fetchUvData(lat, lon, baseDate, numDays, signal);
+
+    let nextRows = [];
+
+    if (selectedModel === 'mix') {
+      const order = ['harmonie', 'icon_d2', 'ecmwf', 'ukmo', 'icon_eu', 'gfs', 'arpege'];
+      const data = {};
+
+      const results = await Promise.allSettled(
+        order.map(async k => ({
+          key: k,
+          rows: await fetchModel(k, baseDate, numDays, includeToday, signal)
+        }))
+      );
+
+      results.forEach(res => {
+        if (res.status === 'fulfilled') data[res.value.key] = res.value.rows;
+      });
+
+      nextRows = buildWeightedMix(data, numDays, includeToday, baseDate);
+      if (nextRows.length < 1) throw new Error('Onvoldoende modeldata beschikbaar om het ensemble te berekenen.');
+    } else {
+      const rows = await fetchModel(selectedModel, baseDate, numDays, includeToday, signal);
+      nextRows = rows.slice(0, numDays).map(r => {
+        const isSubZero = Number.isFinite(r.max) && r.max <= 0.0;
+        const snowChance = isSubZero && r.precip >= 0.1 ? 100 : (Number.isFinite(r.snow) ? (r.snow > 0.05 ? 100 : 0) : null);
+        const item = {
+          ...r,
+          count: 1,
+          pop: null,
+          apparentMax: r.apparentMax || r.max,
+          snowChance,
+          confidence: { label: 'Enkel model', class: 'conf-mid' },
+          windDir: degreesToDutchCompass(r.windDirDeg),
+          gustChance: Number.isFinite(r.gust) ? (r.gust >= 75 ? 100 : 0) : null
+        };
+        item.type = weatherType(item);
+        return item;
+      });
+    }
+
+    const uvMap = await uvPromise;
+    for (const r of nextRows) {
+      if (uvMap[r.date] != null) r.uv = uvMap[r.date];
+    }
+
+    lastRows = nextRows;
+    show(lastRows);
+    renderTempChart(lastRows);
+
+    try {
+      localStorage.setItem('regioweer_cache', JSON.stringify({
+        rows: lastRows,
+        loc: currentLocationName,
+        time: new Date().toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
+      }));
+    } catch (_) {}
+
+    $('multiPng').textContent = `${lastRows.length}-daagse figuur opslaan`;
+    ['csv', 'png', 'multiPng'].forEach(id => $(id).disabled = false);
+    setStatus(`Gereed voor ${currentLocationName} – ${lastRows.length} dagen geladen.`, 100);
+
+    if (!lastGfsRows.length) loadGfsRunData();
+  } catch (e) {
+    if (e.name === 'AbortError') return;
+    setStatus('Ophalen afgebroken wegens een fout.', 0);
+    if (e instanceof ModelDomainError) {
+      showError('Weermodel niet beschikbaar voor deze locatie', e.message, e.suggestedModel);
+    } else {
+      showError('Kan verwachting niet ophalen', e.message || 'Controleer je verbinding of selecteer een ander weermodel.', 'mix');
+    }
+  } finally {
+    $('results').classList.remove('loading-fade');$('chartPanel').classList.remove('loading-fade');
+  }
+};
+
+window.addEventListener('DOMContentLoaded', () => {
+  try {
+    const cached = JSON.parse(localStorage.getItem('regioweer_cache'));
+    if (cached?.rows?.length && cached.loc === currentLocationName) {
+      lastRows = cached.rows;
+      show(lastRows);
+      renderTempChart(lastRows);
+      ['csv', 'png', 'multiPng'].forEach(id => $(id).disabled = false);
+      setStatus(`Geladen uit buffer (${cached.time}). Tik op 'Verwachting ophalen' voor nieuwe data.`, 100);
+      return;
+    }
+  } catch (_) {}
+  setStatus("Kies instellingen en tik op 'Verwachting ophalen'.", 0);
+});
+
+function download(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+function sanitizeCsv(val) {
+  if (val == null) return '';
+  const s = String(val).replace(/"/g, '""');
+  if (/^[=+\-@]/.test(s)) return `"'${s}"`;
+  return s.includes(';') || s.includes('"') || s.includes('\n') ? `"${s}"` : s;
+}
+
+$('csv').onclick = () => {
+  const lines = [['Datum', 'TX (°C)', 'TN (°C)', 'Gevoel (°C)', 'Zon (uur)', 'Neerslag (mm)', 'Neerslagkans (%)', 'UV-index', 'Wind (Bft)', 'Windrichting', 'Windstoot (km/u)', 'Kans zware stoten (>=75)', 'Sneeuwkans (%)', 'Zekerheid'].join(';')];
+  for (const r of lastRows) {
+    lines.push([
+      r.date, fmt(r.max), fmt(r.min), fmt(r.apparentMax), fmt(r.sun), fmt(r.precip),
+      Number.isFinite(r.pop) ? Math.round(r.pop) : '',
+      fmt(r.uv),
+      kmhToBeaufort(r.windSpeed),
+      r.windDir || '',
+      Number.isFinite(r.gust) ? Math.round(r.gust) : '',
+      Number.isFinite(r.gustChance) ? r.gustChance : '',
+      isSnowApplicable(r) && Number.isFinite(r.snowChance) ? r.snowChance : '',
+      r.confidence.label
+    ].map(sanitizeCsv).join(';'));
+  }
+  const dateStr = $('date').value || getLocalDateStr();
+  download(new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' }), `regioweer-${currentLocationName.toLowerCase().replace(/[^a-z0-9]/g,'_')}-${dateStr}.csv`);
+};
+
+function drawWeather(ctx, t, cx, cy) {
+  ctx.save(); ctx.lineWidth = 3; ctx.lineCap = 'round';
+  function sun(x, y, r) {
+    ctx.strokeStyle = '#f59e0b'; ctx.fillStyle = '#fde047';
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    for (let a = 0; a < 8; a++) {
+      const q = a * Math.PI / 4;
+      ctx.beginPath();
+      ctx.moveTo(x + Math.cos(q) * (r + 5), y + Math.sin(q) * (r + 5));
+      ctx.lineTo(x + Math.cos(q) * (r + 12), y + Math.sin(q) * (r + 12));
+      ctx.stroke();
+    }
+  }
+  function cloud(x, y) {
+    ctx.fillStyle = '#e2e8f0'; ctx.strokeStyle = '#94a3b8';
+    ctx.beginPath();
+    ctx.arc(x - 18, y, 15, Math.PI, 0); ctx.arc(x, y - 11, 20, Math.PI, 0); ctx.arc(x + 22, y, 14, Math.PI, 0);
+    ctx.lineTo(x + 34, y + 13); ctx.lineTo(x - 30, y + 13);
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+  }
+  function snowflake(x, y, r = 4.5) {
+    ctx.save(); ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1.8;
+    for (let a = 0; a < 3; a++) {
+      const rad = a * Math.PI / 3;
+      ctx.beginPath();
+      ctx.moveTo(x - Math.cos(rad) * r, y - Math.sin(rad) * r);
+      ctx.lineTo(x + Math.cos(rad) * r, y + Math.sin(rad) * r);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  if (t === 'sun') sun(cx, cy, 22);
+  else if (t === 'partly') { sun(cx - 14, cy - 13, 17); cloud(cx + 5, cy + 5); }
+  else {
+    cloud(cx, cy - 3);
+    if (t === 'showers' || t === 'rain') {
+      ctx.strokeStyle = '#2563eb';
+      for (let offset = -18; offset <= 18; offset += 18) {
+        ctx.beginPath(); ctx.moveTo(cx + offset, cy + 20); ctx.lineTo(cx + offset - 4, cy + 31 + (t === 'rain' ? 5 : 0)); ctx.stroke();
+      }
+    } else if (t === 'snow' || t === 'snow_showers') {
+      snowflake(cx - 16, cy + 24, 5); snowflake(cx, cy + 28, 5); snowflake(cx + 16, cy + 24, 5);
+      if (t === 'snow') { snowflake(cx - 8, cy + 38, 4); snowflake(cx + 8, cy + 38, 4); }
+    } else if (t === 'sleet') {
+      ctx.strokeStyle = '#2563eb';
+      ctx.beginPath(); ctx.moveTo(cx - 16, cy + 20); ctx.lineTo(cx - 20, cy + 31); ctx.stroke();
+      snowflake(cx, cy + 26, 4.5);
+      ctx.beginPath(); ctx.moveTo(cx + 16, cy + 20); ctx.lineTo(cx + 12, cy + 31); ctx.stroke();
+    } else if (t === 'freezing_rain') {
+      ctx.strokeStyle = '#0284c7';
+      for (let offset = -14; offset <= 14; offset += 14) {
+        ctx.beginPath(); ctx.moveTo(cx + offset, cy + 20); ctx.lineTo(cx + offset - 3, cy + 30); ctx.stroke();
+      }
+      snowflake(cx, cy + 36, 4);
+    }
+  }
+  ctx.restore();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath(); ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+$('png').onclick = async () => {
+  const n = lastRows.length;
+  if (!n) return;
+  await document.fonts.ready;
+  const W = Math.max(1500, n * 170);
+  const H = 500, c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+
+  ctx.fillStyle = '#f8fafc'; ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = '#2563eb'; ctx.fillRect(0, 0, W, 72);
+  ctx.fillStyle = '#ffffff'; ctx.font = '800 31px var(--font-main)';
+  ctx.fillText(`Regioweer – ${currentLocationName}`, 32, 46);
+
+  const cw = (W - 40) / n;
+  for (let i = 0; i < n; i++) {
+    const r = lastRows[i], left = 20 + i * cw, mid = left + cw / 2;
+    const d = new Date(r.date + 'T12:00:00');
+    const bft = kmhToBeaufort(r.windSpeed);
+
+    if (i > 0) {
+      ctx.strokeStyle = '#e2e8f0';
+      ctx.beginPath(); ctx.moveTo(left, 88); ctx.lineTo(left, H - 24); ctx.stroke();
+    }
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#0f172a';
+    ctx.font = '800 20px var(--font-main)';
+    ctx.fillText(NL[d.getDay()].toUpperCase(), mid, 112);
+    ctx.font = '600 15px var(--font-main)';
+    ctx.fillStyle = '#64748b';
+    ctx.fillText(d.toLocaleDateString('nl-NL', { day: '2-digit', month: 'long' }), mid, 137);
+
+    drawWeather(ctx, r.type, mid, 190);
+
+    ctx.font = '900 28px var(--font-main)';
+    ctx.fillStyle = '#f43f5e';
+    ctx.fillText(`${Math.round(r.max)}°`, mid - 27, 273);
+    ctx.fillStyle = '#3b82f6';
+    ctx.fillText(`${Math.round(r.min)}°`, mid + 28, 273);
+
+    ctx.font = '600 15px var(--font-main)';
+    ctx.fillStyle = '#334155';
+    ctx.fillText(`☀ ${fmt(r.sun)} u · 💧 ${fmt(r.precip)} mm`, mid, 322);
+    ctx.fillText(`💨 ${bft} Bft ${r.windDir || ''}`, mid, 350);
+
+    ctx.font = '700 13px var(--font-main)';
+    ctx.fillStyle = '#64748b';
+    ctx.fillText(r.confidence.label, mid, 386);
+  }
+
+  const exportDate = $('date').value || getLocalDateStr();
+  ctx.textAlign = 'left';
+  ctx.font = '600 13px var(--font-main)';
+  ctx.fillStyle = '#64748b';
+  ctx.fillText(`Verwachting vanaf ${exportDate} · ${currentLocationName} · KNMI HARMONIE, ICON-D2, ECMWF, UKMO, ICON-EU, GFS, ARPEGE`, 24, 474);
+  c.toBlob(b => download(b, `regioweer-${exportDate}.png`), 'image/png');
+};
+
+$('multiPng').onclick = async () => {
+  const rows = lastRows;
+  if (!rows.length) return;
+  await document.fonts.ready;
+  const n = rows.length;
+  const W = Math.max(1500, n * 240);
+  const H = 900, c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+
+  const grad = ctx.createLinearGradient(0, 0, W, 0);
+  grad.addColorStop(0, '#1e40af');
+  grad.addColorStop(0.5, '#2563eb');
+  grad.addColorStop(1, '#38bdf8');
+  ctx.fillStyle = grad;
+  roundRect(ctx, 0, 0, W, 112, 0);
+  ctx.fill();
+
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'left';
+  ctx.font = '900 40px var(--font-main)';
+  ctx.fillText(`Regioweer – ${currentLocationName}`, 42, 52);
+  ctx.font = '700 24px var(--font-main)';
+  ctx.fillStyle = '#e0f2fe';
+  ctx.fillText(`${n}-daagse modelverwachting`, 42, 88);
+  ctx.textAlign = 'right';
+  ctx.font = '700 20px var(--font-main)';
+  ctx.fillStyle = '#fff';
+  ctx.fillText('Gewogen modelensemble', W - 40, 68);
+
+  const pad = 20, gap = 10, cw = (W - pad * 2 - gap * (n - 1)) / n, top = 130, ch = 690;
+  for (let i = 0; i < n; i++) {
+    const r = rows[i], left = pad + i * (cw + gap), mid = left + cw / 2;
+    const d = new Date(r.date + 'T12:00:00');
+
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(15,23,42,.08)';
+    ctx.shadowBlur = 14;
+    ctx.shadowOffsetY = 4;
+    roundRect(ctx, left, top, cw, ch, 20);
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#0f172a';
+    ctx.font = '900 25px var(--font-main)';
+    ctx.fillText(`${NL[d.getDay()].toUpperCase()} ${d.toLocaleDateString('nl-NL', { day: '2-digit', month: 'long' })}`, mid, 174);
+
+    drawWeather(ctx, r.type, mid, 252);
+
+    ctx.font = '800 16px var(--font-main)';
+    ctx.fillStyle = '#334155';
+    ctx.fillText(conditionText(r.type), mid, 315);
+
+    ctx.font = '900 38px var(--font-main)';
+    ctx.fillStyle = '#f43f5e';
+    ctx.fillText(`${Math.round(r.max)}°`, mid - 40, 378);
+    ctx.fillStyle = '#3b82f6';
+    ctx.fillText(`${Math.round(r.min)}°`, mid + 40, 378);
+    ctx.font = '700 13px var(--font-main)';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('Max', mid - 40, 402);
+    ctx.fillText('Min', mid + 40, 402);
+
+    const bft = kmhToBeaufort(r.windSpeed);
+    const windStr = `${bft} Bft ${r.windDir ? '(' + r.windDir + ')' : ''}`;
+    const uvText = Number.isFinite(r.uv) ? `${fmt(r.uv)} · ${uvLabel(r.uv)}` : 'n.b.';
+
+    const lines = [
+      ['☀', 'Zonuren', `${fmt(r.sun)} u`],
+      ['💧', 'Neerslag', `${fmt(r.precip)} mm (${r.pop ?? 0}%)`],
+      ['🌡', 'Gevoel', `${Math.round(r.apparentMax)}°`],
+      ['UV', 'UV-index', uvText],
+      ['💨', 'Windkracht', windStr]
+    ];
+    if (isSnowApplicable(r)) {
+      const sVal = (r.snow != null && r.snow > 0.1) ? `${fmt(r.snow)} cm` : `${r.snowChance ?? 100}%`;
+      lines.push(['❄', 'Sneeuw', sVal]);
+    }
+
+    let y = 452;
+    for (const [ico, label, val] of lines) {
+      ctx.textAlign = 'left';
+      ctx.font = '17px var(--font-main)';
+      ctx.fillStyle = '#2563eb';
+      ctx.fillText(ico, left + 14, y);
+      ctx.font = '600 14px var(--font-main)';
+      ctx.fillStyle = '#475569';
+      ctx.fillText(label, left + 42, y);
+      ctx.textAlign = 'right';
+      ctx.font = '800 14px var(--font-main)';
+      ctx.fillStyle = '#0f172a';
+      ctx.fillText(val, left + cw - 12, y);
+      ctx.strokeStyle = '#f1f5f9';
+      ctx.beginPath();
+      ctx.moveTo(left + 12, y + 12);
+      ctx.lineTo(left + cw - 12, y + 12);
+      ctx.stroke();
+      y += 46;
+    }
+  }
+
+  const exportDate = $('date').value || getLocalDateStr();
+  ctx.textAlign = 'left';
+  ctx.font = '600 14px var(--font-main)';
+  ctx.fillStyle = '#64748b';
+  ctx.fillText(`Verwachting vanaf ${exportDate} · ${currentLocationName} (${formatCoords($('lat').value, $('lon').value)})`, 28, 862);
+  ctx.textAlign = 'right';
+  ctx.fillText('KNMI HARMONIE · ICON-D2 · ECMWF · UKMO · ICON-EU · GFS · ARPEGE', W - 28, 862);
+  c.toBlob(b => download(b, `regioweer-${n}-daagse-${exportDate}.png`), 'image/png');
+};
+</script>
+</body>
+</html>
