@@ -223,26 +223,30 @@ function renderGfs(rows){
  }
  $('copyTx').disabled=$('copyTn').disabled=!rows.length;
 }
-function previousCycleIso(){
- const d=new Date(runIso()+'Z');d.setUTCHours(d.getUTCHours()-6);return d.toISOString().slice(0,16)
+function cycleIsoBack(hours){
+ const d=new Date(runIso()+'Z');d.setUTCHours(d.getUTCHours()-hours);return d.toISOString().slice(0,16)
 }
 async function loadGfsRunTable(){
- try{
-   let rows;
-   try{rows=await fetchModel('gfs',false)}
-   catch(exactErr){
-     const prev=previousCycleIso();
-     rows=await fetchModel('gfs',false,prev);
-     rows._fallbackRun=true;
-     console.warn('GFS exacte run niet beschikbaar, vorige cyclus geladen:',exactErr);
+ const attempts=[0,6,12,18,24,30];
+ let lastErr=null;
+ for(const back of attempts){
+   const candidate=back===0?runIso():cycleIsoBack(back);
+   try{
+     const rows=await fetchModel('gfs',false,candidate);
+     if(!rows?.length)throw new Error('Geen GFS-dagwaarden');
+     if(back>0)rows._fallbackRun=true;
+     lastGfsRows=rows.filter(r=>r.date>=$('date').value);
+     renderGfs(lastGfsRows);
+     const used=(rows._runUsed||candidate).replace('T',' ').replace(':00',' UTC');
+     if(back>0) $('status').textContent=`GFS ${used} geladen voor TX/TN; gekozen run nog niet beschikbaar. Modelgegevens ophalen…`;
+     return;
+   }catch(e){
+     lastErr=e;
+     console.warn(`GFS TX/TN ${candidate} niet beschikbaar:`,e);
    }
-   lastGfsRows=rows.filter(r=>r.date>=$('date').value);
-   renderGfs(lastGfsRows);
-   const used=(rows._runUsed||runIso()).replace('T',' ').replace(':00',' UTC');
-   if(rows._fallbackRun) $('status').textContent=`GFS ${used} geladen; gekozen run nog niet beschikbaar. Modelgegevens ophalen…`;
- }catch(e){
-   lastGfsRows=[];renderGfs([]);console.warn('GFS-run tabel:',e);
  }
+ lastGfsRows=[];renderGfs([]);
+ console.warn('GFS-run tabel: geen bruikbare cyclus gevonden',lastErr);
 }
 async function copyGfs(kind){
  const vals=lastGfsRows.map(r=>fmt(r[kind]));
