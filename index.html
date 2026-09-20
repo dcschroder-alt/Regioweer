@@ -378,8 +378,9 @@ $('load').onclick=async()=>{
   if(q && (!saved || saved.name!==q)){const ok=await findPlace();if(!ok)return;}
   lastRows=[];lastGfsRows=[];renderGfs([]);$('fivePreviewPanel')?.classList.add('hidden');$('overviewPanel')?.classList.add('hidden');$('csv').disabled=$('png').disabled=$('fivepng').disabled=true;
   if($('gfsStatus'))$('gfsStatus').textContent='GFS TX/TN wordt op de achtergrond opgehaald…';
-  // GFS TX/TN staat volledig los van de modelmix: nooit awaiten.
-  loadGfsRunTable().catch(e=>{console.warn('GFS TX/TN achtergrondfout',e);if($('gfsStatus'))$('gfsStatus').textContent='GFS TX/TN nog niet beschikbaar; probeer later opnieuw.'});
+  // Het vaste GFS 00/12-blok wordt pas NA de kernverwachting opgehaald,
+  // zodat het de modelmix niet kan vertragen of tegen API-limieten laat lopen.
+  if($('gfsStatus'))$('gfsStatus').textContent='Wordt na de verwachting opgehaald…';
   try{
     setStatus('Modelgegevens parallel ophalen…',10);
     if($('model').value==='mix'){
@@ -391,14 +392,14 @@ $('load').onclick=async()=>{
       });
       const done=await Promise.all(jobs);
       for(const [k,rows] of done)data[k]=rows;
-      lastMixData=data;renderModelStatus(data);
+      lastMixData=data;safeUi(renderModelStatus,data);
       lastRows=buildMix(data);
       if(!lastRows.length)throw new Error('Geen modeldata beschikbaar voor deze run.');
       show(lastRows);renderFivePreview().catch(console.warn);
       $('csv').disabled=$('png').disabled=false;$('fivepng').disabled=lastRows.filter(r=>r.date>$('date').value).length<5;
       const available=order.filter(k=>data[k]?.length).map(k=>MODELS[k].name);
       const missing=order.filter(k=>!data[k]?.length).map(k=>MODELS[k].name);
-      renderOverview(available,missing);renderMixSignals();lastAvailableNames=available;lastMissingNames=missing;
+      renderOverview(available,missing);safeUi(renderMixSignals);lastAvailableNames=available;lastMissingNames=missing;
       setStatus(`Mix klaar met ${available.length} modellen${missing.length?' · ontbreekt: '+missing.join(', '):''}. Extra gegevens ophalen…`,78);
       // Extra UV/wind/sneeuw parallel; mislukken blokkeert nooit de mix.
       const extras=await Promise.all(order.map(async k=>{
@@ -407,16 +408,18 @@ $('load').onclick=async()=>{
         catch(e){console.warn('Extra data '+k,e.message);return [k,rows]}
       }));
       for(const [k,rows] of extras)data[k]=rows;
-      lastRows=buildMix(data);show(lastRows);renderFivePreview().catch(console.warn);renderOverview(available,missing);renderMixSignals();
+      lastRows=buildMix(data);show(lastRows);renderFivePreview().catch(console.warn);renderOverview(available,missing);safeUi(renderMixSignals);
       $('fivepng').disabled=lastRows.filter(r=>r.date>$('date').value).length<5;
-      renderChanges(prevSnapshot);saveSnapshot();saveFavoriteMini();$('shareFive').disabled=$('sitePack').disabled=false;setStatus(`Klaar – ${lastRows.length} dagen · mix van ${available.length} beschikbare modellen.`,100);
+      safeUi(renderChanges,prevSnapshot);safeUi(saveSnapshot);safeUi(saveFavoriteMini);$('shareFive').disabled=$('sitePack').disabled=false;setStatus(`Klaar – ${lastRows.length} dagen · mix van ${available.length} beschikbare modellen.`,100);
+      setTimeout(()=>loadGfsRunTable().catch(e=>{console.warn('GFS 00/12 na mix',e);if($('gfsStatus'))$('gfsStatus').textContent='GFS 00/12 nog niet beschikbaar; tik later op Ververs alles.'}),1200);
     }else{
       const key=$('model').value;
       const rows=await withTimeout(fetchModel(key,true),15000,MODELS[key].name);
-      lastRows=pickSingle(rows,key);show(lastRows);renderFivePreview().catch(console.warn);renderOverview([MODELS[key].name],[]);renderMixSignals();$('csv').disabled=$('png').disabled=false;$('fivepng').disabled=lastRows.filter(r=>r.date>$('date').value).length<5;
+      lastRows=pickSingle(rows,key);show(lastRows);renderFivePreview().catch(console.warn);renderOverview([MODELS[key].name],[]);safeUi(renderMixSignals);$('csv').disabled=$('png').disabled=false;$('fivepng').disabled=lastRows.filter(r=>r.date>$('date').value).length<5;
       setStatus(`Basis klaar – ${lastRows.length} dagen. Extra gegevens ophalen…`,85);
       try{const enriched=await withTimeout(fetchExtras(rows._modelUsed||MODELS[key],rows),9000,'extra data');lastRows=pickSingle(enriched,key);show(lastRows);renderOverview([MODELS[key].name],[]);renderMixSignals()}catch(e){console.warn('Extra data',e)}
-      renderModelStatus({[key]:rows});renderChanges(prevSnapshot);saveSnapshot();saveFavoriteMini();$('shareFive').disabled=$('sitePack').disabled=false;setStatus(`Klaar – ${lastRows.length} dagen.`,100);
+      renderModelStatus({[key]:rows});safeUi(renderChanges,prevSnapshot);safeUi(saveSnapshot);safeUi(saveFavoriteMini);$('shareFive').disabled=$('sitePack').disabled=false;setStatus(`Klaar – ${lastRows.length} dagen.`,100);
+      setTimeout(()=>loadGfsRunTable().catch(e=>{console.warn('GFS 00/12 na model',e);if($('gfsStatus'))$('gfsStatus').textContent='GFS 00/12 nog niet beschikbaar; tik later op Ververs alles.'}),1200);
     }
   }catch(e){setStatus('Fout: '+e.message,0)}
 };
@@ -588,6 +591,7 @@ if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.se
 
 // ---- v34 dagelijkse werkplek ----
 let lastMixData={}, lastAvailableNames=[], lastMissingNames=[];
+function safeUi(fn,...args){try{return fn(...args)}catch(e){console.warn('UI-extra overgeslagen:',e);return null}}
 function renderMixSignals(){const box=$('mixSignals');if(!box)return;const sig=[];for(const r of lastRows.slice(0,7)){if((r.precip||0)>=10)sig.push(`🌧️ ${dayShort(r.date)} ${fmt(r.precip)} mm`);if((r.gust||0)>=75)sig.push(`💨 ${dayShort(r.date)} ${Math.round(r.gust)} km/u`);if((r.max||-99)>=30)sig.push(`🔥 ${dayShort(r.date)} ${Math.round(r.max)}°`);if((r.min||99)<0)sig.push(`❄️ ${dayShort(r.date)} ${Math.round(r.min)}°`);if(Number.isFinite(r.agreement)&&r.agreement<55)sig.push(`⚠️ ${dayShort(r.date)} onzeker`)}box.innerHTML=(sig.length?sig.slice(0,5):['✓ Geen opvallende mixsignalen in de eerste week']).map(t=>`<span class="topBadge">${t}</span>`).join('')}
 function snapshotKey(){return 'rw-snapshot:'+($('place').value||'loc')+':'+$('model').value}
 function getPrevSnapshot(){try{return JSON.parse(localStorage.getItem(snapshotKey())||'null')}catch(e){return null}}
@@ -607,7 +611,6 @@ $('compactToggle').onclick=()=>{document.body.classList.toggle('compact');const 
 $('refreshAll').onclick=()=>$('load').click();
 $('shareFive').onclick=async()=>{try{const c=await drawFiveDayFigure(false);if(!c)return;const blob=await new Promise(res=>c.toBlob(res,'image/png'));const f=new File([blob],'regioweer-5-daagse.png',{type:'image/png'});if(navigator.canShare?.({files:[f]}))await navigator.share({title:'Regioweer 5-daagse',files:[f]});else download(blob,'regioweer-5-daagse.png')}catch(e){setStatus('Delen lukte niet: '+e.message,100)}};
 $('sitePack').onclick=async()=>{await drawFiveDayFigure(true);$('csv').click();if(lastRiskCanvas)$('riskSave').click();setStatus('Sitepakket opgeslagen: 5-daagse + CSV'+(lastRiskCanvas?' + kansentabel':''),100)};
-setTimeout(()=>loadGfsRunTable().catch(e=>console.warn('Automatische GFS 00/12 fout',e)),700);
 function syncRunMode(){const auto=isAutoRun();$('date').disabled=auto;$('date').style.opacity=auto?'.55':'1';$('status').textContent=auto?'Auto: ieder model gebruikt zijn nieuwste beschikbare run.':'Handmatige run: alle modellen proberen hetzelfde gekozen UTC-tijdstip.';}
 $('run').addEventListener('change',syncRunMode);syncRunMode();
 </script><div id="dayDetail" class="detailPanel hidden"><div class="detailSheet"><div class="detailHead"><div><div class="detailTitle" id="detailTitle">Dagdetail</div><div class="smallstatus" id="detailSub">Uur-tot-uur</div></div><button class="detailClose" id="detailClose" type="button">Sluiten</button></div><div id="detailStatus" class="status">Gegevens laden…</div><canvas id="detailCanvas" class="detailCanvas" width="720" height="290"></canvas><div id="rainWindow" class="rainWindow hidden"></div><div id="hourlyList" class="hourlyList"></div></div></div>
