@@ -35,7 +35,7 @@
 <section id="results" class="cards"></section>
 <section class="panel hidden" id="plumePanel"><div style="font-weight:850;font-size:17px">Pluim</div><div class="note">Actuele ensemblepluim voor de gekozen plaats. De pluim gebruikt de nieuwste beschikbare ensemble-run en staat los van de gekozen deterministische run hierboven.</div><div class="plumecontrols"><select id="plumeModel"><option value="ecmwf_ifs025_ensemble">ECMWF ENS (51 leden)</option><option value="ncep_gefs025">GEFS (31 leden)</option><option value="dwd_icon_eu_eps">ICON-EPS Europe</option></select><button class="primary" id="plumeLoad" type="button">Pluim ophalen</button><button class="ghost" id="plumeSave" type="button" disabled>PNG</button></div><div class="status" id="plumeStatus">Kies een ensemble en tik op Pluim ophalen.</div><div class="plumewrap"><canvas id="plumeCanvas" width="1200" height="650"></canvas></div></section>
 <section class="panel hidden" id="riskPanel"><div style="font-weight:850;font-size:17px">Kansentabel</div><div class="note">Ensemblekansen voor de gekozen plaats. De percentages zijn het aandeel ensembleleden dat de drempel op die dag bereikt.</div><div class="riskcontrols"><select id="riskModel"><option value="ecmwf_ifs025_ensemble">ECMWF ENS</option><option value="ncep_gefs025">GEFS</option><option value="dwd_icon_eu_eps">ICON-EPS Europe</option></select><button class="primary" id="riskLoad" type="button">Kansen ophalen</button><button class="ghost" id="riskSave" type="button" disabled>PNG</button></div><div class="status" id="riskStatus">Kies een ensemble en tik op Kansen ophalen.</div><div class="riskwrap"><canvas id="riskCanvas" width="1500" height="760"></canvas></div><div class="note">Windstoten = maximaal ≥75 km/u. Vorst = minimumtemperatuur onder 0 °C.</div></section>
-<section class="panel" id="gfsPanel"><div style="font-weight:850;font-size:17px">GFS-run TX/TN</div><div class="note">Nieuwste live GFS voor je Excel. Alleen als live GFS niet beschikbaar is, wordt teruggevallen op de gekozen of een oudere run. Alle beschikbare dagen tot 384 uur vooruit worden getoond.</div><div id="gfsTable" class="gfsgrid"><div class="gfshead"><div class="gfscell">Datum</div><div class="gfscell">TX</div><div class="gfscell">TN</div></div></div><div class="gfsactions"><button class="ghost" id="copyTx" disabled>TX kopiëren</button><button class="ghost" id="copyTn" disabled>TN kopiëren</button></div></section>
+<section class="panel" id="gfsPanel"><div style="font-weight:850;font-size:17px">GFS-run TX/TN</div><div class="note">Nieuwste live GFS voor je Excel. Dit blok wordt apart geladen en houdt de modelmix nooit tegen.</div><div id="gfsStatus" class="note" style="margin-top:6px">Nog niet opgehaald.</div><div id="gfsTable" class="gfsgrid"><div class="gfshead"><div class="gfscell">Datum</div><div class="gfscell">TX</div><div class="gfscell">TN</div></div></div><div class="gfsactions"><button class="ghost" id="copyTx" disabled>TX kopiëren</button><button class="ghost" id="copyTn" disabled>TN kopiëren</button></div></section>
 <section class="panel"><div class="note"><b>Beste-modelmix:</b> korte termijn legt de nadruk op HARMONIE, AROME en ICON. Daarna verschuift de mix naar ECMWF IFS, GFS, UKMO, GEM en ECMWF AIFS. Extra HARMONIE- en JMA-runs kun je los bekijken, maar tellen niet dubbel mee in de mix.</div></section>
 </div>
 <script>
@@ -178,6 +178,28 @@ function weatherType(r){
   if(rain>=0.1){if(sun>=4)return 'sunshowers';return 'showers'}
   if(sun>=7)return 'sun';if(sun>=2.5)return 'partly';return 'cloud'
 }
+function spreadScore(values){
+  const a=values.filter(Number.isFinite);if(a.length<2)return 70;
+  const spread=Math.max(...a)-Math.min(...a);
+  if(spread<=1.5)return 100;if(spread<=3)return 85;if(spread<=5)return 65;if(spread<=7)return 45;return 25;
+}
+function modelAgreement(vals){
+  if(!vals?.length)return null;
+  const n=vals.length;
+  const tx=spreadScore(vals.map(v=>v.max)),tn=spreadScore(vals.map(v=>v.min));
+  const wet=vals.filter(v=>Number.isFinite(v.precip)&&v.precip>=0.1).length;
+  const dry=vals.filter(v=>Number.isFinite(v.precip)&&v.precip<0.1).length;
+  const known=wet+dry;
+  const precipAgree=known?Math.round(Math.max(wet,dry)/known*100):70;
+  const types=vals.map(v=>weatherType(v));
+  const counts={};for(const t of types)counts[t]=(counts[t]||0)+1;
+  const typeAgree=types.length?Math.round(Math.max(...Object.values(counts))/types.length*100):70;
+  let score=Math.round(((tx+tn)/2)*0.35+precipAgree*0.30+typeAgree*0.35);
+  if(n===1)score=Math.min(score,55);else if(n===2)score=Math.min(score,70);else if(n===3)score=Math.min(score,85);
+  return Math.max(0,Math.min(100,score));
+}
+function agreementLabel(v){if(!Number.isFinite(v))return '';if(v>=85)return 'zeer hoog';if(v>=70)return 'hoog';if(v>=55)return 'matig';return 'laag'}
+function agreementColor(v){if(v>=85)return '#16803a';if(v>=70)return '#4f9a2f';if(v>=55)return '#d08a00';return '#c33c2d'}
 function forecastText(r){
   const sun=Number.isFinite(r.sun)?r.sun:0, rain=Number.isFinite(r.precip)?r.precip:0, pop=Number.isFinite(r.pop)?r.pop:0;
   if(rain>=5 && sun<2)return 'Regenachtig';
@@ -201,7 +223,7 @@ function buildMix(data){
    if(off<=2 && !maps.harmonie?.[date] && maps.harmonie_eu?.[date]) keys=keys.map(k=>k==='harmonie'?'harmonie_eu':k);
    let vals=keys.map(k=>maps[k]?.[date]).filter(Boolean);if(!vals.length)continue;
    let gustVals=vals.map(v=>v.gust).filter(Number.isFinite), snowVals=vals.map(v=>v.snow).filter(Number.isFinite);
-   let probVals=vals.map(v=>v.pop).filter(Number.isFinite);let precipAgreement=pct(vals.filter(v=>v.precip>=0.1).length,vals.length);let apiPop=probVals.length?probVals.reduce((a,b)=>a+b,0)/probVals.length:null;let finalPop=Number.isFinite(apiPop)?Math.max(apiPop,precipAgreement??0):precipAgreement;let r={date,max:avg(vals,'max'),min:avg(vals,'min'),precip:avg(vals,'precip'),sun:avg(vals,'sun'),pop:finalPop,uv:avg(vals,'uv'),gust:maxv(vals,'gust'),gustChance:pct(gustVals.filter(v=>v>=75).length,gustVals.length),snow:avg(vals,'snow'),snowChance:pct(snowVals.filter(v=>v>0.1).length,snowVals.length),count:vals.length,complete:vals.every(v=>v.complete)};
+   let probVals=vals.map(v=>v.pop).filter(Number.isFinite);let precipAgreement=pct(vals.filter(v=>v.precip>=0.1).length,vals.length);let apiPop=probVals.length?probVals.reduce((a,b)=>a+b,0)/probVals.length:null;let finalPop=Number.isFinite(apiPop)?Math.max(apiPop,precipAgreement??0):precipAgreement;let r={date,max:avg(vals,'max'),min:avg(vals,'min'),precip:avg(vals,'precip'),sun:avg(vals,'sun'),pop:finalPop,uv:avg(vals,'uv'),gust:maxv(vals,'gust'),gustChance:pct(gustVals.filter(v=>v>=75).length,gustVals.length),snow:avg(vals,'snow'),snowChance:pct(snowVals.filter(v=>v>0.1).length,snowVals.length),count:vals.length,complete:vals.every(v=>v.complete),agreement:modelAgreement(vals)};
    r.type=weatherType(r);out.push(r)
  }
  return out
@@ -239,7 +261,7 @@ async function loadGfsRunTable(){
    if(!rows?.length)throw new Error('Geen live GFS-dagwaarden');
    lastGfsRows=rows.filter(x=>x.date>=$('date').value);
    renderGfs(lastGfsRows);
-   $('status').textContent='Nieuwste live GFS geladen voor TX/TN. Modelgegevens ophalen…';
+   if($('gfsStatus'))$('gfsStatus').textContent='Nieuwste live GFS geladen.';
    return;
  }catch(e){
    lastErr=e;
@@ -255,14 +277,14 @@ async function loadGfsRunTable(){
      lastGfsRows=rows.filter(r=>r.date>=$('date').value);
      renderGfs(lastGfsRows);
      const used=(rows._runUsed||candidate).replace('T',' ').replace(':00',' UTC');
-     $('status').textContent=`Live GFS niet beschikbaar; GFS ${used} geladen voor TX/TN. Modelgegevens ophalen…`;
+     if($('gfsStatus'))$('gfsStatus').textContent=`Live GFS nog niet beschikbaar; GFS ${used} geladen.`;
      return;
    }catch(e){
      lastErr=e;
      console.warn(`GFS TX/TN ${candidate} niet beschikbaar:`,e);
    }
  }
- lastGfsRows=[];renderGfs([]);
+ lastGfsRows=[];renderGfs([]); if($('gfsStatus'))$('gfsStatus').textContent='GFS TX/TN nog niet beschikbaar; probeer later opnieuw.';
  console.warn('GFS-run tabel: geen bruikbare GFS-data gevonden',lastErr);
 }
 async function copyGfs(kind){
@@ -272,11 +294,56 @@ async function copyGfs(kind){
 }
 $('copyTx').onclick=()=>copyGfs('max');
 $('copyTn').onclick=()=>copyGfs('min');
+function withTimeout(promise,ms,label='model'){
+  return Promise.race([promise,new Promise((_,reject)=>setTimeout(()=>reject(new Error(label+' timeout')),ms))]);
+}
 
 $('load').onclick=async()=>{
   const q=$('place').value.trim();
   const saved=(()=>{try{return JSON.parse(localStorage.getItem('regioweer-place')||'null')}catch(e){return null}})();
-  if(q && (!saved || saved.name!==q)){const ok=await findPlace();if(!ok)return;}lastRows=[];lastGfsRows=[];renderGfs([]);$('csv').disabled=$('png').disabled=$('fivepng').disabled=true;try{setStatus('GFS-run en modelgegevens ophalen…',5);await loadGfsRunTable();setStatus('Modelgegevens ophalen…',10);if($('model').value==='mix'){let order=['gfs','ecmwf','aifs','icon','ukmo','gem','arome','arpege','harmonie','harmonie_eu'],data={};for(let i=0;i<order.length;i++){let k=order[i];setStatus(`${MODELS[k].name} ophalen…`,10+i*7);try{data[k]=await fetchModel(k,true)}catch(e){console.warn(e);data[k]=[]}}lastRows=buildMix(data);if(lastRows.length<5)throw new Error('Te weinig modeldata beschikbaar voor deze run. Probeer een oudere run of andere cyclus.');show(lastRows);$('csv').disabled=$('png').disabled=$('fivepng').disabled=false;setStatus(`Basis klaar – ${lastRows.length} dagen. Extra UV/wind/sneeuw ophalen…`,82);for(let i=0;i<order.length;i++){let k=order[i],rows=data[k];if(!rows?.length)continue;let mm=rows._modelUsed||MODELS[k];try{data[k]=await fetchExtras(mm,rows)}catch(e){console.warn('Extra data '+k,e)}}lastRows=buildMix(data);show(lastRows);setStatus(`Klaar – ${lastRows.length} dagen.`,100)}else{let key=$('model').value,rows=await fetchModel(key,true);lastRows=pickSingle(rows,key);show(lastRows);$('csv').disabled=$('png').disabled=$('fivepng').disabled=false;setStatus(`Basis klaar – ${lastRows.length} dagen. Extra UV/wind/sneeuw ophalen…`,85);try{rows=await fetchExtras(rows._modelUsed||MODELS[key],rows);lastRows=pickSingle(rows,key);show(lastRows)}catch(e){console.warn('Extra data',e)}setStatus(`Klaar – ${lastRows.length} dagen.`,100)}}catch(e){setStatus('Fout: '+e.message,0)}};
+  if(q && (!saved || saved.name!==q)){const ok=await findPlace();if(!ok)return;}
+  lastRows=[];lastGfsRows=[];renderGfs([]);$('csv').disabled=$('png').disabled=$('fivepng').disabled=true;
+  if($('gfsStatus'))$('gfsStatus').textContent='GFS TX/TN wordt op de achtergrond opgehaald…';
+  // GFS TX/TN staat volledig los van de modelmix: nooit awaiten.
+  loadGfsRunTable().catch(e=>{console.warn('GFS TX/TN achtergrondfout',e);if($('gfsStatus'))$('gfsStatus').textContent='GFS TX/TN nog niet beschikbaar; probeer later opnieuw.'});
+  try{
+    setStatus('Modelgegevens parallel ophalen…',10);
+    if($('model').value==='mix'){
+      const order=['gfs','ecmwf','aifs','icon','ukmo','gem','arome','arpege','harmonie','harmonie_eu'];
+      const data={};
+      const jobs=order.map(async k=>{
+        try{return [k,await withTimeout(fetchModel(k,true),k==='gfs'?8000:12000,MODELS[k].name)]}
+        catch(e){console.warn(MODELS[k].name+' niet beschikbaar voor mix:',e.message);return [k,[]]}
+      });
+      const done=await Promise.all(jobs);
+      for(const [k,rows] of done)data[k]=rows;
+      lastRows=buildMix(data);
+      if(!lastRows.length)throw new Error('Geen modeldata beschikbaar voor deze run.');
+      show(lastRows);
+      $('csv').disabled=$('png').disabled=false;$('fivepng').disabled=lastRows.filter(r=>r.date>$('date').value).length<5;
+      const available=order.filter(k=>data[k]?.length).map(k=>MODELS[k].name);
+      const missing=order.filter(k=>!data[k]?.length).map(k=>MODELS[k].name);
+      setStatus(`Mix klaar met ${available.length} modellen${missing.length?' · ontbreekt: '+missing.join(', '):''}. Extra gegevens ophalen…`,78);
+      // Extra UV/wind/sneeuw parallel; mislukken blokkeert nooit de mix.
+      const extras=await Promise.all(order.map(async k=>{
+        const rows=data[k]; if(!rows?.length)return [k,rows];
+        try{return [k,await withTimeout(fetchExtras(rows._modelUsed||MODELS[k],rows),9000,'extra '+MODELS[k].name)]}
+        catch(e){console.warn('Extra data '+k,e.message);return [k,rows]}
+      }));
+      for(const [k,rows] of extras)data[k]=rows;
+      lastRows=buildMix(data);show(lastRows);
+      $('fivepng').disabled=lastRows.filter(r=>r.date>$('date').value).length<5;
+      setStatus(`Klaar – ${lastRows.length} dagen · mix van ${available.length} beschikbare modellen.`,100);
+    }else{
+      const key=$('model').value;
+      const rows=await withTimeout(fetchModel(key,true),15000,MODELS[key].name);
+      lastRows=pickSingle(rows,key);show(lastRows);$('csv').disabled=$('png').disabled=false;$('fivepng').disabled=lastRows.filter(r=>r.date>$('date').value).length<5;
+      setStatus(`Basis klaar – ${lastRows.length} dagen. Extra gegevens ophalen…`,85);
+      try{const enriched=await withTimeout(fetchExtras(rows._modelUsed||MODELS[key],rows),9000,'extra data');lastRows=pickSingle(enriched,key);show(lastRows)}catch(e){console.warn('Extra data',e)}
+      setStatus(`Klaar – ${lastRows.length} dagen.`,100);
+    }
+  }catch(e){setStatus('Fout: '+e.message,0)}
+};
 function download(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
 $('csv').onclick=()=>{let lines=['Datum;TX (°C);TN (°C);Zon (uur);Neerslag (mm);Neerslagkans (%);UV-index;Max windstoot (km/u);Kans zware windstoten (drempel >=75 km/u) (%);Sneeuwkans (%);Modellen'];for(const r of lastRows)lines.push([r.date,fmt(r.max),fmt(r.min),fmt(r.sun),fmt(r.precip),Number.isFinite(r.pop)?Math.round(r.pop):'',fmt(r.uv),Number.isFinite(r.gust)?Math.round(r.gust):'',Number.isFinite(r.gustChance)?r.gustChance:'',isWinterDate(r.date)&&Number.isFinite(r.snowChance)?r.snowChance:'',r.count].join(';'));download(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),`regioweer-${$('date').value}-${$('run').value}z.csv`)};
 function drawWeather(ctx,t,cx,cy,s){ctx.save();ctx.lineWidth=3;ctx.lineCap='round';function sun(x,y,r){ctx.strokeStyle='#f3a712';ctx.fillStyle='#ffd54a';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();for(let a=0;a<8;a++){let q=a*Math.PI/4;ctx.beginPath();ctx.moveTo(x+Math.cos(q)*(r+5),y+Math.sin(q)*(r+5));ctx.lineTo(x+Math.cos(q)*(r+12),y+Math.sin(q)*(r+12));ctx.stroke()}}function cloud(x,y){ctx.fillStyle='#d7e0e8';ctx.strokeStyle='#91a1b2';ctx.beginPath();ctx.arc(x-18,y,15,Math.PI,0);ctx.arc(x,y-11,20,Math.PI,0);ctx.arc(x+22,y,14,Math.PI,0);ctx.lineTo(x+34,y+13);ctx.lineTo(x-30,y+13);ctx.closePath();ctx.fill();ctx.stroke()}function drops(y,heavy=false){ctx.strokeStyle='#287dcc';for(let xx=-18;xx<=18;xx+=18){ctx.beginPath();ctx.moveTo(cx+xx,y);ctx.lineTo(cx+xx-4,y+11+(heavy?5:0));ctx.stroke()}}if(t==='sun')sun(cx,cy,22);else if(t==='partly'){sun(cx-14,cy-13,17);cloud(cx+5,cy+5)}else if(t==='sunshowers'){sun(cx-17,cy-16,17);cloud(cx+6,cy+2);drops(cy+23,false)}else{cloud(cx,cy-3);if(t==='showers'||t==='rain')drops(cy+20,t==='rain')}ctx.restore()}
@@ -305,8 +372,13 @@ async function drawFiveDayFigure(){
     x.textAlign='center';x.fillStyle='#10274d';x.font='700 27px Arial';x.fillText(`${NL[d.getDay()].toUpperCase()} ${d.toLocaleDateString('nl-NL',{day:'2-digit',month:'short'})}`,mid,174);
     drawWeather(x,r.type||weatherType(r),mid,252,1.15);
     const typeLabel=forecastText(r);x.font='700 16px Arial';x.fillStyle='#23364f';x.fillText(typeLabel,mid,315);
-    x.font='700 39px Arial';x.fillStyle='#d81d2c';x.fillText(`${Math.round(r.max)}°`,mid-42,378);x.fillStyle='#1267cc';x.fillText(`${Math.round(r.min)}°`,mid+42,378);
-    x.font='13px Arial';x.fillStyle='#6e7f94';x.fillText('Max',mid-42,402);x.fillText('Min',mid+42,402);
+    if(Number.isFinite(r.agreement)){
+      const badge=`Modelovereenkomst ${Math.round(r.agreement)}% · ${agreementLabel(r.agreement)}`;
+      x.font='700 13px Arial';const bw=Math.min(cw-30,x.measureText(badge).width+24),bh=26,bx=mid-bw/2,by=329;
+      x.fillStyle=agreementColor(r.agreement);roundRect(x,bx,by,bw,bh,13);x.fill();x.fillStyle='#fff';x.textAlign='center';x.fillText(badge,mid,347);
+    }
+    x.font='700 39px Arial';x.fillStyle='#d81d2c';x.fillText(`${Math.round(r.max)}°`,mid-42,389);x.fillStyle='#1267cc';x.fillText(`${Math.round(r.min)}°`,mid+42,389);
+    x.font='13px Arial';x.fillStyle='#6e7f94';x.fillText('Max',mid-42,413);x.fillText('Min',mid+42,413);
     const lines=[
       ['☀',`Zonuren`,`${fmt(r.sun)} u`],
       ['💧','Neerslag',`${fmt(r.precip)} mm`],
@@ -317,7 +389,7 @@ async function drawFiveDayFigure(){
     if(winter) lines.splice(3,0,['❄','Sneeuwkans',Number.isFinite(r.snowChance)?`${r.snowChance}%`:'n.b.']);
     if(Number.isFinite(r.gust)&&r.gust>=60) lines.push(['💨','Max. windstoot',`${Math.round(r.gust)} km/u`]);
     if(Number.isFinite(r.gustChance)&&r.gustChance>0) lines.push(['⚠','Kans ≥ 75 km/u',`${r.gustChance}%`]);
-    let y=452;for(const [ico,label,val] of lines){x.textAlign='left';x.font='18px Arial';x.fillStyle='#116bd0';x.fillText(ico,left+16,y);x.font='15px Arial';x.fillStyle='#21364f';x.fillText(label,left+48,y);x.textAlign='right';x.font='700 15px Arial';x.fillStyle='#142b4e';x.fillText(val,left+cw-14,y);x.strokeStyle='#dce7f3';x.beginPath();x.moveTo(left+14,y+14);x.lineTo(left+cw-14,y+14);x.stroke();y+=54;}
+    let y=466;for(const [ico,label,val] of lines){x.textAlign='left';x.font='18px Arial';x.fillStyle='#116bd0';x.fillText(ico,left+16,y);x.font='15px Arial';x.fillStyle='#21364f';x.fillText(label,left+48,y);x.textAlign='right';x.font='700 15px Arial';x.fillStyle='#142b4e';x.fillText(val,left+cw-14,y);x.strokeStyle='#dce7f3';x.beginPath();x.moveTo(left+14,y+14);x.lineTo(left+cw-14,y+14);x.stroke();y+=54;}
   }
   x.textAlign='left';x.font='14px Arial';x.fillStyle='#5f7186';x.fillText(`Run ${$('date').value} ${$('run').value} UTC · ${$('place').value || ($('lat').value+' N, '+$('lon').value+' E')}`,28,862);
   x.textAlign='right';x.fillText('HARMONIE · AROME · ICON · ECMWF · GFS · UKMO · GEM · AIFS',W-28,862);if(rows.some(r=>Number.isFinite(r.gustChance)&&r.gustChance>0)){x.textAlign='left';x.font='12px Arial';x.fillStyle='#7b8899';x.fillText('Kans ≥ 75 km/u = aandeel modellen dat zware windstoten berekent',28,885);}
