@@ -25,11 +25,11 @@
 <div class="field full"><label>Plaatsnaam</label><div style="display:grid;grid-template-columns:1fr auto;gap:8px"><input id="place" type="text" value="Houten" placeholder="Bijv. Houten, De Bilt of Utrecht"><button class="ghost" id="findPlace" type="button">Zoek plaats</button></div><div class="quickplaces" id="quickPlaces"><button class="placechip" data-place="Houten">Houten</button><button class="placechip" data-place="De Bilt">De Bilt</button><button class="placechip" data-place="Utrecht">Utrecht</button><button class="placechip" id="savePlace" type="button">☆ Bewaar plaats</button></div><div class="note" id="placeInfo">Houten · coördinaten worden automatisch gebruikt</div></div>
 <input id="lat" type="hidden" value="52.019260"><input id="lon" type="hidden" value="5.172830">
 <div class="field"><label>Model</label><select id="model"><option value="mix">Mix beste modellen</option><option value="gfs">GFS Global</option><option value="ecmwf">ECMWF IFS</option><option value="aifs">ECMWF AIFS</option><option value="icon">ICON-EU</option><option value="ukmo">UKMO Global 10 km</option><option value="gem">GEM Global</option><option value="arome">AROME France</option><option value="arpege">ARPEGE Europe</option><option value="harmonie">KNMI HARMONIE NL 2 km</option><option value="harmonie_eu">KNMI HARMONIE Europe</option><option value="dmi_harmonie">DMI HARMONIE Europe</option><option value="jma">JMA GSM</option></select></div>
-<div class="field"><label>Run (UTC)</label><select id="run"><option>00</option><option>06</option><option selected>12</option><option>18</option></select></div>
+<div class="field"><label>Run (UTC)</label><select id="run"><option value="auto" selected>Auto · nieuwste runs</option><option>00</option><option>06</option><option>12</option><option>18</option></select></div>
 <div class="field full"><label>Datum modelrun</label><input id="date" type="date"></div>
 </div>
 <div class="buttons"><button class="primary full" id="load">Gegevens ophalen</button><button class="ghost" id="csv" disabled>Excel/CSV opslaan</button><button class="secondary" id="png" disabled>Website-PNG opslaan</button><button class="secondary full" id="fivepng" disabled>5-daagse figuur opslaan</button><button class="ghost full" id="plumeOpen" type="button">📈 Pluim</button><button class="ghost full" id="riskOpen" type="button">⚠️ Kansentabel</button><button class="ghost full hidden" id="install">📲 App installeren</button></div>
-<div class="bar"><span id="prog"></span></div><div class="status" id="status">Kies een run en tik op Gegevens ophalen.</div>
+<div class="bar"><span id="prog"></span></div><div class="status" id="status">Auto gebruikt per model de nieuwste beschikbare run.</div>
 </section>
 <section class="panel" id="runPanel"><div style="font-weight:850;font-size:17px">Modelruns</div><div class="note">Volgende modelstart. Tijden worden automatisch in jouw lokale tijd getoond; UTC staat tussen haakjes.</div><div id="runSchedule" class="runs"></div><div class="note">De uitvoer verschijnt pas na de rekentijd. Globale modellen hebben doorgaans meer tijd nodig dan regionale modellen.</div></section>
 <section id="results" class="cards"></section>
@@ -42,7 +42,7 @@
 </div>
 <script>
 const $=id=>document.getElementById(id); const NL=['zo','ma','di','wo','do','vr','za'];
-$('date').value=new Date().toISOString().slice(0,10);
+$('date').value=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Amsterdam',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 async function findPlace(){
   const q=$('place').value.trim(); if(!q){$('placeInfo').textContent='Vul eerst een plaatsnaam in.';return false}
   $('placeInfo').textContent='Plaats zoeken…';
@@ -109,9 +109,10 @@ function renderRunSchedule(){
   box.innerHTML=RUN_SCHEDULES.map(r=>{const n=nextUtcSlot(r.step,now);return `<div class="runrow"><div><div class="runname">${r.name}</div><div class="runcad">elke ${r.step===1?'1 uur':r.step+' uur'}</div></div><div class="runnext"><b>${hmLocal(n)}</b> (${hmUtc(n)})<div class="runhint">over ${countdown(n,now)} · ${availabilityText(n,r.delay)}</div></div></div>`}).join('');
 }
 renderRunSchedule(); setInterval(renderRunSchedule,30000);
-function runIso(){return `${$('date').value}T${$('run').value}:00`}
-function apiUrl(m,visual=false){const lat=$('lat').value,lon=$('lon').value;const vars=visual?'temperature_2m,precipitation,sunshine_duration,weather_code':'temperature_2m';return `https://single-runs-api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&run=${runIso()}&models=${encodeURIComponent(m.code)}&hourly=${vars}&timezone=Europe%2FAmsterdam&forecast_hours=${m.hours}`}
-function extraHourlyUrl(m,v){const lat=$('lat').value,lon=$('lon').value;return `https://single-runs-api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&run=${runIso()}&models=${encodeURIComponent(m.code)}&hourly=${encodeURIComponent(v)}&timezone=Europe%2FAmsterdam&forecast_hours=${m.hours}`}
+function isAutoRun(){return $('run').value==='auto'}
+function runIso(){return isAutoRun()?null:`${$('date').value}T${$('run').value}:00`}
+function apiUrl(m,visual=false){const lat=$('lat').value,lon=$('lon').value;const vars=visual?'temperature_2m,precipitation,sunshine_duration,weather_code':'temperature_2m';if(isAutoRun())return `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&models=${encodeURIComponent(m.code)}&hourly=${vars}&timezone=Europe%2FAmsterdam&forecast_hours=${m.hours}`;return `https://single-runs-api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&run=${runIso()}&models=${encodeURIComponent(m.code)}&hourly=${vars}&timezone=Europe%2FAmsterdam&forecast_hours=${m.hours}`}
+function extraHourlyUrl(m,v){const lat=$('lat').value,lon=$('lon').value;if(isAutoRun())return `https://api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&models=${encodeURIComponent(m.code)}&hourly=${encodeURIComponent(v)}&timezone=Europe%2FAmsterdam&forecast_hours=${m.hours}`;return `https://single-runs-api.open-meteo.com/v1/forecast?latitude=${encodeURIComponent(lat)}&longitude=${encodeURIComponent(lon)}&run=${runIso()}&models=${encodeURIComponent(m.code)}&hourly=${encodeURIComponent(v)}&timezone=Europe%2FAmsterdam&forecast_hours=${m.hours}`}
 function mergeHourlyExtra(rows,j,v){if(!j?.hourly?.time)return rows;const map=Object.fromEntries(rows.map(r=>[r.date,r]));const vals=j.hourly[v]||[];for(let i=0;i<j.hourly.time.length;i++){const r=map[j.hourly.time[i].slice(0,10)],val=vals[i];if(!r||val==null||!Number.isFinite(+val))continue;const n=+val;if(v==='uv_index')r.uv=Number.isFinite(r.uv)?Math.max(r.uv,n):n;else if(v==='wind_gusts_10m')r.gust=Number.isFinite(r.gust)?Math.max(r.gust,n):n;else if(v==='snowfall')r.snow=(Number.isFinite(r.snow)?r.snow:0)+n;else if(v==='precipitation_probability')r.pop=Number.isFinite(r.pop)?Math.max(r.pop,n):n;}return rows}
 async function fetchOneExtra(m,rows,v){try{let r=await fetch(extraHourlyUrl(m,v));let j=await r.json();if(!r.ok||j.error)return rows;return mergeHourlyExtra(rows,j,v)}catch(e){console.warn(v+' niet beschikbaar voor '+m.name,e);return rows}}
 async function fetchExtras(m,rows){for(const v of ['precipitation_probability','uv_index','wind_gusts_10m','snowfall'])rows=await fetchOneExtra(m,rows,v);return rows}
@@ -126,17 +127,17 @@ async function fetchModel(key,visual=true,runOverride=null){
      // niet worden geblokkeerd door een extra variabele die nog via GFS013 loopt.
      let coreVisual = key==='gfs' ? false : visual;
      let url=apiUrl(mm,coreVisual);
-     if(runOverride) url=url.replace(encodeURIComponent(runIso()),encodeURIComponent(runOverride));
+     if(runOverride&&!isAutoRun()) url=url.replace(encodeURIComponent(runIso()),encodeURIComponent(runOverride));
      let r=await fetch(url,{cache:'no-store'});let j=await r.json();
      if(!r.ok||j.error) throw new Error(j.reason||`HTTP ${r.status}`);
      if(!j.hourly?.time)throw new Error('Geen uurgegevens');
-     let rows=hourlyToDaily(j.hourly);rows._modelUsed=mm;rows._runUsed=runOverride||runIso();
+     let rows=hourlyToDaily(j.hourly);rows._modelUsed=mm;rows._runUsed=isAutoRun()?'nieuwste beschikbare run':(runOverride||runIso());
      // GFS-visuele velden zijn aanvullend: mislukken mag de run niet blokkeren.
      if(key==='gfs' && visual){
        for(const v of ['precipitation','sunshine_duration','weather_code']){
          try{
            let eu=extraHourlyUrl(mm,v);
-           if(runOverride) eu=eu.replace(encodeURIComponent(runIso()),encodeURIComponent(runOverride));
+           if(runOverride&&!isAutoRun()) eu=eu.replace(encodeURIComponent(runIso()),encodeURIComponent(runOverride));
            let er=await fetch(eu,{cache:'no-store'}), ej=await er.json();
            if(er.ok&&!ej.error&&ej.hourly?.time) rows=mergeGfsVisual(rows,ej,v);
          }catch(e){console.warn('GFS extra '+v+' niet beschikbaar',e)}
@@ -276,7 +277,7 @@ function renderGfs(rows){
  $('copyTx').disabled=$('copyTn').disabled=!rows.length;
 }
 function cycleIsoBack(hours){
- const d=new Date(runIso()+'Z');d.setUTCHours(d.getUTCHours()-hours);return d.toISOString().slice(0,16)
+ const base=runIso()||new Date().toISOString().slice(0,13)+':00';const d=new Date(base+'Z');d.setUTCHours(d.getUTCHours()-hours);return d.toISOString().slice(0,16)
 }
 async function loadGfsRunTable(){
  let lastErr=null;
@@ -300,7 +301,7 @@ async function loadGfsRunTable(){
  // Alleen als live GFS mislukt: gekozen Single Run en oudere cycli proberen.
  const attempts=[0,6,12,18,24,30];
  for(const back of attempts){
-   const candidate=back===0?runIso():cycleIsoBack(back);
+   const candidate=(back===0?(runIso()||cycleIsoBack(0)):cycleIsoBack(back));
    try{
      const rows=await fetchModel('gfs',false,candidate);
      if(!rows?.length)throw new Error('Geen GFS-dagwaarden');
@@ -376,9 +377,9 @@ $('load').onclick=async()=>{
   }catch(e){setStatus('Fout: '+e.message,0)}
 };
 function download(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
-$('csv').onclick=()=>{let lines=['Datum;TX (°C);TN (°C);Zon (uur);Neerslag (mm);Neerslagkans (%);UV-index;Max windstoot (km/u);Kans zware windstoten (drempel >=75 km/u) (%);Sneeuwkans (%);Modellen'];for(const r of lastRows)lines.push([r.date,fmt(r.max),fmt(r.min),fmt(r.sun),fmt(r.precip),Number.isFinite(r.pop)?Math.round(r.pop):'',fmt(r.uv),Number.isFinite(r.gust)?Math.round(r.gust):'',Number.isFinite(r.gustChance)?r.gustChance:'',isWinterDate(r.date)&&Number.isFinite(r.snowChance)?r.snowChance:'',r.count].join(';'));download(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),`regioweer-${$('date').value}-${$('run').value}z.csv`)};
+$('csv').onclick=()=>{let lines=['Datum;TX (°C);TN (°C);Zon (uur);Neerslag (mm);Neerslagkans (%);UV-index;Max windstoot (km/u);Kans zware windstoten (drempel >=75 km/u) (%);Sneeuwkans (%);Modellen'];for(const r of lastRows)lines.push([r.date,fmt(r.max),fmt(r.min),fmt(r.sun),fmt(r.precip),Number.isFinite(r.pop)?Math.round(r.pop):'',fmt(r.uv),Number.isFinite(r.gust)?Math.round(r.gust):'',Number.isFinite(r.gustChance)?r.gustChance:'',isWinterDate(r.date)&&Number.isFinite(r.snowChance)?r.snowChance:'',r.count].join(';'));download(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),`regioweer-${$('date').value}-${$('run').value}.csv`)};
 function drawWeather(ctx,t,cx,cy,s){ctx.save();ctx.lineWidth=3;ctx.lineCap='round';function sun(x,y,r){ctx.strokeStyle='#f3a712';ctx.fillStyle='#ffd54a';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();for(let a=0;a<8;a++){let q=a*Math.PI/4;ctx.beginPath();ctx.moveTo(x+Math.cos(q)*(r+5),y+Math.sin(q)*(r+5));ctx.lineTo(x+Math.cos(q)*(r+12),y+Math.sin(q)*(r+12));ctx.stroke()}}function cloud(x,y){ctx.fillStyle='#d7e0e8';ctx.strokeStyle='#91a1b2';ctx.beginPath();ctx.arc(x-18,y,15,Math.PI,0);ctx.arc(x,y-11,20,Math.PI,0);ctx.arc(x+22,y,14,Math.PI,0);ctx.lineTo(x+34,y+13);ctx.lineTo(x-30,y+13);ctx.closePath();ctx.fill();ctx.stroke()}function drops(y,heavy=false){ctx.strokeStyle='#287dcc';for(let xx=-18;xx<=18;xx+=18){ctx.beginPath();ctx.moveTo(cx+xx,y);ctx.lineTo(cx+xx-4,y+11+(heavy?5:0));ctx.stroke()}}if(t==='sun')sun(cx,cy,22);else if(t==='partly'){sun(cx-14,cy-13,17);cloud(cx+5,cy+5)}else if(t==='sunshowers'){sun(cx-17,cy-16,17);cloud(cx+6,cy+2);drops(cy+23,false)}else{cloud(cx,cy-3);if(t==='showers'||t==='rain')drops(cy+20,t==='rain')}ctx.restore()}
-$('png').onclick=()=>{const W=1500,H=500,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.fillStyle='#f7fbff';x.fillRect(0,0,W,H);x.fillStyle='#0b63ce';x.fillRect(0,0,W,72);x.fillStyle='white';x.font='700 31px Arial';x.fillText('Regioweer – modelmix',32,45);let n=lastRows.length,cw=(W-40)/n;for(let i=0;i<n;i++){let r=lastRows[i],left=20+i*cw,mid=left+cw/2,d=new Date(r.date+'T12:00:00');if(i){x.strokeStyle='#d7e2ee';x.beginPath();x.moveTo(left,88);x.lineTo(left,H-24);x.stroke()}x.textAlign='center';x.fillStyle='#23344a';x.font='700 20px Arial';x.fillText(NL[d.getDay()].toUpperCase(),mid,112);x.font='16px Arial';x.fillStyle='#63748a';x.fillText(d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'}),mid,137);drawWeather(x,r.type||weatherType(r),mid,190,1);x.font='700 28px Arial';x.fillStyle='#df4e3a';x.fillText(`${Math.round(r.max)}°`,mid-27,273);x.fillStyle='#2070c7';x.fillText(`${Math.round(r.min)}°`,mid+28,273);x.font='16px Arial';x.fillStyle='#394c63';x.fillText(`☀ ${fmt(r.sun)} uur`,mid,322);x.fillText(`💧 ${fmt(r.precip)} mm`,mid,352);x.font='13px Arial';x.fillStyle='#718096';if(r.count>1)x.fillText(`${r.count} modellen`,mid,386)}x.textAlign='left';x.font='13px Arial';x.fillStyle='#718096';x.fillText(`Run ${$('date').value} ${$('run').value} UTC · beste-modelmix`,24,474);c.toBlob(b=>download(b,`regioweer-verwachting-${$('date').value}.png`),'image/png')};
+$('png').onclick=()=>{const W=1500,H=500,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.fillStyle='#f7fbff';x.fillRect(0,0,W,H);x.fillStyle='#0b63ce';x.fillRect(0,0,W,72);x.fillStyle='white';x.font='700 31px Arial';x.fillText('Regioweer – modelmix',32,45);let n=lastRows.length,cw=(W-40)/n;for(let i=0;i<n;i++){let r=lastRows[i],left=20+i*cw,mid=left+cw/2,d=new Date(r.date+'T12:00:00');if(i){x.strokeStyle='#d7e2ee';x.beginPath();x.moveTo(left,88);x.lineTo(left,H-24);x.stroke()}x.textAlign='center';x.fillStyle='#23344a';x.font='700 20px Arial';x.fillText(NL[d.getDay()].toUpperCase(),mid,112);x.font='16px Arial';x.fillStyle='#63748a';x.fillText(d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'}),mid,137);drawWeather(x,r.type||weatherType(r),mid,190,1);x.font='700 28px Arial';x.fillStyle='#df4e3a';x.fillText(`${Math.round(r.max)}°`,mid-27,273);x.fillStyle='#2070c7';x.fillText(`${Math.round(r.min)}°`,mid+28,273);x.font='16px Arial';x.fillStyle='#394c63';x.fillText(`☀ ${fmt(r.sun)} uur`,mid,322);x.fillText(`💧 ${fmt(r.precip)} mm`,mid,352);x.font='13px Arial';x.fillStyle='#718096';if(r.count>1)x.fillText(`${r.count} modellen`,mid,386)}x.textAlign='left';x.font='13px Arial';x.fillStyle='#718096';x.fillText(`${isAutoRun()?'Auto · nieuwste run per model':('Run '+$('date').value+' '+$('run').value+' UTC')} · beste-modelmix`,24,474);c.toBlob(b=>download(b,`regioweer-verwachting-${$('date').value}.png`),'image/png')};
 
 async function getSunTimes(rows){
   try{
@@ -422,7 +423,7 @@ async function drawFiveDayFigure(){
     if(Number.isFinite(r.gustChance)&&r.gustChance>0) lines.push(['⚠','Kans ≥ 75 km/u',`${r.gustChance}%`]);
     let y=466;for(const [ico,label,val] of lines){x.textAlign='left';x.font='18px Arial';x.fillStyle='#116bd0';x.fillText(ico,left+16,y);x.font='15px Arial';x.fillStyle='#21364f';x.fillText(label,left+48,y);x.textAlign='right';x.font='700 15px Arial';x.fillStyle='#142b4e';x.fillText(val,left+cw-14,y);x.strokeStyle='#dce7f3';x.beginPath();x.moveTo(left+14,y+14);x.lineTo(left+cw-14,y+14);x.stroke();y+=54;}
   }
-  x.textAlign='left';x.font='14px Arial';x.fillStyle='#5f7186';x.fillText(`Run ${$('date').value} ${$('run').value} UTC · ${$('place').value || ($('lat').value+' N, '+$('lon').value+' E')}`,28,862);
+  x.textAlign='left';x.font='14px Arial';x.fillStyle='#5f7186';x.fillText(`${isAutoRun()?'Auto · nieuwste runs':('Run '+$('date').value+' '+$('run').value+' UTC')} · ${$('place').value || ($('lat').value+' N, '+$('lon').value+' E')}`,28,862);
   x.textAlign='right';x.fillText('HARMONIE · AROME · ICON · ECMWF · GFS · UKMO · GEM · AIFS',W-28,862);if(rows.some(r=>Number.isFinite(r.gustChance)&&r.gustChance>0)){x.textAlign='left';x.font='12px Arial';x.fillStyle='#7b8899';x.fillText('Kans ≥ 75 km/u = aandeel modellen dat zware windstoten berekent',28,885);}
   c.toBlob(b=>download(b,`regioweer-5-daagse-${$('date').value}.png`),'image/png');
 }
@@ -536,4 +537,7 @@ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredIns
 $('install').onclick=async()=>{if(!deferredInstall)return;deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;$('install').classList.add('hidden')};
 window.addEventListener('appinstalled',()=>{$('install').classList.add('hidden');setStatus('Regioweer is als app geïnstalleerd.',100)});
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(console.error));}
+
+function syncRunMode(){const auto=isAutoRun();$('date').disabled=auto;$('date').style.opacity=auto?'.55':'1';$('status').textContent=auto?'Auto: ieder model gebruikt zijn nieuwste beschikbare run.':'Handmatige run: alle modellen proberen hetzelfde gekozen UTC-tijdstip.';}
+$('run').addEventListener('change',syncRunMode);syncRunMode();
 </script></body></html>
