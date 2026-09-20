@@ -29,6 +29,8 @@
 
 /* v42 compacter & betrouwbaarheid */
 .runPanelCompact{padding:10px 12px}.runDetails summary{cursor:pointer;font-size:14px;color:#173a63;list-style:none}.runDetails summary::-webkit-details-marker{display:none}.runDetails summary:after{content:" ▾";color:#6b7d91}.runDetails[open] summary:after{content:" ▴"}.runPanelCompact .runs{gap:4px;margin-top:7px}.runPanelCompact .runrow{padding:6px 8px;border-radius:9px}.runPanelCompact .runname{font-size:11px}.runPanelCompact .runcad,.runPanelCompact .runnext{font-size:10px}.runPanelCompact .runhint{font-size:9px}.forecastSelect{padding:7px 9px;font-size:12px;min-width:105px}.confidenceStrip{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.confidencePill{padding:7px 9px;border-radius:12px;background:#eef7ef;border:1px solid #cfe4d0;color:#285d39;font-size:11px;font-weight:800}.confidencePill.medium{background:#fff4df;border-color:#ffd58b;color:#8a5d10}.confidencePill.low{background:#ffe8e3;border-color:#f4b7ad;color:#9b3b2f}.confidencePill.info{background:#edf4fb;border-color:#d4e2f0;color:#305a7f}.dark .runDetails summary{color:#eaf3ff}.dark .confidencePill{background:#173b26;border-color:#28573a;color:#bde9c7}.dark .confidencePill.medium{background:#46391c;border-color:#665226;color:#ffe2a8}.dark .confidencePill.low{background:#492823;border-color:#6d3830;color:#ffbeb5}.dark .confidencePill.info{background:#243b52;border-color:#35536e;color:#dcecff}
+
+.alertPanel{border:1px solid #dce6f1;background:linear-gradient(135deg,#f8fbff,#f3f8fd)}.alertHead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.alertStatus{display:flex;align-items:center;gap:9px;font-weight:900;color:#173a63}.alertDot{width:11px;height:11px;border-radius:50%;background:#4da66b;box-shadow:0 0 0 4px #4da66b20}.alertDot.watch{background:#e6a51b;box-shadow:0 0 0 4px #e6a51b25}.alertDot.high{background:#df5848;box-shadow:0 0 0 4px #df584825}.alertText{font-size:12px;color:#50667e;line-height:1.5;margin-top:7px}.alertActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.alertActions a{display:inline-block;text-decoration:none;padding:8px 11px;border-radius:11px;background:#edf3fb;color:#164f89;font-size:12px;font-weight:850}.weatherHeadline{font-size:19px;font-weight:900;color:#173a63;margin-bottom:6px}.dark .alertPanel{background:linear-gradient(135deg,#172635,#1a2c3d);border-color:#314358}.dark .alertStatus,.dark .weatherHeadline{color:#eaf3ff}.dark .alertText{color:#bdd0e3}.dark .alertActions a{background:#243b52;color:#dcecff}
 </style>
 </head>
 <body><div class="wrap">
@@ -46,6 +48,7 @@
 </section>
 <section class="panel runPanelCompact" id="runPanel"><details class="runDetails"><summary><b>Modelruns</b> · tijden & beschikbaarheid</summary><div class="note">Tik open voor de volgende modelstarts. Lokale tijd staat vooraan; UTC tussen haakjes.</div><div id="runSchedule" class="runs"></div><div class="note">Regionale modellen zijn doorgaans eerder beschikbaar dan globale modellen.</div></details></section>
 <section id="results" class="cards"></section>
+<section class="panel alertPanel" id="warningPanel"><div class="alertHead"><div class="alertStatus"><span class="alertDot" id="alertDot"></span><span id="alertTitle">Waarschuwingen & aandachtspunten</span></div><span class="smallstatus">mixsignalen zijn geen officiële waarschuwingen</span></div><div class="alertText" id="alertText">Haal de modelmix op voor mogelijke aandachtspunten in de verwachting. Controleer voor officiële waarschuwingen altijd het KNMI.</div><div class="alertActions"><a href="https://www.knmi.nl/nederland-nu/weer/waarschuwingen" target="_blank" rel="noopener">⚠ KNMI-waarschuwingen</a><a href="https://www.knmi.nl/nederland-nu/weer/verwachtingen" target="_blank" rel="noopener">↗ KNMI-verwachting</a></div></section>
 <section class="panel hidden" id="overviewPanel"><div style="font-weight:850;font-size:17px">In één oogopslag</div><div class="note">Belangrijkste signalen uit de huidige modelmix.</div><div class="overviewGrid"><div class="overviewCard"><div class="overviewLabel">Modelstatus</div><div class="overviewValue" id="ovModels">—</div><div class="overviewSub" id="ovModelsSub">—</div></div><div class="overviewCard"><div class="overviewLabel">Modelovereenkomst</div><div class="overviewValue" id="ovAgree">—</div><div class="overviewSub" id="ovAgreeSub">—</div></div><div class="overviewCard"><div class="overviewLabel">Natste dag</div><div class="overviewValue" id="ovRain">—</div><div class="overviewSub" id="ovRainSub">—</div></div><div class="overviewCard"><div class="overviewLabel">Temperatuurtrend</div><div class="overviewValue" id="ovTemp">—</div><div class="overviewSub" id="ovTempSub">—</div></div></div><div id="mixSignals" class="topBadges"></div><div id="confidenceStrip" class="confidenceStrip"></div></section>
 <section class="panel hidden" id="todayTomorrowPanel"><div style="font-weight:850;font-size:17px">Vandaag & morgen</div><div class="note">Snel overzicht op basis van de nieuwste beschikbare modeldata.</div><div class="todayTomorrowGrid" id="todayTomorrowGrid"></div></section>
 <section class="panel hidden" id="changesPanel"><div style="font-weight:850;font-size:17px">Wat is veranderd?</div><div class="note">Vergelijking met de vorige keer dat je deze plaats en modelkeuze ophaalde.</div><div id="changesList" class="changeList"></div></section>
@@ -302,6 +305,7 @@ function renderOverview(availableNames=[],missingNames=[]){
  const wet=[...five].sort((a,b)=>(b.precip||0)-(a.precip||0))[0];$('ovRain').textContent=wet?`${fmt(wet.precip)} mm`:'—';$('ovRainSub').textContent=wet?dayShort(wet.date):'—';
  const first=five[0],last=five[five.length-1],delta=(first&&last)?last.max-first.max:null;$('ovTemp').textContent=Number.isFinite(delta)?`${delta>0?'+':''}${Math.round(delta)}°`:'—';$('ovTempSub').textContent=Number.isFinite(delta)?(delta>=2?'duidelijk warmer':delta<=-2?'duidelijk koeler':'weinig verandering'):'—';
  renderConfidenceStrip(five);
+ renderWarningPanel();
 }
 function renderConfidenceStrip(rows){
  const box=$('confidenceStrip');if(!box)return;
@@ -323,6 +327,12 @@ function mixDateFromData(data,date){
  const vals=keys.map(k=>maps[k]?.[date]).filter(Boolean);if(!vals.length)return null;
  const probVals=vals.map(v=>v.pop).filter(Number.isFinite),precipAgreement=pct(vals.filter(v=>v.precip>=0.1).length,vals.length),apiPop=probVals.length?probVals.reduce((a,b)=>a+b,0)/probVals.length:null;
  const r={date,max:avg(vals,'max'),min:avg(vals,'min'),precip:avg(vals,'precip'),sun:avg(vals,'sun'),pop:Number.isFinite(apiPop)?Math.max(apiPop,precipAgreement??0):precipAgreement,uv:avg(vals,'uv'),gust:maxv(vals,'gust'),count:vals.length,agreement:modelAgreement(vals)};r.type=weatherType(r);return r;
+}
+function renderWarningPanel(){
+ const rows=lastRows.filter(r=>r.date>=$('date').value).slice(0,Math.max(7,forecastHorizon()));const dot=$('alertDot'),title=$('alertTitle'),text=$('alertText');if(!dot||!title||!text)return;
+ if(!rows.length){dot.className='alertDot';title.textContent='Waarschuwingen & aandachtspunten';text.textContent='Haal de modelmix op voor mogelijke aandachtspunten in de verwachting. Controleer voor officiële waarschuwingen altijd het KNMI.';return}
+ const sig=[];for(const r of rows){const d=dayShort(r.date);if((r.gust||0)>=90)sig.push(`${d}: zware windstoten tot circa ${Math.round(r.gust)} km/u`);else if((r.gust||0)>=75)sig.push(`${d}: kans op stevige windstoten tot circa ${Math.round(r.gust)} km/u`);if((r.precip||0)>=30)sig.push(`${d}: veel neerslag, rond ${wholeMm(r.precip)} mm`);else if((r.precip||0)>=20)sig.push(`${d}: natte dag, rond ${wholeMm(r.precip)} mm`);if((r.max||-99)>=35)sig.push(`${d}: zeer heet, circa ${Math.round(r.max)} graden`);else if((r.max||-99)>=30)sig.push(`${d}: tropisch warm, circa ${Math.round(r.max)} graden`);if((r.min||99)<=-5)sig.push(`${d}: matige vorst, circa ${Math.round(r.min)} graden`);else if((r.min||99)<0)sig.push(`${d}: kans op vorst`);if(Number.isFinite(r.agreement)&&r.agreement<50)sig.push(`${d}: lage modelovereenkomst (${Math.round(r.agreement)}%)`)}
+ const unique=[...new Set(sig)].slice(0,4);if(unique.length){dot.className='alertDot '+(rows.some(r=>(r.gust||0)>=90||(r.precip||0)>=30||(r.max||-99)>=35)?'high':'watch');title.textContent='Aandachtspunten in de modelmix';text.textContent=unique.join(' · ')+'. Dit zijn modelsignalen, geen officiële KNMI-waarschuwingen.'}else{dot.className='alertDot';title.textContent='Geen opvallende modelsignalen';text.textContent='In de huidige modelmix zijn voor de komende dagen geen grote extremen zichtbaar. Controleer het KNMI voor officiële waarschuwingen.'}
 }
 function renderTodayTomorrow(sourceData=null,singleKey=null){
  const p=$('todayTomorrowPanel'),box=$('todayTomorrowGrid');if(!p||!box)return;
@@ -358,44 +368,30 @@ function wholeMm(v){v=Number(v)||0;if(v>0&&v<1)return 'minder dan 1';return Stri
 function wholeHours(v){return String(Math.max(0,Math.round(Number(v)||0)))}
 function buildMultiDayWeatherText(){
  const all=lastRows.filter(r=>r.date>$('date').value).slice(0,10),n=forecastHorizon(),rows=all.slice(0,n);if(!rows.length)return'';
- const dayName=d=>new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'long'}),cap=t=>t.charAt(0).toUpperCase()+t.slice(1);
- const first=rows[0],last=rows[rows.length-1],desc=r=>forecastText(r).toLowerCase();
- const wetDays=rows.filter(r=>(r.precip||0)>=0.5),sunnyDays=rows.filter(r=>(r.sun||0)>=5),warm=[...rows].sort((a,b)=>b.max-a.max)[0],cold=[...rows].sort((a,b)=>a.max-b.max)[0],wet=[...rows].sort((a,b)=>(b.precip||0)-(a.precip||0))[0],gust=[...rows].sort((a,b)=>(b.gust||0)-(a.gust||0))[0];
+ const dayName=d=>new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'long'}),cap=t=>t.charAt(0).toUpperCase()+t.slice(1),desc=r=>forecastText(r).toLowerCase();
+ const first=rows[0],last=rows[rows.length-1],wetDays=rows.filter(r=>(r.precip||0)>=0.5),warm=[...rows].sort((a,b)=>b.max-a.max)[0],cold=[...rows].sort((a,b)=>a.max-b.max)[0],wet=[...rows].sort((a,b)=>(b.precip||0)-(a.precip||0))[0],gust=[...rows].sort((a,b)=>(b.gust||0)-(a.gust||0))[0];
  const delta=(last.max||0)-(first.max||0),avgSun=Math.round(rows.reduce((a,r)=>a+(r.sun||0),0)/rows.length);
- let intro='De komende dagen blijft het weer wisselend.';
- if(wetDays.length===0&&avgSun>=5)intro='De komende dagen verloopt het vaak droog en is er geregeld ruimte voor de zon.';
- else if(wetDays.length>=Math.ceil(rows.length*.6))intro='De komende dagen blijft het wisselvallig met geregeld regen of buien, maar tussendoor zijn ook droge perioden.';
- else if(delta>=4)intro='De komende dagen wordt het geleidelijk warmer, met daarnaast een afwisseling van zon, wolken en lokaal wat neerslag.';
- else if(delta<=-4)intro='De komende dagen wordt het geleidelijk koeler. Zon, wolken en enkele momenten met regen of buien wisselen elkaar af.';
- else if(warm.max>=30)intro='De komende dagen is het warm tot zeer warm, met naast zon ook aandacht voor enkele buien of regenmomenten.';
- let p1=`${intro} Morgen is het ${desc(first)}. De temperatuur loopt op van ongeveer ${Math.round(first.min)} graden in de ochtend naar ${Math.round(first.max)} graden in de middag.`;
- if((first.sun||0)>=1)p1+=` De zon schijnt naar verwachting ongeveer ${wholeHours(first.sun)} uur.`;
- if((first.precip||0)>=0.1)p1+=` Er kan ongeveer ${wholeMm(first.precip)} mm neerslag vallen${Number.isFinite(first.pop)?`, met een neerslagkans rond ${Math.round(first.pop)}%`:''}.`;
- else p1+=' Het blijft waarschijnlijk vrijwel droog.';
- if(Number.isFinite(first.gust)&&first.gust>=60)p1+=` Daarbij zijn windstoten tot ongeveer ${Math.round(first.gust)} km/u mogelijk.`;
+ let intro='De komende dagen is er een afwisseling van zon, wolken en soms wat neerslag.';
+ if(wetDays.length===0&&avgSun>=5)intro='De komende dagen is het vaak droog en is er geregeld veel ruimte voor de zon.';
+ else if(wetDays.length>=Math.ceil(rows.length*.6))intro='De komende dagen is het wisselvallig met geregeld regen of buien, maar tussendoor zijn er ook droge perioden.';
+ else if(delta>=4)intro='De komende dagen wordt het geleidelijk warmer. Daarbij wisselen zon en wolken elkaar af en kan soms wat neerslag vallen.';
+ else if(delta<=-4)intro='De komende dagen wordt het geleidelijk koeler. Daarbij wisselen droge perioden en momenten met regen of buien elkaar af.';
+ else if(warm.max>=30)intro='De komende dagen is het warm tot zeer warm. Naast zonnige perioden is er ook kans op een enkele bui.';
+ let p1=`${intro} Morgen is het ${desc(first)} en het wordt ${Math.round(first.max)} graden.`;
+ const pop1=Number.isFinite(first.pop)?Math.round(first.pop):null,pr1=Number(first.precip)||0;
+ if(pop1===0&&pr1<0.1)p1+=' Het blijft droog.';
+ else if((pop1===null||pop1<=10)&&pr1<0.1)p1+=' Het blijft waarschijnlijk droog.';
+ else if(pr1>=0.1)p1+=` Er kan ${wholeMm(pr1)} mm neerslag vallen${pop1!==null?`, bij een neerslagkans van ongeveer ${pop1}%`:''}.`;
+ else if(pop1!==null)p1+=` De kans op neerslag is ongeveer ${pop1}%.`;
+ if((first.sun||0)>=7)p1+=' De zon krijgt daarbij veel ruimte.';else if((first.sun||0)>=3)p1+=' Af en toe schijnt de zon.';
+ if(Number.isFinite(first.gust)&&first.gust>=60)p1+=` Er zijn windstoten tot ongeveer ${Math.round(first.gust)} km/u mogelijk.`;
  let p2='';
- const d2=rows[1],d3=rows[2];
- if(d2){p2=`${cap(dayName(d2.date))} wordt het ${desc(d2)} en ligt de maximumtemperatuur rond ${Math.round(d2.max)} graden.`;if((d2.sun||0)>=4)p2+=` De zon laat zich geregeld zien.`;if((d2.precip||0)>=1)p2+=` Tegelijk is er kans op regen of buien, met rond ${wholeMm(d2.precip)} mm.`;}
- if(d3){p2+=` ${cap(dayName(d3.date))} wordt ongeveer ${Math.round(d3.max)} graden en is het ${desc(d3)}.`;}
+ for(let i=1;i<Math.min(rows.length,4);i++){const r=rows[i],dn=cap(dayName(r.date)),pop=Number.isFinite(r.pop)?Math.round(r.pop):null,pr=Number(r.precip)||0;p2+=`${p2?' ':''}${dn} is het ${desc(r)} en wordt het ongeveer ${Math.round(r.max)} graden.`;if(pop===0&&pr<0.1)p2+=' Het blijft droog.';else if(pr>=1)p2+=` Er valt naar verwachting ongeveer ${wholeMm(pr)} mm regen of buienneerslag.`;else if(pop!==null&&pop>=40)p2+=` Er is kans op regen of een bui.`;}
  let p3='';
- if(rows.length>3){
-   const tail=rows.slice(3),tailWet=tail.filter(r=>(r.precip||0)>=1).length,tailSun=Math.round(tail.reduce((a,r)=>a+(r.sun||0),0)/tail.length);
-   if(delta>=3)p3='Daarna zet de opwarming door en komen de hoogste temperaturen later in de periode te liggen.';
-   else if(delta<=-3)p3='Daarna zakt de temperatuur verder en wordt het duidelijk koeler dan aan het begin van de periode.';
-   else p3='Daarna verandert de temperatuur niet sterk en blijven de verschillen van dag tot dag beperkt.';
-   if(tailWet>=Math.ceil(tail.length/2))p3+=' Regen en buien blijven daarbij geregeld terugkomen.';
-   else if(tailWet===0)p3+=' Het blijft dan overwegend droog.';
-   else p3+=' Droge perioden overheersen, al kan op enkele momenten regen of een bui voorkomen.';
-   if(tailSun>=5)p3+=' Ook is er geregeld ruimte voor de zon.';
- }
- let p4='';
- if(wet.precip>=10)p4+=`${cap(dayName(wet.date))} springt eruit als natste dag, met ongeveer ${wholeMm(wet.precip)} mm neerslag. `;
- if(warm.max-cold.max>=4)p4+=`De temperatuur varieert in deze periode van ongeveer ${Math.round(cold.max)} graden op ${dayName(cold.date)} tot ${Math.round(warm.max)} graden op ${dayName(warm.date)}. `;
- if(Number.isFinite(gust.gust)&&gust.gust>=75)p4+=`Rond ${dayName(gust.date)} is ook de kans op stevige wind het grootst, met windstoten tot ongeveer ${Math.round(gust.gust)} km/u. `;
- const agrees=rows.map(r=>r.agreement).filter(Number.isFinite),avg=agrees.length?Math.round(agrees.reduce((a,b)=>a+b,0)/agrees.length):null;
- if(Number.isFinite(avg)){if(avg>=80)p4+=`De modellen liggen over het algemeen goed bij elkaar, waardoor de hoofdlijn van de verwachting vrij betrouwbaar is.`;else if(avg>=60)p4+=`De grote lijn is redelijk duidelijk, maar vooral neerslagmomenten, zonuren en lokale temperaturen kunnen nog verschuiven.`;else p4+=`De modelverschillen zijn nog vrij groot. Vooral vanaf enkele dagen vooruit kan de verwachting daardoor nog duidelijk veranderen.`;}
- const extra=all.slice(n).find(r=>{const prev=rows[rows.length-1];return Math.abs((r.max||0)-(prev.max||0))>=5||(r.precip||0)>=10||(r.gust||0)>=75||(r.max||-99)>=30||(r.min||99)<0});
- let p5='';if(extra){p5=`Ook daarna is er een opvallend signaal: ${dayName(extra.date)} komt de mix uit op ongeveer ${Math.round(extra.max)} graden`;if((extra.precip||0)>=10)p5+=` en rond ${wholeMm(extra.precip)} mm neerslag`;if((extra.gust||0)>=75)p5+=` met kans op windstoten tot circa ${Math.round(extra.gust)} km/u`;p5+='.';}
+ if(rows.length>4){const tail=rows.slice(4),tailWet=tail.filter(r=>(r.precip||0)>=1).length,tailSun=Math.round(tail.reduce((a,r)=>a+(r.sun||0),0)/tail.length),tailMax=Math.round(tail.reduce((a,r)=>a+r.max,0)/tail.length);p3=`Vanaf ${dayName(tail[0].date)} liggen de maxima gemiddeld rond ${tailMax} graden.`;if(delta>=3)p3+=' De temperatuur vertoont daarbij een stijgende lijn.';else if(delta<=-3)p3+=' De temperatuur vertoont daarbij een dalende lijn.';if(tailWet>=Math.ceil(tail.length/2))p3+=' Regen en buien keren geregeld terug.';else if(tailWet===0)p3+=' Het blijft overwegend droog.';else p3+=' Meestal is het droog, al kan op enkele momenten regen of een bui voorkomen.';if(tailSun>=5)p3+=' Ook is er geregeld ruimte voor de zon.';}
+ let p4='';if(wet.precip>=10)p4+=`${cap(dayName(wet.date))} lijkt de natste dag te worden met ongeveer ${wholeMm(wet.precip)} mm neerslag. `;if(warm.max-cold.max>=5)p4+=`De maxima lopen uiteen van ongeveer ${Math.round(cold.max)} tot ${Math.round(warm.max)} graden. `;if(Number.isFinite(gust.gust)&&gust.gust>=75)p4+=`Rond ${dayName(gust.date)} kan het bovendien stevig waaien met windstoten tot ongeveer ${Math.round(gust.gust)} km/u. `;
+ const agrees=rows.map(r=>r.agreement).filter(Number.isFinite),avg=agrees.length?Math.round(agrees.reduce((a,b)=>a+b,0)/agrees.length):null;if(Number.isFinite(avg)&&avg<65)p4+='Verder vooruit lopen de modellen meer uiteen, waardoor vooral de timing van neerslag en de temperatuur nog kan veranderen.';
+ const extra=all.slice(n).find(r=>{const prev=rows[rows.length-1];return Math.abs((r.max||0)-(prev.max||0))>=5||(r.precip||0)>=10||(r.gust||0)>=75||(r.max||-99)>=30||(r.min||99)<0});let p5='';if(extra){p5=`Daarna is er een signaal voor een duidelijke weersverandering rond ${dayName(extra.date)}.`;if((extra.max||-99)>=30)p5+=` De temperatuur kan oplopen tot ongeveer ${Math.round(extra.max)} graden.`;else if(Math.abs((extra.max||0)-(last.max||0))>=5)p5+=` De temperatuur komt dan rond ${Math.round(extra.max)} graden uit.`;if((extra.precip||0)>=10)p5+=` Ook kan ongeveer ${wholeMm(extra.precip)} mm neerslag vallen.`;if((extra.gust||0)>=75)p5+=` Windstoten kunnen oplopen tot ongeveer ${Math.round(extra.gust)} km/u.`;}
  return [p1,p2,p3,p4.trim(),p5].filter(Boolean).join('\n\n');
 }
 function renderWeatherText(){const p=$('weatherTextPanel'),b=$('weatherText');if(!p||!b)return;const t=buildMultiDayWeatherText();if(!t){p.classList.add('hidden');$('copyWeatherText').disabled=true;return}b.textContent=t;p.classList.remove('hidden');$('weatherTextUpdated').textContent=`${forecastHorizon()} dagen · bijgewerkt `+new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});$('copyWeatherText').disabled=false;}
