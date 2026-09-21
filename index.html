@@ -71,12 +71,13 @@
 .nlMapCard{background:linear-gradient(180deg,#f9fcff,#eef6fb);border:1px solid #dbe7f0;box-shadow:0 5px 18px rgba(35,72,105,.08);padding:12px}.nlMapTitle{font-size:17px}.nlMapSub{margin-bottom:8px}.nlMapWater{fill:#dff1fb}.nlMapLand{fill:#f4f7ef;stroke:#7d9a83;stroke-width:1.5;filter:drop-shadow(0 2px 2px rgba(40,70,55,.10))}.nlMapCity{font-size:8px;fill:#526578;font-weight:750}.nlMapTemp{font-size:16px;fill:#d84f36;font-weight:950;paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round}.nlMapIcon{font-size:21px}.nlMapSeaLabel{font-size:9px;fill:#75a2bd;font-style:italic}.nlMapStationDot{fill:#5e7f69;opacity:.55}.dark .nlMapCard{background:linear-gradient(180deg,#1a2b3a,#152532)}.dark .nlMapWater{fill:#102c3e}.dark .nlMapLand{fill:#27382d;stroke:#718a76}.dark .nlMapTemp{stroke:#1b2b3b}.dark .nlMapSeaLabel{fill:#6f9db7}.detailBest{grid-column:1/-1;background:linear-gradient(135deg,#f8fbff,#eef6fd);border:1px solid #dbe8f4;border-radius:12px;padding:9px 11px;font-size:11px;color:#34536f;line-height:1.45}.detailBest b{color:#173a63}.dark .detailBest{background:linear-gradient(135deg,#1b2b3b,#1a3042);border-color:#314b60;color:#c5d6e5}.dark .detailBest b{color:#eef7ff}
 
 
+.smartGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}.smartCard{border:1px solid #dfe8f2;background:#f8fbff;border-radius:14px;padding:11px 12px}.smartCard b{display:block;color:#173a63;font-size:13px;margin-bottom:3px}.smartCard span{font-size:12px;color:#61758a;line-height:1.4}.dark .smartCard{background:#1b2b3b;border-color:#314358}.dark .smartCard b{color:#eef7ff}.dark .smartCard span{color:#c2d0df}@media(max-width:620px){.smartGrid{grid-template-columns:1fr}}
 .practicalGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}.practicalTip{border-radius:13px;padding:10px 12px;background:#f7fbff;border:1px solid #dfe9f4;font-size:12px;line-height:1.35}.practicalTip b{display:block;color:#173a63;margin-bottom:2px}.practicalTip.sun{background:#fff8db;border-color:#f2df9d}.practicalTip.rain{background:#eef7ff;border-color:#c8e1f6}.practicalTip.wind{background:#fff3ea;border-color:#f2d2b8}.practicalTip.cold{background:#f0f7ff;border-color:#cfe0ef}.practicalTip.ok{background:#eef8f0;border-color:#cfe6d2}.dark .practicalTip{background:#1b2b3b;border-color:#314358;color:#dbe7f2}.dark .practicalTip b{color:#eef7ff}.dark .practicalTip.sun{background:#3a321d}.dark .practicalTip.rain{background:#173047}.dark .practicalTip.wind{background:#3b2a20}.dark .practicalTip.cold{background:#1d2d3d}.dark .practicalTip.ok{background:#21372a}@media(max-width:620px){.practicalGrid{grid-template-columns:1fr}}
 .signal10{display:flex;gap:7px;overflow-x:auto;padding:8px 0 2px}.signalDay{min-width:78px;padding:9px 7px;border-radius:13px;background:#f6f9fd;border:1px solid #dfe8f2;text-align:center}.signalDay b{display:block;font-size:11px;color:#173a63}.signalIcons{font-size:20px;min-height:26px;margin:5px 0}.signalPct{font-size:10px;color:#64778c}.signalDay.attn{background:#fff8df;border-color:#efd98a}.signalDay.strong{background:#fff0e6;border-color:#efb37f}.dark .signalDay{background:#1b2b3b;border-color:#314358}.dark .signalDay b{color:#eaf3ff}.dark .signalPct{color:#b8c7d8}
 .agree.limited{background:#58697d!important;color:#fff}.todayGlanceGrid{display:grid;grid-template-columns:1.15fr 1fr;gap:12px;margin-top:10px}.todayGlanceMain{padding:16px;border-radius:18px;background:linear-gradient(135deg,#edf7ff,#f8fbff);border:1px solid #d7e7f5}.todayGlanceMain .bigwx{font-size:48px;line-height:1}.todayGlanceMain .bigtemp{font-size:34px;font-weight:900;margin:6px 0}.todayGlanceMain .summary{font-size:15px;font-weight:800;color:#1d3652}.todayGlanceSide{display:grid;grid-template-columns:1fr 1fr;gap:8px}.glanceMetric{padding:12px;border-radius:14px;background:#f6f9fd;border:1px solid #dfe8f2}.glanceMetric b{display:block;font-size:17px;color:#173a63}.glanceMetric span{font-size:11px;color:#66798d}.confidenceMini{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.confidenceMini span{font-size:11px;font-weight:800;padding:6px 9px;border-radius:999px;background:#edf3fa;color:#27415e}.mixSourceTag{font-size:11px;color:#6a7b8d;margin-top:5px}.dark .todayGlanceMain{background:linear-gradient(135deg,#182a3b,#142230);border-color:#31475d}.dark .todayGlanceMain .summary,.dark .glanceMetric b{color:#edf6ff}.dark .glanceMetric{background:#1a2b3b;border-color:#31475d}.dark .glanceMetric span,.dark .mixSourceTag{color:#afc0d1}.dark .confidenceMini span{background:#21364a;color:#dbeaff}@media(max-width:650px){.todayGlanceGrid{grid-template-columns:1fr}.todayGlanceSide{grid-template-columns:repeat(2,1fr)}}</style>
 </head>
 <body><div class="wrap">
-<section class="hero"><div class="heroTop"><h1>Regioweer Modelmix</h1><span class="versionBadge">v62</span></div><p>Regionale topmodellen · wereldmodellen · ensemblepluim</p><div class="v34toolbar"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
+<section class="hero"><div class="heroTop"><h1>Regioweer Modelmix</h1><span class="versionBadge">v63</span></div><p>Regionale topmodellen · wereldmodellen · ensemblepluim</p><div class="v34toolbar"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
 <section class="panel">
 <div class="grid">
 <div class="field full"><label>Plaatsnaam</label><div style="display:grid;grid-template-columns:1fr auto;gap:8px"><input id="place" type="text" value="Houten" placeholder="Bijv. Houten, De Bilt of Amersfoort"><button class="ghost" id="findPlace" type="button">Zoek plaats</button></div><div class="quickplaces" id="quickPlaces"><button class="placechip" data-place="Houten">Houten</button><button class="placechip hidden" id="homePlace" type="button">⌂ Thuis</button><button class="placechip" id="savePlace" type="button">☆ Bewaar plaats</button></div><div class="quickplaces"><button class="placechip" id="useGps" type="button">📍 Mijn locatie</button><button class="placechip" id="setHome" type="button">⌂ Maak thuisplaats</button><button class="placechip" id="clearRecent" type="button">Recent wissen</button></div><div class="quickplaces" id="recentPlaces"><span class="recentlabel">Recent:</span></div><div class="note" id="placeInfo">Houten · coördinaten worden automatisch gebruikt</div></div>
@@ -103,6 +104,7 @@
 <section class="panel" id="favMiniPanel"><div class="favDashHead"><div><div style="font-weight:850;font-size:17px">Favorieten-dashboard</div><div class="note">Morgen in één oogopslag voor je opgeslagen plaatsen.</div></div><button class="ghost" id="refreshFavDash" type="button">↻ Ververs</button></div><div id="favMiniGrid" class="favMiniGrid"></div><div class="note" id="favDashStatus">Gebruik Ververs om de dynamische modelmix voor morgen op te halen.</div></section>
 <section class="panel hidden" id="comparePanel"><div style="font-weight:850;font-size:17px">Plaatsen vergelijken</div><div class="note">Snelle 5-daagse vergelijking met ECMWF IFS.</div><div class="compareGrid"><div class="field"><label>Andere plaats</label><input id="comparePlace" value="De Bilt" placeholder="Bijv. De Bilt"></div><div class="field" style="justify-content:end"><button class="primary" id="compareLoad" type="button">Vergelijk</button></div></div><div id="compareStatus" class="status"></div><div id="compareRows" class="compareRows"></div></section>
 <section class="panel hidden" id="fivePreviewPanel"><div class="previewHead"><div><div style="font-weight:850;font-size:17px">Meerdaagse verwachting</div><div class="note">Vanaf morgen · kies zelf hoeveel dagen je in de app wilt zien. De website-PNG blijft 5 dagen.</div></div><div><label for="forecastDays" style="display:block;margin-bottom:4px">Aantal dagen</label><select id="forecastDays" class="forecastSelect"><option value="5">5 dagen</option><option value="6">6 dagen</option><option value="7" selected>7 dagen</option><option value="10">10 dagen</option></select></div><div class="smallstatus" id="previewUpdated"></div></div><div id="fivePreview" class="previewGrid"></div><div class="note" id="previewModels"></div></section>
+<section class="panel hidden" id="smartOutlookPanel"><div style="font-weight:850;font-size:17px">Handige vooruitblik</div><div class="note">Weeromslag, weekend, beste buitenmoment en onzekerheid in één overzicht.</div><div id="smartOutlookGrid" class="smartGrid"></div></section>
 <section class="panel hidden" id="weatherTextPanel"><div class="previewHead"><div><div style="font-weight:850;font-size:17px">Geschreven weerbericht</div><div class="note">Vloeiend weerbericht op basis van de modelmix en het gekozen aantal dagen. Getallen zijn afgerond.</div></div><div class="smallstatus" id="weatherTextUpdated"></div></div><div id="weatherHeadline" class="weatherHeadline"></div><div id="weatherText" class="weatherTextBox"></div><div class="weatherTextActions"><button class="ghost" id="copyWeatherInline" type="button">📋 Kopieer tekst</button></div></section>
 <section class="panel hidden" id="plumePanel"><div style="font-weight:850;font-size:17px">Pluim</div><div class="note">Actuele ensemblepluim voor de gekozen plaats. De pluim gebruikt de nieuwste beschikbare ensemble-run en staat los van de gekozen deterministische run hierboven.</div><div class="plumecontrols"><select id="plumeModel"><option value="ecmwf_ifs025_ensemble">ECMWF ENS 0,25° (51 leden · 15 d)</option><option value="ecmwf_aifs025_ensemble">ECMWF AIFS ENS (51 leden · 15 d)</option><option value="ncep_gefs025">GEFS 0,25° (31 leden · 10 d)</option><option value="ncep_gefs05">GEFS 0,5° (31 leden · 35 d)</option><option value="dwd_icon_eu_eps">ICON-EPS Europe (40 leden · 5 d)</option></select><button class="primary" id="plumeLoad" type="button">Pluim ophalen</button><button class="ghost" id="plumeSave" type="button" disabled>PNG</button></div><div class="status" id="plumeStatus">Kies een ensemble en tik op Pluim ophalen.</div><div class="plumewrap"><canvas id="plumeCanvas" width="1200" height="650"></canvas></div></section>
 <section class="panel hidden" id="riskPanel"><div style="font-weight:850;font-size:17px">Kansentabel</div><div class="note">Ensemblekansen voor de gekozen plaats, zo ver vooruit als het gekozen ensemble beschikbaar is. De percentages zijn het aandeel ensembleleden dat de drempel op die dag bereikt.</div><div class="riskcontrols"><select id="riskModel"><option value="ecmwf_ifs025_ensemble">ECMWF ENS 0,25° · 15 d</option><option value="ecmwf_aifs025_ensemble">ECMWF AIFS ENS · 15 d</option><option value="ncep_gefs025">GEFS 0,25° · 10 d</option><option value="ncep_gefs05">GEFS 0,5° · 35 d</option><option value="dwd_icon_eu_eps">ICON-EPS Europe · 5 d</option></select><button class="primary" id="riskLoad" type="button">Kansen ophalen</button><button class="ghost" id="riskSave" type="button" disabled>PNG</button></div><div class="status" id="riskStatus">Kies een ensemble en tik op Kansen ophalen.</div><div id="riskSummary" class="riskSummary hidden"></div><div id="riskDateStrip" class="riskDateStrip hidden"></div><div class="riskwrap"><canvas id="riskCanvas" width="1500" height="760"></canvas></div><div class="note">Kansen zijn het aandeel ensembleleden dat de drempel op die dag bereikt. Hogere kansen en zwaardere drempels vallen sterker op.</div></section>
@@ -465,7 +467,7 @@ function renderPracticalTips(){
  if((r.pop??0)>=35&&(r.precip||0)<1)tips.push({cls:'rain',title:'🌦️ Bui mogelijk',text:`Neerslagkans ${Math.round(r.pop||0)}% · houd rekening met een korte bui.`});
  if((r.min||99)<0)tips.push({cls:'cold',title:'❄️ Vorst',text:`Minimum rond ${Math.round(r.min)}° · houd rekening met vorst en mogelijk krabben.`});
  if(!tips.length)tips.push({cls:'ok',title:'✓ Geen bijzonderheden',text:'Geen praktische aandachtspunten voor de eerstvolgende dag.'});
- box.innerHTML=tips.slice(0,4).map(t=>`<div class="practicalTip ${t.cls}"><b>${t.title}</b>${t.text}</div>`).join('');p.classList.remove('hidden');
+ box.innerHTML=tips.slice(0,4).map(t=>`<div class="practicalTip ${t.cls}"><b>${t.title}</b>${t.text}</div>`).join('');p.classList.remove('hidden');renderSmartOutlook();
 }
 let ensembleAlerts={};
 function renderSignal10(){
@@ -585,44 +587,67 @@ function repeatWeatherPhrase(d){
 }
 function nlHourNow(){return Number(new Intl.DateTimeFormat('nl-NL',{timeZone:'Europe/Amsterdam',hour:'2-digit',hour12:false}).format(new Date()))}
 function buildMultiDayWeatherText(){
- const base=$('date').value,evening=nlHourNow()>=18,n=forecastHorizon();
- const startDate=evening?localDatePlus(1):base;
- let rows=lastRows.filter(r=>r.date>=startDate).slice(0,n);if(!rows.length)return'';
- const dayName=d=>new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'long'}),cap=t=>t.charAt(0).toUpperCase()+t.slice(1);
- const desc=r=>naturalWeatherDesc(r), dry=r=>(Number(r.precip)||0)<0.1&&(!Number.isFinite(r.pop)||Math.round(r.pop)===0);
- const tempWord=(d)=>d>=3?'duidelijk warmer':d>=2?'iets warmer':d<=-3?'duidelijk koeler':d<=-2?'iets koeler':'';
- let sentences=[];
- const first=rows[0],fd=desc(first);let lead=evening?'Morgen':'Vandaag';
- let firstS=`${lead} ${weatherPhrase(fd)} en wordt het ${Math.round(first.max)} graden.`;
- if(dry(first)&&!fd.includes('droog')) firstS+=' Het blijft droog.';
- else if((first.precip||0)>=5&&!/(bui|regen)/.test(fd)) firstS+=` Er valt ongeveer ${wholeMm(first.precip)} mm neerslag.`;
- if(Number.isFinite(first.gust)&&first.gust>=75)firstS+=` Er zijn windstoten tot ongeveer ${Math.round(first.gust)} km/u mogelijk.`;
- sentences.push(firstS);
- for(let i=1;i<Math.min(rows.length,5);i++){
-   const r=rows[i],prev=rows[i-1],dn=cap(dayName(r.date)),d=desc(r),pd=desc(prev),delta=Math.round(r.max)-Math.round(prev.max),sameDesc=d===pd;
-   let t='';
-   if(sameDesc){
-     if(Math.abs(delta)<=1)t=`${dn} verandert er weinig aan het weerbeeld.`;
-     else t=`${dn} ${repeatWeatherPhrase(d)}. Met ${Math.round(r.max)} graden wordt het ${tempWord(delta)}.`;
-   } else {
-     t=`${dn} ${weatherPhrase(d)}.`;
-     if(Math.abs(delta)>=2)t+=` Met ${Math.round(r.max)} graden wordt het ${tempWord(delta)}.`;
+ const base=$('date').value,evening=nlHourNow()>=18,n=forecastHorizon(),startDate=evening?localDatePlus(1):base;
+ const rows=lastRows.filter(r=>r.date>=startDate).slice(0,n);if(!rows.length)return'';
+ const dn=d=>new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'long'}), cap=t=>t.charAt(0).toUpperCase()+t.slice(1);
+ const dry=r=>(Number(r.precip)||0)<0.1&&(!Number.isFinite(r.pop)||r.pop<10), wet=r=>(r.precip||0)>=1||(r.pop||0)>=40;
+ const sunny=r=>(r.sun||0)>=6, cloudy=r=>(r.sun||0)<2&&!wet(r);
+ const temp=r=>Math.round(r.max), lead=evening?'Morgen':'Vandaag';
+ const first=rows[0];let out=[];
+ let a=`${lead} ${weatherPhrase(naturalWeatherDesc(first))} en komt de temperatuur uit rond ${temp(first)} graden.`;
+ if(dry(first))a+=' Regen hoef je daarbij niet te verwachten.';else if(wet(first))a+=` Er kan ongeveer ${wholeMm(first.precip||0)} mm vallen.`;
+ if((first.gust||0)>=75)a+=` De wind vraagt wel aandacht, met windstoten tot circa ${Math.round(first.gust)} km/u.`;
+ out.push(a);
+ // Group the next days by broad weather character instead of repeating each day.
+ let i=1;
+ while(i<Math.min(rows.length,6)){
+   let j=i, key=dry(rows[i])?(sunny(rows[i])?'sunDry':cloudy(rows[i])?'cloudDry':'dry'):(wet(rows[i])?'wet':'mixed');
+   while(j+1<Math.min(rows.length,6)){
+     const q=rows[j+1],k=dry(q)?(sunny(q)?'sunDry':cloudy(q)?'cloudDry':'dry'):(wet(q)?'wet':'mixed');if(k!==key)break;j++;
    }
-   if(dry(r)&&!d.includes('droog')&&!/(droog)/.test(t)&&((r.precip||0)<0.1))t+=' Het blijft droog.';
-   else if((r.precip||0)>=5&&!/(bui|regen)/.test(d))t+=` Er valt ongeveer ${wholeMm(r.precip)} mm neerslag.`;
-   if(Number.isFinite(r.gust)&&r.gust>=75)t+=` Daarbij zijn windstoten tot ongeveer ${Math.round(r.gust)} km/u mogelijk.`;
-   sentences.push(t);
+   const seg=rows.slice(i,j+1), lo=Math.min(...seg.map(temp)),hi=Math.max(...seg.map(temp));
+   const names=i===j?cap(dn(rows[i].date)):`${cap(dn(rows[i].date))} en ${dn(rows[j].date)}`;
+   let t=names+' ';
+   if(key==='sunDry')t+='houden zon en droog weer de overhand.';
+   else if(key==='cloudDry')t+='verloopt het overwegend bewolkt, maar wel droog.';
+   else if(key==='dry')t+='blijft het rustig en droog, met af en toe ruimte voor de zon.';
+   else if(key==='wet')t+='wordt het wisselvalliger en zijn regen of buien een aandachtspunt.';
+   else t+='wisselen droge perioden en enkele buien elkaar af.';
+   if(lo===hi)t+=` Het wordt ongeveer ${hi} graden.`;else t+=` De maxima liggen tussen ${lo} en ${hi} graden.`;
+   out.push(t);i=j+1;
  }
- if(rows.length>5){
-   const tail=rows.slice(5),av=Math.round(tail.reduce((a,r)=>a+r.max,0)/tail.length),wet=tail.filter(r=>(r.precip||0)>=1).length,sun=tail.reduce((a,r)=>a+(r.sun||0),0)/tail.length;
-   let t='';
-   const prevMax=rows[Math.min(4,rows.length-1)].max,delta=av-prevMax;
-   if(Math.abs(delta)>=2)t=`In de dagen daarna ${delta>0?'loopt':'daalt'} de temperatuur naar ongeveer ${av} graden.`;
-   else t=`In de dagen daarna liggen de maxima rond ${av} graden.`;
-   if(wet===0)t+=' Het blijft overwegend droog.';else if(wet>=Math.ceil(tail.length*.6))t+=' Het wordt wisselvalliger met geregeld regen of buien.';else t+=' Af en toe kan een bui vallen.';
-   if(sun>=4&&wet>0)t+=' Tussendoor is er geregeld zon.';sentences.push(t)
+ if(rows.length>6){
+   const tail=rows.slice(6),av=Math.round(tail.reduce((x,r)=>x+r.max,0)/tail.length),wetN=tail.filter(wet).length;
+   let t=`Verder vooruit schommelen de maxima rond ${av} graden.`;
+   if(wetN===0)t+=' Ook dan blijft de droge lijn voorlopig intact.';else if(wetN>=Math.ceil(tail.length/2))t+=' De kans op wisselvalliger weer neemt dan toe.';else t+=' Een enkele bui is dan mogelijk, maar droge perioden blijven aanwezig.';
+   out.push(t);
  }
- const cut=Math.min(3,sentences.length);return sentences.slice(0,cut).join(' ') + (sentences.length>cut?'\n\n'+sentences.slice(cut).join(' '):'');
+ // Add one useful trend sentence, only if it actually changes the story.
+ const hottest=[...rows].sort((a,b)=>b.max-a.max)[0],coldest=[...rows].sort((a,b)=>a.max-b.max)[0];
+ if(hottest&&coldest&&hottest.max-coldest.max>=5)out.push(`Qua temperatuur zit er behoorlijk wat beweging in: van ongeveer ${Math.round(coldest.max)} graden op ${dn(coldest.date)} tot ${Math.round(hottest.max)} graden op ${dn(hottest.date)}.`);
+ const cut=Math.min(2,out.length);return out.slice(0,cut).join(' ') + (out.length>cut?'\n\n'+out.slice(cut).join(' '):'');
+}
+function bestOutsideText(r){
+ if(!r)return null;let score=100-(r.pop||0)*.55-Math.max(0,(r.gust||0)-45)*.5-Math.max(0,(r.uv||0)-7)*3;score+=Math.min(12,r.sun||0)*2;
+ return score>=85?'zeer goed':score>=70?'goed':score>=50?'redelijk':'matig';
+}
+function uncertaintyReason(r){
+ if(!r||r.count<2)return r?.count===1?'slechts één model beschikbaar':'onvoldoende modeldata';
+ const parts=[];if(Number.isFinite(r.tempAgreement)&&r.tempAgreement<65)parts.push('temperatuur');if(Number.isFinite(r.precipAgreementScore)&&r.precipAgreementScore<65)parts.push('neerslag');if(Number.isFinite(r.typeAgreement)&&r.typeAgreement<65)parts.push('weerbeeld');
+ return parts.length?`${parts.join(' en ')} lopen tussen de modellen uiteen`:'modellen liggen redelijk dicht bij elkaar';
+}
+function renderSmartOutlook(){
+ const p=$('smartOutlookPanel'),box=$('smartOutlookGrid');if(!p||!box||!lastRows.length){p?.classList.add('hidden');return}
+ const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Amsterdam',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()),start=nlHourNow()>=18?localDatePlus(1):today,rows=lastRows.filter(r=>r.date>=start).slice(0,10);if(!rows.length){p.classList.add('hidden');return}
+ const day=d=>new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'short'}).replace('.','');const cards=[];
+ const best=[...rows.slice(0,5)].sort((a,b)=>{const sc=x=>(x.sun||0)*3-(x.pop||0)*.4-(x.precip||0)*4-Math.max(0,(x.gust||0)-45);return sc(b)-sc(a)})[0];
+ if(best)cards.push(['🌤️ Beste buitenmoment',`${day(best.date)} · ${bestOutsideText(best)} · ${Math.round(best.max)}°${(best.sun||0)>=4?` · ${Math.round(best.sun)} u zon`:''}`]);
+ let turn=null;for(let i=1;i<rows.length;i++){const d=rows[i].max-rows[i-1].max;if(Math.abs(d)>=4||(rows[i].precip||0)>=5&&(rows[i-1].precip||0)<1){turn={r:rows[i],d};break}}
+ cards.push(['↕️ Weeromslag',turn?`${day(turn.r.date)} · ${turn.d>=4?'duidelijk warmer':turn.d<=-4?'duidelijk koeler':'duidelijk wisselvalliger'}`:'Geen grote omslag in de eerstvolgende dagen']);
+ const weekend=rows.filter(r=>{const n=new Date(r.date+'T12:00:00').getDay();return n===6||n===0}).slice(0,2);if(weekend.length){const av=Math.round(weekend.reduce((a,r)=>a+r.max,0)/weekend.length),wet=weekend.some(r=>(r.precip||0)>=1||(r.pop||0)>=40);cards.push(['📅 Weekend',`${wet?'Kans op buien':'Overwegend droog'} · rond ${av}° · ${weekend.reduce((a,r)=>a+(r.sun||0),0)/weekend.length>=4?'geregeld zon':'wisselend bewolkt'}`])}
+ const uncertain=[...rows].filter(r=>Number.isFinite(r.agreement)).sort((a,b)=>a.agreement-b.agreement)[0];if(uncertain)cards.push(['🧭 Waarom onzeker?',`${day(uncertain.date)} · ${uncertaintyReason(uncertain)}`]);
+ const thresholds=[[30,'30°'],[25,'25°'],[20,'20°']];let hit=null;for(const [v,l] of thresholds){const r=rows.find(x=>x.max>=v);if(r){hit=`${l} of warmer: ${day(r.date)}`;break}}const cold=rows.find(x=>x.max<15);if(cold)hit=(hit?hit+' · ':'')+`onder 15°: ${day(cold.date)}`;if(hit)cards.push(['🌡️ Temperatuurgrenzen',hit]);
+ box.innerHTML=cards.map(([a,b])=>`<div class="smartCard"><b>${a}</b><span>${b}</span></div>`).join('');p.classList.remove('hidden');
 }
 function renderWeatherText(){const p=$('weatherTextPanel'),b=$('weatherText'),h=$('weatherHeadline');if(!p||!b)return;const startDate=nlHourNow()>=18?localDatePlus(1):$('date').value;const rows=lastRows.filter(r=>r.date>=startDate).slice(0,forecastHorizon()),t=buildMultiDayWeatherText();if(!t){p.classList.add('hidden');$('copyWeatherText').disabled=true;return}if(h)h.textContent=buildWeatherHeadline(rows);b.textContent=t;p.classList.remove('hidden');$('weatherTextUpdated').textContent=`${forecastHorizon()} dagen · bijgewerkt `+new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});$('copyWeatherText').disabled=false;}
 async function copyWeatherText(){const t=buildMultiDayWeatherText();if(!t)return;try{await navigator.clipboard.writeText(t);setStatus('Weertekst gekopieerd.',100)}catch(e){setStatus('Kopiëren lukte niet.',100)}}
