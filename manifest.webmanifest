@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "Regioweer Modelmix",
-  "short_name": "Regioweer",
-  "description": "Weermodelmix met GFS, ECMWF, ICON, AROME, ARPEGE en KNMI HARMONIE",
+  "name": "Weer app van Rico",
+  "short_name": "Rico Weer",
+  "description": "Rico's weerapp met modelmix, klimaatmonitor, records en ensemblekansen",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
