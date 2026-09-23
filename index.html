@@ -89,7 +89,7 @@
 </style>
 </head>
 <body><div class="wrap">
-<section class="hero"><div class="heroTop"><div class="heroBrand"><div class="heroEyebrow">REGIOWEER</div><h1>Weer app van Rico</h1></div><span class="versionBadge">v91</span></div><p>Modelmix · klimaatmonitor · records · ensemblekansen</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
+<section class="hero"><div class="heroTop"><div class="heroBrand"><div class="heroEyebrow">REGIOWEER</div><h1>Weer app van Rico</h1></div><span class="versionBadge">v92</span></div><p>Modelmix · klimaatmonitor · records · ensemblekansen</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
 <section class="panel">
 <div class="grid">
 <div class="field full"><label>Plaatsnaam</label><div style="display:grid;grid-template-columns:1fr auto;gap:8px"><input id="place" type="text" value="Houten" placeholder="Bijv. Houten, De Bilt of Amersfoort"><button class="ghost" id="findPlace" type="button">Zoek plaats</button></div><div class="quickplaces" id="quickPlaces"><button class="placechip" data-place="Houten">Houten</button><button class="placechip hidden" id="homePlace" type="button">⌂ Thuis</button><button class="placechip" id="savePlace" type="button">☆ Bewaar plaats</button></div><div class="quickplaces"><button class="placechip" id="useGps" type="button">📍 Mijn locatie</button></div><details class="miniDetails"><summary>Locatie beheren</summary><div class="quickplaces"><button class="placechip" id="setHome" type="button">⌂ Maak thuisplaats</button><button class="placechip" id="clearRecent" type="button">Recent wissen</button></div></details><div class="quickplaces" id="recentPlaces"><span class="recentlabel">Recent:</span></div><div class="note" id="placeInfo">Houten · coördinaten worden automatisch gebruikt</div></div>
@@ -667,7 +667,7 @@ function rainNarrative(r,c){const k=rainClass(r,c),amount=Number(r.precip)||0,po
 function dayLabelLong(d){return new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'long'})}
 function dayRangeLabel(rows){if(!rows.length)return'';const a=dayLabelLong(rows[0].date),b=dayLabelLong(rows[rows.length-1].date);return rows.length===1?a:rows.length===2?`${a} en ${b}`:`van ${a} tot en met ${b}`}
 function narrativeProfile(r,ctx){const c=contextDay(ctx,r.date),rain=rainClass(r,c),sun=Number(r.sun)||0;return{r,c,rain,sunClass:sun>=6?'sunny':sun>=2.5?'mixed':'cloudy',temp:Math.round(r.max)}}
-function profilesSimilar(a,b){if(!a||!b)return false;const rainCompat=a.rain===b.rain||(['dry','showers'].includes(a.rain)&&['dry','showers'].includes(b.rain)&&Math.max(a.r.pop||0,b.r.pop||0)<55);return rainCompat&&Math.abs(a.temp-b.temp)<=3&&a.sunClass===b.sunClass}
+function profilesSimilar(a,b){if(!a||!b)return false;const rainCompat=a.rain===b.rain||(['dry','showers'].includes(a.rain)&&['dry','showers'].includes(b.rain)&&Math.max(a.r.pop||0,b.r.pop||0)<55);return rainCompat&&Math.abs(a.temp-b.temp)<=4&&a.sunClass===b.sunClass}
 function makeNarrativeGroups(rows,ctx){const ps=rows.map(r=>narrativeProfile(r,ctx)),out=[];let g=[];for(const p of ps){if(!g.length||profilesSimilar(g[g.length-1],p))g.push(p);else{out.push(g);g=[p]}}if(g.length)out.push(g);return out}
 function tempStory(group,prev=null){const ts=group.map(x=>x.temp),lo=Math.min(...ts),hi=Math.max(...ts),avg=Math.round(ts.reduce((a,b)=>a+b,0)/ts.length);if(group.length===1){if(prev&&Math.abs(avg-prev)<=2)return'';return` Het wordt rond ${avg} graden.`}if(hi-lo<=2)return` De maxima liggen rond ${avg} graden.`;const first=ts[0],last=ts.at(-1);if(last-first>=3)return` In deze periode wordt het geleidelijk warmer, van ongeveer ${first} naar ${last} graden.`;if(first-last>=3)return` In deze periode wordt het geleidelijk koeler, van ongeveer ${first} naar ${last} graden.`;return` De maxima liggen tussen ongeveer ${lo} en ${hi} graden.`}
 function groupWeatherStory(group){const sunny=group.filter(x=>x.sunClass==='sunny').length,mixed=group.filter(x=>x.sunClass==='mixed').length,rains=group.map(x=>x.rain),wet=rains.filter(x=>x!=='dry').length,showers=rains.filter(x=>x==='showers').length,rainy=rains.filter(x=>x==='rain'||x==='occasional').length;
@@ -688,7 +688,7 @@ function windDirWord(deg){if(!Number.isFinite(deg))return'';return['noordelijke'
 function windStrengthWord(kmh){const b=beaufort(kmh);if(b<=1)return'zwakke';if(b<=3)return'matige';if(b<=5)return'vrij krachtige';if(b===6)return'krachtige';if(b===7)return'harde';return'stormachtige'}
 function groupWindStory(group){const cs=group.map(x=>x.c).filter(c=>Number.isFinite(c?.wind)&&Number.isFinite(c?.dir));if(!cs.length)return'';const avg=cs.reduce((a,c)=>a+c.wind,0)/cs.length;if(avg<12)return'';const dir=circularDir(cs.map(c=>c.dir));return` Er staat een ${windStrengthWord(avg)} ${windDirWord(dir)} wind.`}
 function firstDayParagraph(p,evening){const r=p.r,c=p.c,k=p.rain;let s=`${relativeForecastLead(r.date)} ${weatherPhrase(naturalWeatherDesc(r))}`;if(k==='dry')s+=' en blijft het droog.';else{s+='.';s+=rainNarrative(r,c)}s+=` Met ongeveer ${Math.round(r.max)} graden ${r.max>=30?'is het zeer warm':r.max>=25?'is het warm':r.max<=10?'is het fris':'is het zacht'}.`;if(c?.mistMorning)s+=' In de vroege uren kan plaatselijk mist voorkomen.';if(c?.wind>=12)s+=` Er staat een ${windStrengthWord(c.wind)} ${windDirWord(c.dir)} wind.`;s+=pressureSentence(c);if((r.uv||0)>=6)s+=` Met UV ${Math.round(r.uv)} is goede zonbescherming verstandig.`;return s}
-function periodParagraph(group,prevTemp=null){let s=periodWeatherSentence(group);s+=tempStory(group,prevTemp);s+=groupWindStory(group);s+=groupPressureStory(group);const mist=group.find(x=>x.c?.mistMorning);if(mist)s+=group.length===1?' In de ochtend kan plaatselijk mist voorkomen.':` Vooral ${dayLabelLong(mist.r.date)} kan in de ochtend plaatselijk mist voorkomen.`;return s.replace(/\.\s*\./g,'.')}
+function periodParagraph(group,prevTemp=null){let s=periodWeatherSentence(group);s+=tempStory(group,prevTemp);s+=groupWindStory(group);s+=groupPressureStory(group);const mist=group.find(x=>x.c?.mistMorning);if(mist)s+=group.length===1?' In de ochtend kan plaatselijk mist voorkomen.':` Vooral ${dayLabelLong(mist.r.date)}ochtend kan plaatselijk mist voorkomen.`;return s.replace(/\.\s*\./g,'.')}
 function editorialPolish(paras){let lastTemp=null;const used=new Set();return paras.map((p,i)=>{let x=p
  .replace(/ Het blijft droog\. Het blijft droog\./g,' Het blijft droog.')
  .replace(/ De maxima liggen rond (\d+) graden\. De maxima liggen rond \1 graden\./g,' De maxima liggen rond $1 graden.')
@@ -707,6 +707,8 @@ function transitionParagraph(prevGroup,group,para){
  if(!lead)return para;
  let rest=para.trim();
  if(rest.toLowerCase().startsWith((cap+' ').toLowerCase()))rest=rest.slice(cap.length+1);
+ if(/neemt de buienkans toe\./i.test(lead))rest=rest.replace(/^neemt de buienkans toe\.\s*/i,'');
+ if(/wordt het weer rustiger\./i.test(lead))rest=rest.replace(/^wordt het weer rustiger\.\s*/i,'');
  rest=rest.replace(/^krijgt de zon/i,'De zon krijgt').replace(/^laat de zon zich/i,'De zon laat zich').replace(/^is er /i,'Er is ');
  if(rest)rest=rest.charAt(0).toUpperCase()+rest.slice(1);
  return `${lead} ${rest}`.replace(/\s{2,}/g,' ').trim();
@@ -1250,7 +1252,7 @@ function climateAvg(a,k){const x=a.map(r=>r[k]).filter(Number.isFinite);return x
 function climateShiftDate(date,days){const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10)}
 async function loadClimateDaily(){
  if(climateDailyCache)return climateDailyCache;
- const today=climateNlDate(),expectedMin=climateShiftDate(today,-2),cacheKey='rw-climate-v91';
+ const today=climateNlDate(),expectedMin=climateShiftDate(today,-2),cacheKey='rw-climate-v92';
  try{
   const saved=JSON.parse(localStorage.getItem(cacheKey)||'null'),last=saved?.rows?.at?.(-1)?.date||'';
   const age=Date.now()-(saved?.time||0),upToDate=last>=expectedMin;
@@ -1325,18 +1327,26 @@ async function loadKdpToday(date){
 }
 async function loadKnmiHourlyTemps(date){
  try{
-  const ds=date.replaceAll('-','');
+  const ds=date.replaceAll('-',''),today=climateNlDate();
+  // Voor vandaag niet tot uur 24 vragen: toekomstige uren kunnen de KNMI-selectie laten mislukken.
+  // KNMI-uurcodes zijn UTC; neem alleen uren die al verstreken zijn en vraag minimaal uur 01 op.
+  const now=new Date(),utcHour=now.getUTCHours(),endHour=date===today?Math.max(1,Math.min(24,utcHour+1)):24;
+  const startCode=`${ds}01`,endCode=`${ds}${String(endHour).padStart(2,'0')}`;
   const url='https://www.daggegevens.knmi.nl/klimatologie/uurgegevens';
-  const body=new URLSearchParams({stns:'260',vars:'T',start:`${ds}01`,end:`${ds}24`});
-  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:body.toString(),cache:'no-store'});if(!res.ok)throw new Error('KNMI uur '+res.status);
+  const body=new URLSearchParams({stns:'260',vars:'T',start:startCode,end:endCode});
+  let res;
+  try{res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:body.toString(),cache:'no-store'})}catch(e){}
+  // Sommige hosts/proxies accepteren de publieke selectie alleen als query; gebruik dat als tweede route.
+  if(!res||!res.ok){const q=new URLSearchParams({stns:'260',vars:'T',start:startCode,end:endCode,_:String(Date.now())});res=await fetch(url+'?'+q.toString(),{cache:'no-store'})}
+  if(!res.ok)throw new Error('KNMI uur '+res.status);
   const txt=await res.text();let idx=null,vals=[];
   for(const line of txt.split(/\r?\n/)){
-   if(line.startsWith('#')&&line.includes('YYYYMMDD')&&line.includes(' T')){const h=line.replace(/^#\s*/, '').split(',').map(x=>x.trim());idx={stn:h.indexOf('STN'),date:h.indexOf('YYYYMMDD'),t:h.indexOf('T')};continue}
+   if(line.startsWith('#')&&line.includes('YYYYMMDD')&&/(^|,)\s*T\s*(,|$)/.test(line)){const h=line.replace(/^#\s*/, '').split(',').map(x=>x.trim());idx={date:h.indexOf('YYYYMMDD'),t:h.indexOf('T')};continue}
    if(!/^\s*260,/.test(line))continue;const a=line.split(',').map(x=>x.trim());
-   const di=idx?.date>=0?idx.date:1,ti=idx?.t>=0?idx.t:4;if(a[di]!==ds)continue;const v=Number(a[ti]);if(Number.isFinite(v))vals.push(v/10);
+   const di=idx?.date>=0?idx.date:1,ti=idx?.t>=0?idx.t:4;if(a[di]!==ds)continue;const raw=String(a[ti]??'').trim();if(raw==='')continue;const v=Number(raw);if(Number.isFinite(v))vals.push(v/10);
   }
   if(!vals.length)return null;
-  return{date,tx:Math.max(...vals),tn:Math.min(...vals),hourly:true,source:'KNMI uurwaarden',count:vals.length};
+  return{date,tx:Math.max(...vals),tn:Math.min(...vals),hourly:true,source:'KNMI uurwaarden',count:vals.length,updatedAt:Date.now()};
  }catch(e){console.warn('KNMI uurwaarden',date,e);return null}
 }
 const CLIMATE_MANUAL_KEY='rw-climate-manual-v86';
@@ -1351,7 +1361,7 @@ function climateManualMerged(rows,today){
 function climateCard(lab,x,isToday){
  const badge=x?.manual?'handmatig':x?.hourly?(isToday?'uur-tussenstand':'uurindicatie'):x?'definitief':isToday?'tussenstand':'nog niet beschikbaar';
  const cls=x?.manual?' manual':'';
- const meta=x?.manual?' · eigen invoer':x?.hourly?` · ${x.count||0} uurmetingen`:'';
+ const meta=x?.manual?' · eigen invoer':x?.hourly?` · ${x.count||0} uurmetingen${isToday&&x.updatedAt?' · '+climateTimeForTs(x.updatedAt):''}`:'';
  return `<div class="climateLiveDay${cls}"><strong>${lab}<span class="climateLiveBadge ${isToday?'today':'yesterday'}">${badge}</span></strong><div class="climateLiveTemps">${x?`${climateFmt(x.tx)}° / ${climateFmt(x.tn)}°`:'— / —'}</div><div class="climateLiveMeta">maximum / minimum${meta}</div></div>`;
 }
 async function renderClimateLive(rows){
@@ -1359,7 +1369,7 @@ async function renderClimateLive(rows){
  let a=official(today),b=official(yest);
  const need=[];if(!a)need.push(loadKnmiHourlyTemps(today));if(!b)need.push(loadKnmiHourlyTemps(yest));const quick=await Promise.all(need);for(const q of quick.filter(Boolean)){if(q.date===today&&!a)a=q;if(q.date===yest&&!b)b=q}
  if(!a)a=manual(today);if(!b)b=manual(yest);
- box.innerHTML=`<div class="climateLiveHead"><b>🌡️ De Bilt · TX/TN</b><span>snelste openbare KNMI-bron</span></div><div class="climateLiveGrid">${climateCard('Vandaag',a,true)}${climateCard('Gisteren',b,false)}</div><div class="climateSourceNote">Voor recente dagen gebruikt de app KNMI-uurwaarden als snelle indicatie. Die kunnen enkele tienden afwijken van het echte etmaalmaximum of -minimum tussen twee uurmetingen. Zodra de officiële KNMI-dagwaarde beschikbaar is, krijgt die automatisch voorrang.</div><details class="climateManual"><summary>✏️ TX/TN tijdelijk zelf invullen</summary><div class="climateManualGrid"><div class="dateField"><label>Datum</label><input id="manualClimateDate" type="date" value="${yest}" max="${today}"></div><div><label>TX °C</label><input id="manualClimateTx" type="number" step="0.1" inputmode="decimal" placeholder="19,9"></div><div><label>TN °C</label><input id="manualClimateTn" type="number" step="0.1" inputmode="decimal" placeholder="8,7"></div><button class="ghost" id="manualClimateSave" type="button">Opslaan</button></div><div class="climateManualNote">Handmatige invoer blijft beschikbaar als controle of wanneer de snelle KNMI-bron tijdelijk niet reageert.</div></details>`;
+ box.innerHTML=`<div class="climateLiveHead"><b>🌡️ De Bilt · TX/TN</b><span>snelste openbare KNMI-bron</span></div><div class="climateLiveGrid">${climateCard('Vandaag',a,true)}${climateCard('Gisteren',b,false)}</div><div class="climateSourceNote">Vandaag is een tussenstand uit de snelste beschikbare KNMI-uurmetingen. Gisteren wordt zo snel mogelijk automatisch bijgewerkt; de officiële KNMI-dagwaarde krijgt altijd voorrang.</div><details class="climateManual"><summary>✏️ TX/TN tijdelijk zelf invullen</summary><div class="climateManualGrid"><div class="dateField"><label>Datum</label><input id="manualClimateDate" type="date" value="${yest}" max="${today}"></div><div><label>TX °C</label><input id="manualClimateTx" type="number" step="0.1" inputmode="decimal" placeholder="19,9"></div><div><label>TN °C</label><input id="manualClimateTn" type="number" step="0.1" inputmode="decimal" placeholder="8,7"></div><button class="ghost" id="manualClimateSave" type="button">Opslaan</button></div><div class="climateManualNote">Handmatige invoer blijft beschikbaar als controle of wanneer de snelle KNMI-bron tijdelijk niet reageert.</div></details>`;
  box.classList.remove('hidden');
  const btn=$('manualClimateSave');if(btn)btn.onclick=()=>{const d=$('manualClimateDate')?.value,tx=parseFloat(String($('manualClimateTx')?.value||'').replace(',','.')),tn=parseFloat(String($('manualClimateTn')?.value||'').replace(',','.'));if(!d||!Number.isFinite(tx)||!Number.isFinite(tn)){setStatus('Vul datum, TX en TN in.',100);return}if(tx<tn){setStatus('TX moet gelijk aan of hoger dan TN zijn.',100);return}const official=rows.some(r=>r.date===d);if(official){setStatus('Voor deze datum is al een officiële KNMI-dagwaarde beschikbaar.',100);return}const o=getManualClimate();o[d]={tx,tn,savedAt:Date.now()};setManualClimate(o);renderClimate();setStatus(`Handmatige TX/TN voor ${d} opgeslagen.`,100)};
 }
@@ -1369,7 +1379,7 @@ async function renderClimate(){const status=$('climateStatus'),body=$('climateBo
  const dec=[];for(let a=1961;a+9<=refB;a+=10){const rr=rows.filter(r=>r.year>=a&&r.year<=a+9&&r.month===M);if(rr.length)dec.push(`<div class="climateDecade"><b>${a}–${a+9}</b><br>${climateFmt(climateAvg(rr,'tg'))} °C</div>`)}$('climateDecades').innerHTML=dec.join('');status.textContent=`KNMI De Bilt · definitief t/m ${lastObs?.date||'—'} · handmatige TX/TN wordt automatisch vervangen`;body.classList.remove('hidden');renderClimateLive(rows).catch(console.warn);if(!$('climateDate').value)$('climateDate').value=lastObs?.date||today;}catch(e){console.warn(e);status.textContent='Klimaatgegevens konden niet worden geladen. Controleer de verbinding en probeer opnieuw.'}}
 async function climateLookup(){try{const rows=await loadClimateDaily(),d=$('climateDate').value,r=rows.find(x=>x.date===d),box=$('climateArchiveResult');if(!r){box.textContent='Voor deze datum is nog geen definitieve dagwaarde beschikbaar.';return}const Y=r.year,refA=Y-30,refB=Y-1,same=rows.filter(x=>x.year>=refA&&x.year<=refB&&x.month===r.month&&x.day===r.day),n={tg:climateAvg(same,'tg'),tx:climateAvg(same,'tx'),tn:climateAvg(same,'tn'),sun:climateAvg(same,'sun'),rain:climateAvg(same,'rain')};box.innerHTML=`<b>${new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}</b><br>🌡️ Gemiddeld ${climateFmt(r.tg)} °C · TX ${climateFmt(r.tx)} °C · TN ${climateFmt(r.tn)} °C<br>☀️ ${climateFmt(r.sun)} uur zon · 💧 ${climateFmt(r.rain)} mm<br><span class="climateDelta">${climateDeltaText(r.tg,n.tg,'°C','warmer')} · ${climateDeltaText(r.sun,n.sun,'uur','zonniger')} · ${climateDeltaText(r.rain,n.rain,'mm','natter')}</span><br><small>Dagvergelijking met ${refA}–${refB}.</small>`}catch(e){$('climateArchiveResult').textContent='Dagarchief kon niet worden geladen.'}}
 $('refreshAll').onclick=()=>$('load').click();
-$('climateRefresh').onclick=()=>{climateDailyCache=null;localStorage.removeItem('rw-climate-v91');localStorage.removeItem('rw-climate-v90');localStorage.removeItem('rw-climate-v89');localStorage.removeItem('rw-climate-v88');localStorage.removeItem('rw-climate-v86');renderClimate()};
+$('climateRefresh').onclick=()=>{climateDailyCache=null;localStorage.removeItem('rw-climate-v92');localStorage.removeItem('rw-climate-v91');localStorage.removeItem('rw-climate-v90');localStorage.removeItem('rw-climate-v89');localStorage.removeItem('rw-climate-v88');localStorage.removeItem('rw-climate-v86');renderClimate()};
 $('climateLookup').onclick=climateLookup;
 renderClimate().catch(console.warn);
 
