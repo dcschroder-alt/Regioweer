@@ -1,1 +1,41 @@
+name: KNMI De Bilt live
 
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: knmi-live
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout app
+        uses: actions/checkout@v4
+
+      - name: Haal actuele KNMI temperatuur op
+        env:
+          KNMI_EDR_API_KEY: ${{ secrets.KNMI_EDR_API_KEY }}
+          OUTPUT_PATH: /tmp/debilt-actueel.json
+        run: python3 update_knmi_live.py
+
+      - name: Publiceer compact live JSON op live-data branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan live-data-tmp
+          git rm -rf .
+          mkdir -p data
+          cp /tmp/debilt-actueel.json data/debilt-actueel.json
+          git add data/debilt-actueel.json
+          git commit -m "KNMI live update"
+          git push --force origin HEAD:live-data
