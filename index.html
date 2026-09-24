@@ -691,7 +691,7 @@ function renderWarningPanel(){
  const unique=[...new Set(sig)],levels=[['green','groen'],['yellow','geel'],['orange','oranje'],['red','rood']],lv=levels[severity];setLevel(lv[0],lv[1]);
  if(unique.length){title.textContent='Aandachtspunten in de modelmix';text.textContent=unique.join(' · ')+'. De kleur hierboven is een Regioweer-modelsignaal en géén officiële KNMI-code.'}else{title.textContent='Geen opvallende modelsignalen';text.textContent='De huidige modelmix laat voor de komende 10 dagen geen grote extremen zien. Bekijk KNMI voor officiële waarschuwingen.'}
 }
-function renderTodayTomorrow(sourceData=null,singleKey=null){
+async function renderTodayTomorrow(sourceData=null,singleKey=null){
  const p=$('todayTomorrowPanel'),box=$('todayTomorrowGrid');if(!p||!box)return;
  const base=appBaseDate();
  const nlHour=nlHourNow();
@@ -702,12 +702,49 @@ function renderTodayTomorrow(sourceData=null,singleKey=null){
    else today=mixDateFromData(sourceData,base);
  }
  const future=lastRows.filter(r=>r.date>base);
- const tomorrow=future[0]||null, dayAfter=future[1]||null;
+ const tomorrow=future[0]||null;
  let items;
- if(evening){items=[['Morgen',tomorrow],['Overmorgen',dayAfter]].filter(x=>x[1]);$('todayTomorrowTitle').textContent='Morgen & overmorgen';$('todayTomorrowNote').textContent='In de avond schuift het overzicht automatisch een dag vooruit.';}
- else {items=[[(isAutoRun()?'Vandaag':'Run-dag'),today],[(isAutoRun()?'Morgen':'Volgende dag'),tomorrow]].filter(x=>x[1]);$('todayTomorrowTitle').textContent=isAutoRun()?'Vandaag & morgen':'Run-dag & volgende dag';$('todayTomorrowNote').textContent='Snel overzicht op basis van de nieuwste beschikbare modeldata.';}
- if(!items.length){p.classList.add('hidden');return}p.classList.remove('hidden');
- box.innerHTML=items.map(([label,r])=>`<div class="todayTomorrowCard"><div class="todayTomorrowIcon">${iconFor(r.type||centralWeatherType(r))}</div><div><div class="todayTomorrowTitle">${label} · ${Math.round(r.max)}° / ${Math.round(r.min)}°</div><div class="todayTomorrowText">${forecastText(r)}</div><div class="todayTomorrowMeta">☀ ${fmt(r.sun)} u · 💧 ${fmt(r.precip)} mm${Number.isFinite(r.pop)?(r.pop===0?' · alle modellen droog':r.pop===100?' · alle modellen nat':` · modellen verdeeld over neerslag`):''}${windSummary(r)?`<br>${windSummary(r)}`:''}${Number.isFinite(r.agreement)?` · ${agreementDisplay(r.agreement,r.count)}`:''}</div></div></div>`).join('');
+ if(evening){
+   items=[['Morgen',tomorrow]].filter(x=>x[1]);
+   $('todayTomorrowTitle').textContent='Komende nacht & morgen';
+   $('todayTomorrowNote').textContent='Na 18:00 staat de komende nacht weer vooraan, inclusief wind en windstoten.';
+ } else {
+   items=[[(isAutoRun()?'Vandaag':'Run-dag'),today],[(isAutoRun()?'Morgen':'Volgende dag'),tomorrow]].filter(x=>x[1]);
+   $('todayTomorrowTitle').textContent=isAutoRun()?'Vandaag & morgen':'Run-dag & volgende dag';
+   $('todayTomorrowNote').textContent='Snel overzicht op basis van de nieuwste beschikbare modeldata.';
+ }
+ if(!items.length&&!evening){p.classList.add('hidden');return}p.classList.remove('hidden');
+ const dayHtml=items.map(([label,r])=>`<div class="todayTomorrowCard"><div class="todayTomorrowIcon">${iconFor(r.type||centralWeatherType(r))}</div><div><div class="todayTomorrowTitle">${label} · ${Math.round(r.max)}° / ${Math.round(r.min)}°</div><div class="todayTomorrowText">${forecastText(r)}</div><div class="todayTomorrowMeta">☀ ${fmt(r.sun)} u · 💧 ${fmt(r.precip)} mm${Number.isFinite(r.pop)?(r.pop===0?' · alle modellen droog':r.pop===100?' · alle modellen nat':` · modellen verdeeld over neerslag`):''}${windSummary(r)?`<br>${windSummary(r)}`:''}${Number.isFinite(r.agreement)?` · ${agreementDisplay(r.agreement,r.count)}`:''}</div></div></div>`).join('');
+ if(!evening){box.innerHTML=dayHtml;return}
+ let nightHtml='';
+ try{
+   const j=smartHourlyCache||await fetchSmartHourly();
+   smartHourlyCache=j;
+   const tomorrowDate=tomorrow?.date||future[0]?.date;
+   const h1=hoursFor(j,base).filter(x=>x.hour>=18);
+   const h2=tomorrowDate?hoursFor(j,tomorrowDate).filter(x=>x.hour<9):[];
+   const nh=[...h1,...h2];
+   if(nh.length){
+     const temps=nh.map(x=>Number(x.temperature_2m)).filter(Number.isFinite);
+     const winds=nh.map(x=>Number(x.wind_speed_10m)).filter(Number.isFinite);
+     const gusts=nh.map(x=>Number(x.wind_gusts_10m)).filter(Number.isFinite);
+     const dirs=nh.map(x=>Number(x.wind_direction_10m)).filter(Number.isFinite);
+     const rain=nh.reduce((a,x)=>a+(Number(x.precipitation)||0),0);
+     const pop=Math.max(0,...nh.map(x=>Number(x.precipitation_probability)||0));
+     const cloud=sMean(nh.map(x=>Number(x.cloud_cover)));
+     const dew=sMean(nh.map(x=>Number(x.dew_point_2m)));
+     const rh=sMean(nh.map(x=>Number(x.relative_humidity_2m)));
+     const tmin=temps.length?Math.min(...temps):tomorrow?.min;
+     const wind=winds.length?sMean(winds):null;
+     const gust=gusts.length?Math.max(...gusts):null;
+     const dir=dirs.length?sDir(dirs):null;
+     const mist=Number.isFinite(tmin)&&Number.isFinite(dew)&&Math.abs(tmin-dew)<=2&&Number.isFinite(rh)&&rh>=94;
+     const icon=rain>=1?'🌧️':mist?'🌫️':Number.isFinite(cloud)&&cloud<45?'🌙':'☁️';
+     nightHtml=`<div class="todayTomorrowCard"><div class="todayTomorrowIcon">${icon}</div><div><div class="todayTomorrowTitle">Komende nacht · ${Number.isFinite(tmin)?Math.round(tmin)+'°':'—'}</div><div class="todayTomorrowText">${mist?'Kans op mist of lage bewolking.':rain>=1?'In de nacht kan neerslag vallen.':'Overwegend droog in de nacht.'}</div><div class="todayTomorrowMeta">💧 ${fmt(rain)} mm${pop?` · max. ${Math.round(pop)}% neerslagkans`:''}${Number.isFinite(wind)?`<br>💨 ${v100WindDir(dir)} ${bftText(wind)}${Number.isFinite(gust)?` · windstoten ${Math.round(gust)} km/u`:''}`:''}${Number.isFinite(dew)?`<br>💧 dauwpunt ${Math.round(dew)}°`:''}</div></div></div>`;
+   }
+ }catch(e){console.warn('Nachtkaart niet beschikbaar',e)}
+ if(!nightHtml&&tomorrow){nightHtml=`<div class="todayTomorrowCard"><div class="todayTomorrowIcon">🌙</div><div><div class="todayTomorrowTitle">Komende nacht · ${Math.round(tomorrow.min)}°</div><div class="todayTomorrowText">Nachtminimum uit de modelmix.</div><div class="todayTomorrowMeta">${windSummary(tomorrow)||'Windgegevens worden bijgewerkt zodra uurdata beschikbaar zijn.'}</div></div></div>`}
+ box.innerHTML=nightHtml+dayHtml;
 }
 function setStatus(t,p){$('status').textContent=t;$('prog').style.width=`${p}%`}
 
