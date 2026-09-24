@@ -1443,15 +1443,37 @@ async function climateMergeRecent(rows,today){
  out._recentFallbackDates=tried;
  return out;
 }
+function climateMergeBestRows(...sources){
+ const byDate=new Map();
+ for(const rows of sources){
+  if(!Array.isArray(rows))continue;
+  for(const r0 of rows){
+   if(!r0?.date)continue;
+   const r={...r0},prev=byDate.get(r.date);
+   if(!prev){byDate.set(r.date,r);continue}
+   // Per datum geldt: definitief KNMI > voorlopig > oudere cache.
+   // Belangrijk: een bron die minder ver loopt mag nieuwere datums nooit verwijderen.
+   const prevRank=prev.provisional?1:2,rRank=r.provisional?1:2;
+   if(rRank>prevRank)byDate.set(r.date,r);
+   else if(rRank===prevRank){
+    const prevSaved=prev.savedAt||prev._savedAt||0,rSaved=r.savedAt||r._savedAt||0;
+    if(rSaved>=prevSaved)byDate.set(r.date,r);
+   }
+  }
+ }
+ return [...byDate.values()].sort((a,b)=>a.date.localeCompare(b.date));
+}
 async function loadClimateDaily(force=false){
  if(climateDailyCache&&!force)return climateDailyCache;
- const today=climateNlDate(),expectedMin=climateShiftDate(today,-2),cacheKey='rw-climate-v100';
- let saved=null;
+ const today=climateNlDate(),expectedMin=climateShiftDate(today,-2),cacheKey='rw-climate-v101';
+ let saved=null,usingLegacy=false;
  try{
-  saved=JSON.parse(localStorage.getItem(cacheKey)||localStorage.getItem('rw-climate-v92')||'null');
+  const currentRaw=localStorage.getItem(cacheKey),legacyRaw=localStorage.getItem('rw-climate-v100')||localStorage.getItem('rw-climate-v92');
+  usingLegacy=!currentRaw&&!!legacyRaw;
+  saved=JSON.parse(currentRaw||legacyRaw||'null');
   const last=saved?.rows?.at?.(-1)?.date||'',age=Date.now()-(saved?.time||0),hasProv=!!saved?.rows?.some?.(r=>r.provisional),upToDate=last>=expectedMin;
   const ttl=hasProv?15*60e3:(upToDate?6*3600e3:5*60e3);
-  if(!force&&saved?.rows&&age<ttl){climateDailyCache=saved.rows;climateDailyCache._fromCache=true;return climateDailyCache}
+  if(!force&&!usingLegacy&&saved?.rows&&age<ttl){climateDailyCache=saved.rows;climateDailyCache._fromCache=true;return climateDailyCache}
  }catch(e){}
  const end=today.replaceAll('-',''),url='https://www.daggegevens.knmi.nl/klimatologie/daggegevens';
  const body=new URLSearchParams({stns:'260',vars:'TG:TN:TX:SQ:RH',start:'19510101',end});
@@ -1473,10 +1495,15 @@ async function loadClimateDaily(force=false){
   rows.sort((a,b)=>a.date.localeCompare(b.date));const parsedLatest=rows.at(-1)?.date?.replaceAll('-','')||'';
   if(rawLatest&&parsedLatest!==rawLatest)throw new Error(`KNMI-parser mist nieuwste dag (${rawLatest})`);if(!rows.length)throw new Error('Geen KNMI-daggegevens herkend');officialRows=rows;
  }catch(e){knmiErr=e;console.warn('KNMI daggegevens mislukt:',e.message)}
- let base=officialRows||(saved?.rows?.length?saved.rows:[]);
+ // Combineer altijd de bestaande cache met de nieuw opgehaalde KNMI-reeks.
+ // Zo kan een KNMI-response t/m 21 sep nooit een eerder gevonden 22/23 sep wissen.
+ let base=climateMergeBestRows(saved?.rows||[],officialRows||[]);
  if(!base.length)throw knmiErr||new Error('Geen klimaatgegevens beschikbaar');
- let merged=await climateMergeRecent(base,today);
+ let recent=await climateMergeRecent(base,today);
+ let merged=climateMergeBestRows(base,recent);
  merged._fromCache=!officialRows;merged._cacheError=knmiErr?.message||'';
+ merged._officialFetchLatest=officialRows?.at(-1)?.date||'';
+ merged._savedLatest=saved?.rows?.at?.(-1)?.date||'';
  const lastOfficial=merged.filter(r=>!r.provisional).at(-1)?.date||'',lastAny=merged.at(-1)?.date||'';
  try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),rows:merged,header,rawLatest,lastOfficial,lastAny}))}catch(e){}
  climateDailyCache=merged;return climateDailyCache;

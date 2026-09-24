@@ -1,4 +1,4 @@
-const CACHE = 'regioweer-v1.0-klimaat-snel-full-20260924';
+const CACHE = 'regioweer-v1.0-klimaat-mergefix-20260924b';
 const CORE = [
   './',
   './index.html',
