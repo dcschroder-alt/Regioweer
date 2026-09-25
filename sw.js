@@ -1,4 +1,4 @@
-const CACHE='regioweer-v1.0.6-energy-cache-repair';
+const CACHE='regioweer-v1.0.7';
 const CORE=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)).catch(()=>{}))});
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([self.clients.claim(),caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('regioweer-')&&k!==CACHE).map(k=>caches.delete(k))))])));
