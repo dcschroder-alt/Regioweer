@@ -12,7 +12,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
 <link rel="apple-touch-icon" sizes="192x192" href="./icon-192.png">
 <link rel="manifest" href="./manifest.webmanifest">
-<title>Weer app van Rico · v1.27</title>
+<title>Weer app van Rico · v1.0.1</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#162033;background:#eef3f9}
 *{box-sizing:border-box} body{margin:0}.wrap{max-width:980px;margin:auto;padding:14px}.hero{background:linear-gradient(135deg,#0b63ce,#1593e6);color:#fff;padding:18px;border-radius:20px;box-shadow:0 8px 28px #174d7e26}.heroTop{display:flex;align-items:center;justify-content:space-between;gap:10px}.hero h1{font-size:22px;margin:0 0 4px}.versionBadge{display:inline-flex;align-items:center;justify-content:center;padding:5px 9px;border-radius:999px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);font-size:11px;font-weight:900;letter-spacing:.04em}.hero p{margin:0;opacity:.9;font-size:14px}.heroBrand{display:flex;flex-direction:column;gap:1px}.heroEyebrow{font-size:9px;font-weight:900;letter-spacing:.18em;opacity:.78}.hero h1{letter-spacing:-.02em}.hero{background:linear-gradient(135deg,#075bbb 0%,#0e7ed6 58%,#24a4e8 100%)}.panel{border:1px solid rgba(215,226,238,.72)}.climateMetric:nth-child(1){background:linear-gradient(145deg,#fff7f3,#fff)}.climateMetric:nth-child(2){background:linear-gradient(145deg,#fffbed,#fff)}.climateMetric:nth-child(3){background:linear-gradient(145deg,#f2f8ff,#fff)}.climateMetric:nth-child(4){background:linear-gradient(145deg,#f7f5ff,#fff)}.panel{background:#fff;border-radius:18px;padding:14px;margin-top:14px;box-shadow:0 4px 18px #1e355018}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:flex;flex-direction:column;gap:5px}.field.full{grid-column:1/-1}label{font-size:12px;font-weight:700;color:#46566e}input,select,button{font:inherit;border-radius:12px;border:1px solid #cbd6e4;padding:12px;background:#fff}button{border:0;font-weight:800;cursor:pointer}.primary{background:#0b63ce;color:white}.secondary{background:#19a05b;color:white}.ghost{background:#edf3fb;color:#164f89}.buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.buttons .full{grid-column:1/-1}.status{font-size:13px;margin-top:10px;color:#425269;min-height:20px}.bar{height:7px;border-radius:999px;background:#e6edf6;overflow:hidden;margin-top:8px}.bar>span{display:block;height:100%;width:0;background:#0b63ce;transition:width .2s}.modelForecastLabel{display:flex;justify-content:space-between;gap:8px;align-items:center;margin:14px 2px 0;color:#44566d;font-size:12px}.modelForecastLabel span{color:#6c7b8d;font-size:11px}.dark .modelForecastLabel,.dark .modelForecastLabel span{color:#b8c7d8}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:12px}.card{background:#fff;border-radius:16px;padding:10px;text-align:center;box-shadow:0 3px 12px #1e355014}.day{font-size:12px;font-weight:800}.date{font-size:11px;color:#66758a}.icon{font-size:34px;line-height:1.15;margin:6px 0}.temps{font-size:18px;font-weight:900}.temps .min{color:#2070c7}.temps .max{color:#df4e3a}.meta{font-size:11px;color:#5a687c;margin-top:5px;line-height:1.45}.note{font-size:11px;color:#66758a;margin-top:8px}.runs{display:grid;gap:7px;margin-top:10px}.runrow{display:grid;grid-template-columns:1.1fr .8fr 1.45fr;gap:8px;align-items:center;padding:9px 10px;background:#f6f9fd;border-radius:12px}.runname{font-weight:850;font-size:13px}.runcad{font-size:11px;color:#69798d}.runnext{font-size:12px;text-align:right;color:#34485f}.runnext b{color:#0b63ce}.runhint{font-size:10px;color:#7a8798;margin-top:2px}.gfsgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}.gfshead,.gfsrow{display:contents}.gfscell{padding:8px 7px;border-bottom:1px solid #e5ebf2;font-size:13px}.gfshead .gfscell{font-weight:800;color:#40516a;background:#f4f7fb}.gfsactions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.plumecontrols{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:10px;align-items:stretch}.plumeActions{display:flex;justify-content:flex-start;margin-top:8px}.plumeActions button{min-width:170px}.plumewrap{overflow-x:auto;margin-top:10px}.plumewrap canvas{display:block;width:min(100%,760px);max-width:760px;min-width:0;height:auto;background:#f8fbff;border-radius:14px;margin:0 auto}@media(max-width:700px){.plumewrap canvas{width:100%;max-width:100%}}.riskcontrols{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:10px;align-items:stretch}.riskActions{display:flex;justify-content:flex-start;margin-top:8px}.riskActions button{min-width:170px}.riskDateStrip{display:flex;gap:7px;overflow-x:auto;padding:3px 2px 8px;margin-top:10px;scrollbar-width:thin}.riskDateChip{flex:0 0 auto;min-width:66px;padding:6px 7px;border-radius:12px;background:#eef5fb;border:1px solid #d8e4ef;text-align:center;color:#29445f}.riskDateChip b{display:block;font-size:12px}.riskDateChip span{display:block;font-size:11px;color:#64758a;margin-top:2px}.riskDateChip.warn{background:#fff4df;border-color:#ffd58b}.riskDateChip.high{background:#ffe5e0;border-color:#ffb0a4}.riskwrap{overflow-x:auto;margin-top:8px;border-radius:14px;scrollbar-width:thin}.riskwrap canvas{display:block;width:auto;max-width:none;height:auto;background:#fff;border-radius:14px}.quickplaces{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.placechip{padding:7px 10px;border-radius:999px;background:#edf3fb;color:#164f89;border:1px solid #d3dfed;font-size:12px;font-weight:800}.previewHead{display:flex;justify-content:space-between;gap:10px;align-items:end;flex-wrap:wrap}.previewGrid{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:9px;margin-top:10px;overflow-x:auto}.previewDay{min-width:150px;background:#f8fbff;border:1px solid #e1eaf4;border-radius:15px;padding:10px;text-align:center}.agree{display:inline-block;margin-top:5px;padding:4px 8px;border-radius:999px;color:#fff;font-size:10px;font-weight:850}.modelCount{font-size:10px;color:#6b7a8c;margin-top:4px;font-weight:700}.dark .modelCount{color:#aebed0}.smallstatus{font-size:11px;color:#64758a}.overviewGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:10px}.overviewCard{background:#f8fbff;border:1px solid #e1eaf4;border-radius:14px;padding:11px}.overviewLabel{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#718096;font-weight:800}.overviewValue{font-size:18px;font-weight:900;color:#173a63;margin-top:3px}.overviewSub{font-size:11px;color:#66758a;margin-top:3px;line-height:1.3}.riskSummary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}.riskChip{border-radius:13px;padding:10px 11px;background:#f6f9fd;border:1px solid #dfe8f2}.riskChip strong{display:block;font-size:14px;color:#173a63}.riskChip span{display:block;font-size:11px;color:#66758a;margin-top:2px}.riskChip.warn{background:#fff4df;border-color:#ffd58b}.riskChip.high{background:#ffe5e0;border-color:#ffb0a4}.card.clickable,.previewDay.clickable{cursor:pointer;transition:transform .12s ease,box-shadow .12s ease}.card.clickable:active,.previewDay.clickable:active{transform:scale(.985)}.detailPanel{position:fixed;inset:0;background:rgba(15,34,55,.48);z-index:50;display:flex;align-items:flex-end;justify-content:center;padding:10px}.detailSheet{width:min(760px,100%);max-height:88vh;overflow:auto;background:#fff;border-radius:22px 22px 14px 14px;padding:16px;box-shadow:0 -10px 40px rgba(15,34,55,.25)}.detailHead{display:flex;justify-content:space-between;gap:10px;align-items:start;position:sticky;top:-16px;background:#fff;padding:4px 0 10px;z-index:2}.detailTitle{font-size:19px;font-weight:900;color:#173a63}.detailClose{background:#edf3fb;color:#164f89;padding:8px 11px;border-radius:999px}.detailCanvas{width:100%;height:auto;background:#f8fbff;border-radius:14px;margin-top:10px}.hourlyList{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:10px}.hourCell{background:#f6f9fd;border:1px solid #e0e9f3;border-radius:12px;padding:8px;text-align:center}.hourTime{font-size:11px;font-weight:800;color:#60738a}.hourTemp{font-size:18px;font-weight:900;color:#173a63;margin-top:2px}.hourRain{font-size:11px;color:#2674bc;margin-top:2px}.rainWindow{margin-top:10px;padding:10px 12px;border-radius:12px;background:#eef6ff;color:#1d4f80;font-size:13px;font-weight:700}
@@ -143,10 +143,64 @@ html::-webkit-scrollbar,body::-webkit-scrollbar,.detailSheet::-webkit-scrollbar,
 .dark .assistantPanel{background:#162330}.dark .assistantCard,.dark .assistantWindow{background:#1b2b3b;border-color:#314358}.dark .assistantCard b,.dark .assistantWindow b,.dark .assistantWindow strong{color:#eaf3ff}.dark .assistantCard span,.dark .assistantCard small,.dark .assistantWindow small,.dark .assistantFollow li{color:#bdcbda}.dark .assistantCard.emphasis{background:#173024;border-color:#31543d}.dark .assistantCard.turn{background:#342f20;border-color:#665a2c}
 @media(max-width:620px){.assistantLead{grid-template-columns:1fr}}
 
+
+/* v1.0.1 mobile readability + own app icon */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{min-width:0}
+.heroBrandWrap{display:flex;align-items:center;gap:10px;min-width:0}
+.appBrandIcon{width:42px;height:42px;border-radius:11px;display:block;flex:0 0 auto;box-shadow:0 3px 10px rgba(0,0,0,.14)}
+@media (max-width:620px), (max-device-width:620px){
+  body{font-size:15px}
+  .wrap{width:100%;max-width:100%;padding:8px}
+  .hero{padding:14px;border-radius:16px}
+  .appBrandIcon{width:44px;height:44px;border-radius:12px}
+  .hero h1{font-size:21px}
+  .hero p{font-size:13px;line-height:1.35}
+  .versionBadge{font-size:11px;padding:5px 8px}
+  .panel{padding:12px;margin-top:10px;border-radius:16px}
+  label{font-size:13px}
+  input,select,button{font-size:15px}
+  .note,.smallstatus{font-size:12px;line-height:1.4}
+  .modelForecastLabel{font-size:13px}
+  .modelForecastLabel span{font-size:11px;max-width:55%}
+  .cards{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px}
+  .card{padding:10px 8px;min-width:0}
+  .day{font-size:13px}
+  .date{font-size:12px}
+  .icon{font-size:38px;margin:5px 0}
+  .temps{font-size:22px}
+  .meta{font-size:12px;line-height:1.5}
+  .spread,.modelCount,.rainAgree{font-size:11px}
+  .agree{font-size:11px;padding:5px 7px}
+  .previewGrid{grid-template-columns:repeat(2,minmax(0,1fr))!important;overflow:visible;gap:8px}
+  .previewDay{min-width:0!important;padding:10px 8px}
+  .previewDay .temps{font-size:21px}
+  .overviewGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .overviewLabel{font-size:11px}
+  .overviewValue{font-size:20px}
+  .overviewSub{font-size:12px}
+  .modelStatusGrid,.favMiniGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .modelPill,.favMini{font-size:12px;padding:10px 8px}
+  .modelPill b,.favMini b{font-size:13px}
+  .cockpitGrid{grid-template-columns:1fr}
+  .smartGrid{grid-template-columns:1fr}
+  .practicalGrid{grid-template-columns:1fr}
+  .riskSummary{grid-template-columns:1fr 1fr}
+  .gfsgrid{font-size:12px}
+  .gfscell{font-size:12px;padding:8px 5px}
+  .actionPrimary{grid-template-columns:1fr auto;gap:7px}
+  .actionPrimary .todayQuick{grid-column:auto}
+}
+@media (max-width:390px), (max-device-width:390px){
+  .cards,.previewGrid{grid-template-columns:1fr 1fr!important}
+  .heroToolsMain button{font-size:12px;padding:8px}
+  .appBrandIcon{width:40px;height:40px}
+}
+
 </style>
 </head>
 <body><div class="wrap">
-<section class="hero"><div class="heroTop"><div class="heroBrand"><div class="heroEyebrow">REGIOWEER</div><h1>Weer app van Rico</h1></div><span class="versionBadge">v1.0</span></div><p>Meteorologische cockpit · modelmix · klimaat · records · energie · ensemblekansen</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
+<section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">REGIOWEER</div><h1>Weer app van Rico</h1></div></div><span class="versionBadge">v1.0.1</span></div><p>Meteorologische cockpit · modelmix · klimaat · records · energie · ensemblekansen</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
 <section class="panel">
 <div class="grid">
 <div class="field full"><label>Plaatsnaam</label><div style="display:grid;grid-template-columns:1fr auto;gap:8px"><input id="place" type="text" value="Houten" placeholder="Bijv. Houten, De Bilt of Amersfoort"><button class="ghost" id="findPlace" type="button">Zoek plaats</button></div><div class="quickplaces" id="quickPlaces"><button class="placechip" data-place="Houten">Houten</button><button class="placechip hidden" id="homePlace" type="button">⌂ Thuis</button><button class="placechip" id="savePlace" type="button">☆ Bewaar plaats</button></div><div class="quickplaces"><button class="placechip" id="useGps" type="button">📍 Mijn locatie</button></div><details class="miniDetails"><summary>Locatie beheren</summary><div class="quickplaces"><button class="placechip" id="setHome" type="button">⌂ Maak thuisplaats</button><button class="placechip" id="clearRecent" type="button">Recent wissen</button></div></details><div class="quickplaces" id="recentPlaces"><span class="recentlabel">Recent:</span></div><div class="note" id="placeInfo">Houten · coördinaten worden automatisch gebruikt</div></div>
