@@ -201,7 +201,7 @@ body{min-width:0}
 </style>
 </head>
 <body><div class="wrap">
-<section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">REGIOWEER</div><h1>Weer app van Rico</h1></div></div><span class="versionBadge">v1.0.9</span></div><p>Meteorologische cockpit · modelmix · klimaat · records · energie · ensemblekansen</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
+<section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">REGIOWEER</div><h1>Weer app van Rico</h1></div></div><span class="versionBadge">v1.0.10</span></div><p>Meteorologische cockpit · modelmix · klimaat · records · energie · ensemblekansen</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
 <section class="panel">
 <div class="grid">
 <div class="field full"><label>Plaatsnaam</label><div style="display:grid;grid-template-columns:1fr auto;gap:8px"><input id="place" type="text" value="Houten" placeholder="Bijv. Houten, De Bilt of Amersfoort"><button class="ghost" id="findPlace" type="button">Zoek plaats</button></div><div class="quickplaces" id="quickPlaces"><button class="placechip" data-place="Houten">Houten</button><button class="placechip hidden" id="homePlace" type="button">⌂ Thuis</button><button class="placechip" id="savePlace" type="button">☆ Bewaar plaats</button></div><div class="quickplaces"><button class="placechip" id="useGps" type="button">📍 Mijn locatie</button></div><details class="miniDetails"><summary>Locatie beheren</summary><div class="quickplaces"><button class="placechip" id="setHome" type="button">⌂ Maak thuisplaats</button><button class="placechip" id="clearRecent" type="button">Recent wissen</button></div></details><div class="quickplaces" id="recentPlaces"><span class="recentlabel">Recent:</span></div><div class="note" id="placeInfo">Houten · coördinaten worden automatisch gebruikt</div></div>
@@ -552,7 +552,7 @@ function agreementDisplay(v,count=3){if(count<=1)return 'geen vergelijking';if(c
 function agreementBadge(r){const txt=agreementDisplay(r.agreement,r.count||0);const cls=(r.count||0)<3?' limited':'';const style=Number.isFinite(r.agreement)&&(r.count||0)>=3?` style="background:${agreementColor(r.agreement)}"`:'';return `<div class="agree${cls}"${style}>${txt}</div>`}
 function qualitativeAgreement(v){if(!Number.isFinite(v))return 'onbekend';if(v>=85)return 'zeer hoog';if(v>=70)return 'hoog';if(v>=55)return 'redelijk';return 'laag'}
 function forecastText(r){return centralForecastText(r)}
-function iconFor(t){return {sun:'☀️',partly:'🌤️',cloud:'☁️',sunshowers:'🌦️',showers:'🌦️',rain:'🌧️'}[t]||'☁️'}
+function iconFor(t){return {sun:'☀️',partly:'🌤️',cloud:'☁️',sunshowers:'🌦️',showers:'🌦️',rain:'🌧️',clear_night:'🌙',partly_night:'🌙',cloud_night:'☁️',rain_night:'🌧️'}[t]||'☁️'}
 function fmt(n,d=1){return Number.isFinite(n)?n.toFixed(d).replace('.',','):'n.b.'}
 function mixKeysForOffset(off,date,maps){
   const available=list=>list.filter(k=>maps[k]?.[date]);
@@ -1327,8 +1327,22 @@ function dayAdviceCards(dayMix,rows,dew,gust,date=null){
  if(Number.isFinite(gust)&&gust>=60)cards.push(['wind','💨 Let op de wind',`Windstoten tot ongeveer ${Math.round(gust)} km/u.`]);
  return cards.slice(0,6).map(([c,t,x])=>`<div class="adviceChip ${c}"><b>${t}</b>${x}</div>`).join('');
 }
+function isDarkNow(){
+ const d=nlToday(),mins=nlHourNow()*60+new Date().getMinutes();
+ try{const j=smartHourlyCache,dates=j?.daily?.time||[],i=dates.indexOf(d),ss=i>=0?j?.daily?.sunset?.[i]:null;if(ss){const m=+(ss.slice(11,13))*60+(+ss.slice(14,16));if(Number.isFinite(m))return mins>=m}}catch(e){}
+ return nlHourNow()>=20||nlHourNow()<7;
+}
+function nightVisual(rows){
+ const a=(rows||[]).filter(r=>{const h=+r.time.slice(11,13);return h>=18||h<7});if(!a.length)return null;
+ const prec=a.reduce((s,r)=>s+(Number(r.precip)||0),0),wet=a.filter(r=>(r.precip||0)>=.05).length/a.length,clouds=a.map(r=>Number(r.cloud)).filter(Number.isFinite),cloud=clouds.length?clouds.reduce((x,y)=>x+y,0)/clouds.length:null,codes=a.map(r=>Number(r.code)).filter(Number.isFinite);
+ if(prec>=.3||wet>=.25||codes.some(c=>c>=51))return{type:'rain_night',text:'Kans op regen of een bui'};
+ if(Number.isFinite(cloud)&&cloud>=80)return{type:'cloud_night',text:'Bewolkt en droog'};
+ if(Number.isFinite(cloud)&&cloud>=40)return{type:'partly_night',text:'Droog met wolkenvelden en opklaringen'};
+ return{type:'clear_night',text:'Droog en vrij helder'};
+}
 function detailDayVisual(rows,dayMix){
- const daylight=rows.filter(r=>{const h=+r.time.slice(11,13);return h>=8&&h<19});if(!daylight.length)return{type:dayMix?.type||weatherType(dayMix||{}),text:forecastText(dayMix||{})};
+ const today=dayMix?.date===nlToday();if(today&&isDarkNow()){const nv=nightVisual(rows);if(nv)return nv}
+ const daylight=rows.filter(r=>{const h=+r.time.slice(11,13);return h>=8&&h<19});if(!daylight.length){const nv=today?nightVisual(rows):null;return nv||{type:dayMix?.type||weatherType(dayMix||{}),text:forecastText(dayMix||{})}};
  const dry=daylight.filter(r=>(r.precip||0)<.05).length/daylight.length,sunny=daylight.filter(r=>Number(r.code)<=1).length/daylight.length,bright=daylight.filter(r=>Number(r.code)<=2).length/daylight.length;
  if(dry>=.85&&sunny>=.6)return{type:'sun',text:'Zonnig'};
  if(dry>=.8&&bright>=.65)return{type:'partly',text:'Vrij zonnig'};
@@ -1394,8 +1408,8 @@ async function renderRecordBox(date){
 
 function buildDayNarrative(date,dayMix,rows,arrays,wind,dir,gust,dew){
  if(!dayMix)return '';
- const bits=[],isToday=date===nlToday();
- const isMix=$('model').value==='mix',sc=isMix?smartScore(dayMix):null,n=isMix?(dayMix.count||arrays.length):1;
+ const bits=[],isToday=date===nlToday(),afterDark=isToday&&isDarkNow();
+ const isMix=$('model').value==='mix',sc=isMix?(Number.isFinite(dayMix.agreement)?Math.round(dayMix.agreement):smartScore(dayMix)):null,n=isMix?(dayMix.count||arrays.length):1;
  const remTemp=rows.map(r=>r.temp).filter(Number.isFinite),remLo=rows.map(r=>r.tempMin).filter(Number.isFinite),remHi=rows.map(r=>r.tempMax).filter(Number.isFinite);
  const shownMax=isToday&&remTemp.length?Math.max(...remTemp):dayMix.max,shownMin=isToday&&remTemp.length?Math.min(...remTemp):dayMix.min;
  const eveningRows=isToday?rows.filter(r=>+r.time.slice(11,13)>=18):[],eveningTemp=eveningRows.length&&Number.isFinite(eveningRows.at(-1).temp)?eveningRows.at(-1).temp:(isToday&&remTemp.length?remTemp.at(-1):null);
@@ -1403,11 +1417,11 @@ function buildDayNarrative(date,dayMix,rows,arrays,wind,dir,gust,dew){
  const hi=isToday&&remHi.length?Math.round(Math.max(...remHi)):(Number.isFinite(dayMix.txHigh)?Math.round(dayMix.txHigh):null);
  let lead=Math.max(0,Math.round((new Date(date+'T12:00:00')-new Date(forecastStartDate()+'T12:00:00'))/864e5));
  const visual=detailDayVisual(rows,dayMix).text.toLowerCase();
- let intro=isToday?`Voor de rest van vandaag: ${visual}, met een maximum rond <strong>${Math.round(shownMax)}°</strong>. ${Number.isFinite(eveningTemp)?`Vanavond daalt de temperatuur naar ongeveer <strong>${Math.round(eveningTemp)}°</strong>.`:''}`:`${visual.charAt(0).toUpperCase()+visual.slice(1)} met een maximum rond <strong>${Math.round(shownMax)}°</strong> en een minimum rond <strong>${Math.round(shownMin)}°</strong>.`;
+ let intro=isToday?(afterDark?`Voor de rest van vanavond: ${visual}. De temperatuur ligt eerst rond <strong>${Math.round(shownMax)}°</strong>${Number.isFinite(eveningTemp)?` en daalt later naar ongeveer <strong>${Math.round(eveningTemp)}°</strong>`:''}.`:`Voor de rest van vandaag: ${visual}, met een maximum rond <strong>${Math.round(shownMax)}°</strong>. ${Number.isFinite(eveningTemp)?`Vanavond daalt de temperatuur naar ongeveer <strong>${Math.round(eveningTemp)}°</strong>.`:''}`):`${visual.charAt(0).toUpperCase()+visual.slice(1)} met een maximum rond <strong>${Math.round(shownMax)}°</strong> en een minimum rond <strong>${Math.round(shownMin)}°</strong>.`;
  bits.push(intro);
  if(isMix&&Number.isFinite(lo)&&Number.isFinite(hi)&&lead<3){
    const spread=hi-lo;
-   if(n>=3)bits.push(spread<=2?`De temperatuurverwachting is scherp: de mediaan ligt rond <strong>${Math.round(dayMix.max)}°</strong> en de modellen liggen met <strong>${lo}–${hi}°</strong> dicht bij elkaar.`:`De mediaan voor de maximumtemperatuur ligt rond <strong>${Math.round(dayMix.max)}°</strong>, met een range van <strong>${lo}–${hi}°</strong>.`);
+   const centralTemp=isToday?shownMax:dayMix.max;if(n>=3)bits.push(spread<=2?`De temperatuurverwachting is scherp: de mediaan ligt rond <strong>${Math.round(centralTemp)}°</strong> en de modellen liggen met <strong>${lo}–${hi}°</strong> dicht bij elkaar.`:`De mediaan voor de ${isToday?'resterende':'maximum'}temperatuur ligt rond <strong>${Math.round(centralTemp)}°</strong>, met een range van <strong>${lo}–${hi}°</strong>.`);
    else if(n===2)bits.push(`Er zijn twee modellen met volledige dekking. De centrale waarde ligt rond <strong>${Math.round(dayMix.max)}°</strong>, met een range van <strong>${lo}–${hi}°</strong>.`);
    else bits.push(`Voor deze termijn is slechts één model met volledige dekking beschikbaar: maximum rond <strong>${Math.round(dayMix.max)}°</strong>.`);
  }
@@ -1432,7 +1446,7 @@ function buildDayNarrative(date,dayMix,rows,arrays,wind,dir,gust,dew){
  } else if(wet.length) bits.push(`Neerslag is het belangrijkste aandachtspunt: ${rain.replace(/\s*\([^)]*modellen\)/g,'')}.`);
  if(isToday){
    const sun=rows.reduce((a,r)=>a+(Number(r.sun)||0),0);
-   if(sun>=.25)bits.push(`Vanaf nu resteert naar verwachting ongeveer <strong>${sun.toFixed(1).replace('.',',')} uur zon</strong>.`);else bits.push(`Voor de rest van de dag wordt nauwelijks nog zon berekend.`);
+   if(!afterDark){if(sun>=.25)bits.push(`Vanaf nu resteert naar verwachting ongeveer <strong>${sun.toFixed(1).replace('.',',')} uur zon</strong>.`);else bits.push(`Voor de rest van de dag wordt nauwelijks nog zon berekend.`);}
  }else{
    const sun=Number(dayMix.sun);if(Number.isFinite(sun)&&sun>=6)bits.push(`Met ongeveer <strong>${Math.round(sun)} uur zon</strong> krijgt de zon veel ruimte.`);else if(Number.isFinite(sun)&&sun<=2)bits.push(`De hoeveelheid zon blijft beperkt tot ongeveer <strong>${Math.round(sun)} uur</strong>.`);
  }
@@ -1454,16 +1468,16 @@ function buildNowcastBox(rows,date){
  const sun=rows.reduce((a,r)=>a+(Number(r.sun)||0),0),wet=rows.find(r=>(r.precip||0)>=.05||(r.rainPct||0)>=35);
  if(wet)bits.push(`Eerste neerslagsignaal rond <strong>${wet.time.slice(11,16)}</strong>.`);else bits.push(`<strong>Droog</strong> in de resterende uren.`);
  const warm=[...rows].filter(r=>Number.isFinite(r.temp)).sort((a,b)=>b.temp-a.temp)[0];if(warm)bits.push(`Warmst rond <strong>${warm.time.slice(11,16)}</strong> met ongeveer ${Math.round(warm.temp)}°.`);
- if(sun>=.25)bits.push(`Nog circa <strong>${sun.toFixed(1).replace('.',',')} uur zon</strong>.`);
+ if(!isDarkNow()&&sun>=.25)bits.push(`Nog circa <strong>${sun.toFixed(1).replace('.',',')} uur zon</strong>.`);
  const peak=[...rows].filter(r=>Number.isFinite(r.gust)).sort((a,b)=>b.gust-a.gust)[0];if(peak&&peak.gust>=45)bits.push(`Sterkste windstoten rond ${Math.round(peak.gust)} km/u.`);
  if(Number.isFinite(first?.temp)&&Number.isFinite(last?.temp)&&first.temp-last.temp>=4)bits.push(`Later koelt het duidelijk af.`);
- return `<b>⏭ Nu → vanavond</b>${bits.join(' ')}`;
+ return `<b>⏭ Nu → ${isDarkNow()?'later vanavond':'vanavond'}</b>${bits.join(' ')}`;
 }
 async function openDayDetail(date){
   $('dayDetail').classList.remove('hidden');$('recordBox').classList.add('hidden');$('detailStatus').textContent='Uurgegevens laden…';$('hourlyList').innerHTML='';$('detailHero').innerHTML='';$('detailNarrative').innerHTML='';$('detailAdvice').innerHTML='';$('dayParts').innerHTML='';$('rainTimeline').innerHTML='';$('rainWindow').classList.add('hidden');$('detailNowcast')?.classList.add('hidden');if($('detailNowcast'))$('detailNowcast').innerHTML='';
   const todayNl=nlToday(),isToday=date===todayNl,nowH=nlHourNow(),d=new Date(date+'T12:00:00');
-  $('detailTitle').textContent=isToday?'Vandaag · rest van de dag':`${NL[d.getDay()]} ${d.toLocaleDateString('nl-NL',{day:'numeric',month:'long'})}`;
-  $('detailSub').textContent=(isToday?'Vanaf nu · ': '')+($('model').value==='mix'?'uur-tot-uur modelmix':'uur-tot-uur '+($('model').selectedOptions[0]?.textContent||''));
+  $('detailTitle').textContent=isToday?(isDarkNow()?'Vanavond · resterende uren':'Vandaag · rest van de dag'):`${NL[d.getDay()]} ${d.toLocaleDateString('nl-NL',{day:'numeric',month:'long'})}`;
+  $('detailSub').textContent=(isToday?(isDarkNow()?'Vanaf nu vanavond · ':'Vanaf nu · '): '')+($('model').value==='mix'?'uur-tot-uur modelmix':'uur-tot-uur '+($('model').selectedOptions[0]?.textContent||''));
   const keys=detailKeysForDate(date);const settled=await Promise.allSettled(keys.map(k=>fetchDayHourly(k,date)));const arrays=settled.filter(r=>r.status==='fulfilled'&&r.value.length).map(r=>r.value);const allRows=aggregateHourly(arrays),rows=detailScopeRows(allRows,date);
   if(!rows.length){const dayMix=lastRows.find(x=>x.date===date);$('detailStatus').textContent=dayMix?'Uurdata is nog niet lokaal opgeslagen. De dagverwachting hieronder blijft wel beschikbaar.':'Voor deze dag zijn geen uurgegevens beschikbaar.';if(dayMix){$('detailHero').innerHTML=`<div class="detailHeroIcon">${iconFor(dayMix.type||weatherType(dayMix))}</div><div><div class="detailHeroTemp">${Math.round(dayMix.max)}° / ${Math.round(dayMix.min)}°</div><div class="detailHeroText">${dayMix.type||centralWeatherType(dayMix)}</div><div class="detailHeroSub">${dayMix.count||0} model${dayMix.count===1?'':'len'} · opgeslagen dagmix</div></div>`;$('detailNarrative').innerHTML=`<b>📰 Dagduiding</b><div>De modelmix voor deze dag is beschikbaar, maar de onderliggende uurgegevens zijn door de huidige API-limiet nog niet lokaal opgeslagen. Na de eerstvolgende succesvolle update worden ook de uurgegevens automatisch bewaard.</div>`}drawHourlyDetail([]);return}
   const cacheTimes=arrays.map(a=>a._cachedAt).filter(Number.isFinite),oldest=cacheTimes.length?Math.min(...cacheTimes):null,cacheNote=oldest?` · opgeslagen uurdata ${new Date(oldest).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}`:'';
@@ -1478,8 +1492,8 @@ async function openDayDetail(date){
   $('dayParts').innerHTML=dayPartSummary(rows,'Nacht',0,6,date)+dayPartSummary(rows,'Ochtend',6,12,date)+dayPartSummary(rows,'Middag',12,18,date)+dayPartSummary(rows,'Avond',18,24,date);
   const comfort=Number.isFinite(dew)&&dew>=16?`<div class="detailMetric"><b>benauwd</b><span>dauwpunt ${dew}°</span></div>`:'';
   const daylight=rows.filter(r=>{const h=+r.time.slice(11,13);return h>=7&&h<=19}),dryHours=daylight.filter(r=>(r.precip||0)<.05),sunHours=daylight.filter(r=>Number(r.sun)>0.25||Number(r.code)<=1),bestSun=sunHours.length?`${sunHours[0].time.slice(11,16)}–${new Date(new Date(sunHours[sunHours.length-1].time).getTime()+3600000).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}`:null;
-  const fullyDry=daylight.length?dryHours.length===daylight.length:false,allDry=allModelsDryForDate(date);let dayAdvice;if(dayMix&&((rows.reduce((a,r)=>a+(r.precip||0),0))>=.1||Math.max(0,...rows.map(r=>r.rainPct||0))>0)){dayAdvice=fullyDry?'Buien mogelijk · timing tussen modellen onzeker':dryHours.length>=6?dryHours.length+' droge uren overdag · buien mogelijk':'Wisselvallige uren'}else{dayAdvice=fullyDry?(allDry===true||$('model').value!=='mix'?'Resterende uren droog':'Resterende uren droog volgens de beschikbare mix'):dryHours.length>=6?dryHours.length+' droge uren overdag':'Wisselvallige uren'}const practical=`${dayAdvice}${bestSun?' · ☀️ beste zonnige venster '+bestSun:''}`;
-  $('detailMetrics').innerHTML=`<div class="detailMetric windMetric"><div class="metricIcon">💨</div><b>${Number.isFinite(wind)?bftText(wind):'—'}</b><span>wind ${compass(dir)}</span></div><div class="detailMetric gustMetric"><div class="metricIcon">↗</div><b>${Number.isFinite(gust)?gust+' km/u':'—'}</b><span>max. windstoot</span></div>${comfort.replace('detailMetric','detailMetric comfortMetric')}<div class="detailBest"><b>${isToday?'Handig voor de rest van vandaag:':'Handig voor deze dag:'}</b> ${practical}</div>`;
+  const fullyDry=daylight.length?dryHours.length===daylight.length:false,allDry=allModelsDryForDate(date);let dayAdvice;if(dayMix&&((rows.reduce((a,r)=>a+(r.precip||0),0))>=.1||Math.max(0,...rows.map(r=>r.rainPct||0))>0)){dayAdvice=fullyDry?'Buien mogelijk · timing tussen modellen onzeker':dryHours.length>=6?dryHours.length+' droge uren overdag · buien mogelijk':'Wisselvallige uren'}else{dayAdvice=fullyDry?(allDry===true||$('model').value!=='mix'?'Resterende uren droog':'Resterende uren droog volgens de beschikbare mix'):dryHours.length>=6?dryHours.length+' droge uren overdag':'Wisselvallige uren'}const practical=`${dayAdvice}${!isDarkNow()&&bestSun?' · ☀️ beste zonnige venster '+bestSun:''}`;
+  $('detailMetrics').innerHTML=`<div class="detailMetric windMetric"><div class="metricIcon">💨</div><b>${Number.isFinite(wind)?bftText(wind):'—'}</b><span>wind ${compass(dir)}</span></div><div class="detailMetric gustMetric"><div class="metricIcon">↗</div><b>${Number.isFinite(gust)?gust+' km/u':'—'}</b><span>max. windstoot</span></div>${comfort.replace('detailMetric','detailMetric comfortMetric')}<div class="detailBest"><b>${isToday?(isDarkNow()?'Handig voor vanavond:':'Handig voor de rest van vandaag:'):'Handig voor deze dag:'}</b> ${practical}</div>`;
   $('rainTimeline').innerHTML=rows.map(r=>{const q=(r.precip||0);const cls=q>=2?'wet3':q>=.5?'wet2':q>=.05?'wet1':'';return `<span class="rainSeg ${cls}" title="${r.time.slice(11,16)} · ${q.toFixed(1)} mm · ${r.rainPct??0}% modellen"></span>`}).join('');
   const list=$('hourlyList');for(const r of rows.filter((_,i)=>i%3===0)){const wet=(r.precip||0)>=0.05;const rainTxt=wet?`<div class="hourRain">💧 ${r.precip.toFixed(1).replace('.',',')} mm${Number.isFinite(r.rainPct)?` · ${r.rainPct}%`:''}</div>`:`<div class="hourDry">Droog</div>`;const wx=hourEmoji(r);list.insertAdjacentHTML('beforeend',`<div class="hourCell ${hourVisualClass(r)} ${isToday&&Math.abs(+r.time.slice(11,13)-nowH)<=1?'currentHour':''}"><div class="hourTime">${r.time.slice(11,16)}</div><div class="hourWeatherIcon">${wx}</div><div class="hourTemp">${Number.isFinite(r.temp)?Math.round(r.temp)+'°':'—'}</div>${rainTxt}<div class="hourWind">${Number.isFinite(r.wind)?`💨 ${bftText(r.wind)} ${compass(r.dir)}`:'wind —'}</div></div>`) }
 }
@@ -2198,7 +2212,7 @@ const SMART_HIST='rw-smart-history-v1',ENERGY_CFG='rw-energy-config-v1';let smar
 function sMed(a){a=a.filter(Number.isFinite).sort((x,y)=>x-y);if(!a.length)return null;let m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2}
 function sMean(a){a=a.filter(Number.isFinite);return a.length?a.reduce((x,y)=>x+y,0)/a.length:null}
 function sDir(a){a=a.filter(Number.isFinite);if(!a.length)return null;let x=sMean(a.map(v=>Math.cos(v*Math.PI/180))),y=sMean(a.map(v=>Math.sin(v*Math.PI/180)));return (Math.atan2(y,x)*180/Math.PI+360)%360}
-function smartModelRows(date){return Object.entries(lastMixData||{}).map(([key,rows])=>({key,row:(rows||[]).find(r=>r.date===date)})).filter(x=>x.row)}
+function smartModelRows(date){const all=Object.entries(lastMixData||{}).map(([key,rows])=>({key,row:(rows||[]).find(r=>r.date===date)})).filter(x=>x.row);if(date>nlToday()){const complete=all.filter(x=>x.row.complete);return complete.length?complete:all.filter(x=>x.row.complete!==false)}return all}
 function smartScore(r){const ms=smartModelRows(r.date),tx=ms.map(x=>x.row.max).filter(Number.isFinite),pr=ms.map(x=>x.row.precip).filter(Number.isFinite),gu=ms.map(x=>x.row.gust).filter(Number.isFinite);if(ms.length<2)return 45;const spread=a=>a.length?Math.max(...a)-Math.min(...a):0;return Math.max(15,Math.min(98,Math.round(100-spread(tx)*7-Math.min(25,spread(pr)*1.2)-Math.min(15,spread(gu)*.3))))}
 function smartAttention(r){let pts=0,why=[];if((r.max||0)>=30){pts+=3;why.push('hitte')}else if((r.max||0)>=25){pts++;why.push('zomers')};if((r.precip||0)>=20){pts+=3;why.push('veel regen')}else if((r.precip||0)>=10){pts+=2;why.push('regen')};if((r.gust||0)>=75){pts+=3;why.push('zware windstoten')}else if((r.gust||0)>=60){pts+=2;why.push('wind')};if((r.min||99)<0){pts+=2;why.push('vorst')};return {pts,label:pts>=5?'rood':pts>=3?'oranje':pts>=1?'geel':'groen',why}}
 function smartSave(rows){try{let h=JSON.parse(localStorage.getItem(SMART_HIST)||'[]');let snap={t:Date.now(),place:$('place').value,rows:rows.slice(0,10).map(r=>({date:r.date,max:r.max,min:r.min,precip:r.precip,gust:r.gust,sun:r.sun,pop:r.pop,type:r.type,agreement:r.agreement}))};let same=h.find(x=>x.place===snap.place);if(!same||Date.now()-same.t>10*60e3)h.unshift(snap);localStorage.setItem(SMART_HIST,JSON.stringify(h.slice(0,30)))}catch(e){}}
