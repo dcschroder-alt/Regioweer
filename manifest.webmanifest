@@ -1,6 +1,6 @@
 {
   "name": "Weer app van Rico",
-  "short_name": "Rico Weer",
+  "short_name": "Regioweer",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#eef6ff",
