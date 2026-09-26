@@ -208,6 +208,8 @@ body{min-width:0}
 .nationalScanGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:9px;margin-top:10px}.nationalCard{padding:11px 12px;border:1px solid rgba(120,140,160,.22);border-radius:14px;background:rgba(120,140,160,.07)}.nationalCard b{display:block;margin-bottom:5px}.nationalCard span,.nationalCard small{display:block;line-height:1.45}.nationalRegions{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px}.nationalRegion{padding:8px;border-radius:11px;background:rgba(120,140,160,.09);text-align:center}.nationalRegion strong,.nationalRegion small{display:block}.nationalDay{margin-top:10px;padding-top:10px;border-top:1px solid rgba(120,140,160,.22)}.nationalDayHead{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.nationalDayHead small{color:var(--muted);text-align:right;line-height:1.35}.nationalNotable{background:rgba(245,180,40,.10)}@media(max-width:600px){.nationalRegions{grid-template-columns:1fr}.nationalScanGrid{grid-template-columns:1fr}}
 
 .nationalExtremeLines{display:flex;flex-direction:column;gap:7px}.nationalExtremeLines>small{display:block;margin-top:-5px;opacity:.78}.nationalExtremeLines strong{font-size:17px}
+
+.nationalThreshold{padding:8px 10px;margin:0 0 8px;border-radius:12px;background:rgba(255,193,7,.10);display:flex;flex-direction:column;gap:2px}.nationalThreshold.hot{background:rgba(255,87,34,.14)}.nationalThreshold b{font-size:15px}.nationalThreshold span{font-size:12px}
 </style>
 </head>
 <body><div class="wrap">
@@ -2427,7 +2429,7 @@ function nsFmt(v,d=1){return Number.isFinite(v)?v.toFixed(d).replace('.',','):'�
 function nsWx(rain,sun){if(Number.isFinite(rain)&&rain>=8)return'🌧️ nat';if(Number.isFinite(rain)&&rain>=1)return'🌦️ buien/regen';if(Number.isFinite(sun)&&sun>=7)return'☀️ zonnig';if(Number.isFinite(sun)&&sun>=3)return'🌤️ geregeld zon';if(Number.isFinite(sun))return'☁️ veel bewolking';if(Number.isFinite(rain)&&rain<1)return'🌥️ overwegend droog';return'ℹ️ weerbeeld beperkt'}
 async function nsFetchModel(code){
  const lat=NATIONAL_POINTS.map(p=>p.lat).join(','),lon=NATIONAL_POINTS.map(p=>p.lon).join(',');
- const u=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&models=${encodeURIComponent(code)}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,sunshine_duration,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant&timezone=Europe%2FAmsterdam&forecast_days=5&wind_speed_unit=kmh`;
+ const u=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&models=${encodeURIComponent(code)}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,sunshine_duration,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant&timezone=Europe%2FAmsterdam&forecast_days=6&wind_speed_unit=kmh`;
  const r=await fetch(u,{cache:'no-store'}),j=await r.json();if(!r.ok||j.error)throw new Error(j.reason||`HTTP ${r.status}`);
  const arr=Array.isArray(j)?j:[j];return arr.map((x,i)=>({point:NATIONAL_POINTS[i],daily:x.daily})).filter(x=>x.daily?.time?.length)
 }
@@ -2440,7 +2442,10 @@ function nsAggregate(modelSets){
   const v={model:ms.name,group:ms.group,tx:get(x.daily.temperature_2m_max),tn:get(x.daily.temperature_2m_min),rain:get(x.daily.precipitation_sum),sun:Number.isFinite(sunRaw)?sunRaw/3600:null,wind:get(x.daily.wind_speed_10m_max),gust:get(x.daily.wind_gusts_10m_max),dir:get(x.daily.wind_direction_10m_dominant)};
   if([v.tx,v.tn,v.rain,v.sun,v.wind,v.gust].some(Number.isFinite))q.vals.push(v)
  }
- const dates=Object.keys(raw).sort().slice(0,5);
+ const allDates=Object.keys(raw).sort();
+ const nowNl=new Date(new Date().toLocaleString('en-US',{timeZone:'Europe/Amsterdam'}));
+ const todayNl=`${nowNl.getFullYear()}-${String(nowNl.getMonth()+1).padStart(2,'0')}-${String(nowNl.getDate()).padStart(2,'0')}`;
+ const dates=allDates.filter(d=>!(nowNl.getHours()>=18&&d<=todayNl)).slice(0,5);
  return dates.map((date,lead)=>{
   const pts=Object.values(raw[date]).map(x=>{
    const fine=x.vals.filter(v=>v.group==='fine'),long=x.vals.filter(v=>v.group==='long');
@@ -2488,7 +2493,8 @@ function renderNationalScanData(days,models,fromCache=false){
  const p=$('nationalScanPanel'),box=$('nationalScanDays');if(!p||!days.length)return;p.classList.remove('hidden');
  const first=days.find(d=>d.coverage>=.5)||days[0],fw=nsRegion(first,['Wadden']),fn=nsRegion(first,['Noord']),fm=nsRegion(first,['Midden']),fz=nsRegion(first,['Zuid']),fvalid=first.pts.filter(x=>Number.isFinite(x.tx)||Number.isFinite(x.tn)),warm=nsExtreme(fvalid,'tx','max'),cold=nsExtreme(fvalid,'tn','min'),wet=nsExtreme(fvalid,'rain','max'),gust=nsExtreme(fvalid,'gust','max');
  const regionStory=[['Wadden',fw],['noord',fn],['midden',fm],['zuid',fz]].filter(([,r])=>Number.isFinite(r.tx)).map(([n,r])=>`${n} <strong>${Math.round(r.tx)}°</strong>`).join(' · '),stories=nsRegionalStory(first,fw,fn,fm,fz,{warm,coldNight:cold,wet,windy:gust});
- $('nationalScanLead').innerHTML=`<b>${nsWx(nsMedian(fvalid.map(x=>x.rain)),nsMedian(fvalid.map(x=>x.sun)))} · landelijk beeld ${dayShort(first.date)}</b><span>${regionStory}${regionStory?'. ':''}${stories.length?stories.join('. ')+'. ':''}${warm?`Landelijk maximum circa <strong>${Math.round(warm.tx)}°</strong> rond ${warm.point.n}. `:''}${cold?`Laagste minimum circa <strong>${Math.round(cold.tn)}°</strong> rond ${cold.point.n}. `:''}</span>`;
+ const leadWarmSpread=nsPointSpread(warm,'tx'),leadThreshold=leadWarmSpread&&leadWarmSpread.maxValue>=30?` <strong>🔥 Lokaal tropisch mogelijk: ${Math.round(leadWarmSpread.maxValue)}° volgens ${leadWarmSpread.maxModel} rond ${warm.point.n}.</strong>`:warm&&warm.tx>=30?` <strong>🔥 Lokaal tropisch: modelmix circa ${Math.round(warm.tx)}° rond ${warm.point.n}.</strong>`:'';
+ $('nationalScanLead').innerHTML=`<b>${nsWx(nsMedian(fvalid.map(x=>x.rain)),nsMedian(fvalid.map(x=>x.sun)))} · verwachting ${dayShort(first.date)}</b><span>${regionStory}${regionStory?'. ':''}${stories.length?stories.join('. ')+'. ':''}${warm?`Landelijk maximum modelmix circa <strong>${Math.round(warm.tx)}°</strong> rond ${warm.point.n}. `:''}${leadThreshold}${cold?` Laagste minimum circa <strong>${Math.round(cold.tn)}°</strong> rond ${cold.point.n}. `:''}</span>`;
  box.innerHTML=days.map(d=>{
   const valid=d.pts.filter(x=>Number.isFinite(x.tx)||Number.isFinite(x.tn));
   if(d.coverage<.35)return `<div class="nationalDay"><b style="font-size:16px">${dayShort(d.date)} · landelijke scan nog niet beschikbaar</b><div class="nationalCard"><span>Te weinig geldige scanpunten om een betrouwbaar landelijk beeld te tonen.</span><small>${d.models.length?`Beschikbare modellen: ${d.models.join(' + ')}`:'Geen bruikbare modeldekking.'}</small></div></div>`;
@@ -2496,11 +2502,15 @@ function renderNationalScanData(days,models,fromCache=false){
   const ex={warm:nsExtreme(valid,'tx','max'),coolTx:nsExtreme(valid,'tx','min'),coldNight:nsExtreme(valid,'tn','min'),warmNight:nsExtreme(valid,'tn','max'),wet:nsExtreme(valid,'rain','max'),sunny:nsExtreme(valid,'sun','max'),windy:nsExtreme(valid,'gust','max')};
   const notes=nsNotable(d,ex),stories=nsRegionalStory(d,w,n,m,z,ex),tempDiff=ex.warm&&ex.coolTx?Math.round(ex.warm.tx-ex.coolTx.tx):null,wx=nsWx(nsMedian(valid.map(x=>x.rain)),nsMedian(valid.map(x=>x.sun))),rs=[rk,rw,ro],rSun=nsMedian(rs.map(x=>x.sun)),rRain=nsMedian(rs.map(x=>x.rain)),rGust=nsMax(rs.map(x=>x.gust));
   const lowTx=nsShowLowTx(d,ex)?nsExtremeHtml('Laagste TX',ex.coolTx,'tx','min'):'';
-  const tempHtml=`${nsExtremeHtml('Hoogste TX',ex.warm,'tx','max')}${lowTx}${nsExtremeHtml('Laagste TN',ex.coldNight,'tn','min')}${ex.warmNight&&ex.warmNight.tn>=18?nsExtremeHtml('Hoogste TN',ex.warmNight,'tn','max'):''}`;
+  const warmSpread=nsPointSpread(ex.warm,'tx');
+  const tropicalPossible=(Number.isFinite(ex.warm?.tx)&&ex.warm.tx>=30)||(warmSpread&&warmSpread.maxValue>=30);
+  const summerPossible=(Number.isFinite(ex.warm?.tx)&&ex.warm.tx>=25)||(warmSpread&&warmSpread.maxValue>=25);
+  const thresholdLead=tropicalPossible?`<div class="nationalThreshold hot"><b>🔥 Lokaal tropisch mogelijk</b><span>${warmSpread&&warmSpread.maxValue>=30?`Hoogste modelsignaal ${Math.round(warmSpread.maxValue)}° · ${warmSpread.maxModel}`:`Modelmix lokaal ${Math.round(ex.warm.tx)}°`} rond ${ex.warm?.point?.n||'het warmste scanpunt'}</span></div>`:summerPossible?`<div class="nationalThreshold"><b>☀️ Lokaal zomers</b><span>25° of meer komt in de landelijke scan in beeld.</span></div>`:'';
+  const tempHtml=`${thresholdLead}${nsExtremeHtml('Hoogste TX',ex.warm,'tx','max')}${lowTx}${nsExtremeHtml('Laagste TN',ex.coldNight,'tn','min')}${ex.warmNight&&ex.warmNight.tn>=18?nsExtremeHtml('Hoogste TN',ex.warmNight,'tn','max'):''}`;
   const other=[];if(ex.wet&&ex.wet.rain>=1)other.push(`☔ Meeste neerslag <strong>${fmt(ex.wet.rain)} mm</strong> · ${ex.wet.point.n}`);if(ex.sunny&&Number.isFinite(ex.sunny.sun))other.push(`☀ Meeste zon <strong>${nsFmt(ex.sunny.sun)} u</strong> · ${ex.sunny.point.n}`);if(ex.windy&&ex.windy.gust>=40)other.push(`💨 Zwaarste windstoten <strong>${Math.round(ex.windy.gust)} km/u</strong> · ${ex.windy.point.n}`);
   return `<div class="nationalDay"><div class="nationalDayHead"><b>${dayShort(d.date)} · ${wx}</b><small>${d.source} · ${d.models.join(' + ')||'geen modellen'} · ${d.validCount}/${NATIONAL_POINTS.length} scanpunten</small></div><div class="nationalRegions">${nsRegionLine('Wadden',w)}${nsRegionLine('Noord',n)}${nsRegionLine('Midden',m)}${nsRegionLine('Zuid',z)}</div><div class="nationalScanGrid">${stories.length?`<div class="nationalCard nationalNotable"><b>🧭 Regionaal weerverhaal</b><span>${stories.join('<br>')}</span></div>`:''}<div class="nationalCard"><b>🏙️ Randstad</b><span>${nsRandstadLine('Kust',rk)} · ${nsRandstadLine('westelijk binnenland',rw)} · ${nsRandstadLine('Utrecht/Flevoland',ro)}</span><small>${Number.isFinite(rSun)?`☀ ${nsFmt(rSun)} u · `:''}${Number.isFinite(rRain)?`☔ ${fmt(rRain)} mm · `:''}${Number.isFinite(rGust)?`windstoten tot ${Math.round(rGust)} km/u`:''}</small></div><div class="nationalCard"><b>🌡️ Temperatuurextremen</b><span class="nationalExtremeLines">${tempHtml}</span><small>${nsTempSignal(ex.warm?.tx)}${Number.isFinite(tempDiff)?` · landelijk verschil TX circa ${tempDiff}°`:''}</small></div>${other.length?`<div class="nationalCard"><b>🌦️ Weersextremen</b><span>${other.join('<br>')}</span></div>`:''}${notes.length?`<div class="nationalCard nationalNotable"><b>⚡ Opvallend in Nederland</b><span>${notes.join('<br>')}</span></div>`:''}</div></div>`
  }).join('');
- $('nationalScanStatus').textContent=`5-daagse scan · ${NATIONAL_POINTS.length} punten${fromCache?' · cache':''}`
+ $('nationalScanStatus').textContent=`5-daagse scan · ${NATIONAL_POINTS.length} punten${new Date(new Date().toLocaleString('en-US',{timeZone:'Europe/Amsterdam'})).getHours()>=18?' · vanaf morgen':''}${fromCache?' · cache':''}`
 }
 async function renderNationalScan(force=false){
  const p=$('nationalScanPanel');if(!p)return;if($('model')?.value!=='mix'){p.classList.add('hidden');return}p.classList.remove('hidden');$('nationalScanStatus').textContent='landelijke scan wordt opgehaald…';let cached=null;try{cached=JSON.parse(localStorage.getItem(NATIONAL_SCAN_CACHE)||'null')}catch(e){}
