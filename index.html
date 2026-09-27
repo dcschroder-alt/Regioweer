@@ -1376,7 +1376,10 @@ function dayPartSummary(rows,label,h0,h1,date=null){
  const temps=a.map(r=>r.temp).filter(Number.isFinite),p=a.reduce((x,r)=>x+(r.precip||0),0),pct=Math.max(0,...a.map(r=>r.rainPct||0)),codes=a.map(r=>r.code).filter(Number.isFinite);
  const winds=a.map(r=>r.wind).filter(Number.isFinite),dirs=a.map(r=>r.dir).filter(Number.isFinite),press=a.map(r=>saneMsl(r.pressure)).filter(Number.isFinite),gusts=a.map(r=>r.gust).filter(Number.isFinite),clouds=a.map(r=>r.cloud).filter(Number.isFinite),dews=a.map(r=>r.dew).filter(Number.isFinite);
  const circ=arr=>{if(!arr.length)return null;let x=0,y=0;for(const d of arr){const z=d*Math.PI/180;x+=Math.cos(z);y+=Math.sin(z)}return(Math.atan2(y,x)*180/Math.PI+360)%360};
- const tfirst=temps.length?Math.round(temps[0]):null,tlast=temps.length?Math.round(temps[temps.length-1]):null,code=dominantHourlyCode(codes),wx=hourEmoji({code,precip:p});
+ const tfirst=temps.length?Math.round(temps[0]):null,tlast=temps.length?Math.round(temps[temps.length-1]):null,code=dominantHourlyCode(codes);let wx=hourEmoji({code,precip:p,time:(date||'2000-01-01')+'T'+String(h0).padStart(2,'0')+':00'});
+ // Avondicoon volgt de echte zonsondergang: als meer dan de helft van 18-24 uur
+ // na zonsondergang valt, toon een maanvariant. Zo verschuift dit vanzelf met het seizoen.
+ if(label==='Avond'&&date){const ss=sunsetMinutesForDate(date),nightShare=Number.isFinite(ss)?Math.max(0,Math.min(360,1440-Math.max(1080,ss)))/360:0;if(nightShare>.5){if(p>=.05)wx='🌧️';else if(code<=1)wx='🌙';else if(code<=3)wx='🌙☁️';else wx='☁️'}}
  const wind=winds.length?Math.round(winds.reduce((x,y)=>x+y,0)/winds.length):null,dir=circ(dirs),pressure=press.length?Math.round(press.reduce((x,y)=>x+y,0)/press.length):null,gust=gusts.length?Math.round(Math.max(...gusts)):null,cloud=clouds.length?Math.round(clouds.reduce((x,y)=>x+y,0)/clouds.length):null,dew=dews.length?Math.round(dews.reduce((x,y)=>x+y,0)/dews.length):null,vis=a.map(r=>r.visibility).filter(Number.isFinite),hum=a.map(r=>r.humidity).filter(Number.isFinite),minVis=vis.length?Math.min(...vis):null,maxHum=hum.length?Math.max(...hum):null,mist=!!date&&strictMistSignal(date)&&Number.isFinite(minVis)&&minVis>0&&minVis<1500; 
  const rain=p>=.05?`💧 ${p.toFixed(1).replace('.',',')} mm${pct?` · ${pct}% modellen nat`:''}`:'💧 droog';
  return `<div class="dayPart"><b>${label}</b><div class="partIcon">${wx}</div><div class="partTemp">${Number.isFinite(tfirst)?tfirst+'°':'—'}${Number.isFinite(tlast)&&tlast!==tfirst?' → '+tlast+'°':''}</div><div class="partMeta">${rain}<br>💨 ${Number.isFinite(wind)?bftText(wind):'—'} ${compass(dir)}<br>◉ ${Number.isFinite(pressure)?pressure+' hPa MSL':'—'}${Number.isFinite(gust)&&gust>=35?`<br>💨 stoten ${gust} km/u`:''}${Number.isFinite(cloud)?` · ☁️ ${cloud}%`:''}${Number.isFinite(dew)?`<br>💧 dauwpunt ${dew}°`:''}${mist?`<br>🌫️ mistsignaal`:''}</div></div>`;
@@ -1410,14 +1413,32 @@ function nightVisual(rows){
  if(Number.isFinite(cloud)&&cloud>=40)return{type:'partly_night',text:'Droog met wolkenvelden en opklaringen'};
  return{type:'clear_night',text:'Droog en vrij helder'};
 }
+function sunsetMinutesForDate(date){
+ try{const j=smartHourlyCache,dates=j?.daily?.time||[],i=dates.indexOf(date),ss=i>=0?j?.daily?.sunset?.[i]:null;if(ss){const m=+(ss.slice(11,13))*60+(+ss.slice(14,16));if(Number.isFinite(m))return m}}catch(e){}
+ return null;
+}
+function daypartMixVisual(rows,dayMix){
+ // Het hoofdweerbeeld is een gewogen mix van de zichtbare dagdelen. Ochtend en
+ // middag wegen het zwaarst; van de avond telt alleen het deel voor zonsondergang mee.
+ const date=dayMix?.date,ss=sunsetMinutesForDate(date),dayRows=(rows||[]).filter(r=>{const h=+r.time.slice(11,13),m=h*60;return h>=6&&h<18||(h>=18&&h<24&&Number.isFinite(ss)&&m<ss)});
+ if(!dayRows.length){const type=centralWeatherType(dayMix||{});return{type,text:centralForecastText(dayMix||{})}}
+ const weight=r=>{const h=+r.time.slice(11,13);return h>=6&&h<12?1.2:h>=12&&h<18?1.5:0.55};
+ const wsum=dayRows.reduce((a,r)=>a+weight(r),0)||1,cloud=dayRows.reduce((a,r)=>a+(Number.isFinite(+r.cloud)?+r.cloud:50)*weight(r),0)/wsum;
+ const rain=dayRows.reduce((a,r)=>a+(Number(r.precip)||0),0),wetFrac=dayRows.filter(r=>(Number(r.precip)||0)>=.05).length/dayRows.length,sf=sunshineFraction(dayMix||{});
+ const lateWet=dayRows.some(r=>+r.time.slice(11,13)>=15&&(Number(r.precip)||0)>=.05),earlyWet=dayRows.some(r=>+r.time.slice(11,13)<12&&(Number(r.precip)||0)>=.05);
+ if(rain>=4&&wetFrac>=.4)return{type:'rain',text:'Perioden met regen'};
+ if(rain>=.1||wetFrac>=.15){const base=Number.isFinite(sf)&&sf>=.60?'Geregeld zon':cloud<70?'Zon en wolken':'Veel bewolking';return{type:'sunshowers',text:lateWet&&!earlyWet?base+', later buien':base+', enkele buien'}}
+ // Een kaal zonnetje alleen wanneer het dagbeeld ook echt vrijwel onbewolkt is.
+ if(Number.isFinite(sf)&&sf>=.80)return cloud<=18?{type:'sun',text:'Veel zon'}:{type:'partly',text:'Veel zon'};
+ if(Number.isFinite(sf)&&sf>=.60)return{type:'partly',text:'Vrij zonnig'};
+ if(Number.isFinite(sf)&&sf>=.35)return{type:'partly',text:'Geregeld zon'};
+ if(cloud<75)return{type:'partly',text:'Zon en wolken'};
+ return{type:'cloud',text:'Veel bewolking'};
+}
 function detailDayVisual(rows,dayMix){
  const today=dayMix?.date===nlToday();
- // Alleen voor de actuele avond/nacht mag de detailkaart het huidige nachtbeeld tonen.
  if(today&&isDarkNow()){const nv=nightVisual(rows);if(nv)return nv}
- // Hoofdsymbool + hoofdtekst komen uit exact dezelfde dagmix als de meerdaagse.
- // De dagdeelsymbolen blijven onafhankelijk en tonen de fijnere uur-tot-uur details.
- const type=centralWeatherType(dayMix||{});
- return {type,text:centralForecastText(dayMix||{})};
+ return daypartMixVisual(rows,dayMix);
 }
 function isNetherlandsLocation(){const lat=+$('lat').value,lon=+$('lon').value;return lat>=50.7&&lat<=53.7&&lon>=3.1&&lon<=7.3}
 let knmiRecordCache=null;
