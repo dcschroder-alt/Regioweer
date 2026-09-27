@@ -2647,8 +2647,8 @@ async function renderSmartCockpit(){const p=$('smartCockpit');if(!p||!lastRows.l
 
 
 // ---- v1.0.22 · ECMWF EC46 6-wekenverwachting ----
-const LR6_CACHE='rw_ec46_6week_v1022';
-const LR6_PREV='rw_ec46_6week_prev_v1022';
+const LR6_CACHE='rw_ec46_6week_v1025';
+const LR6_PREV='rw_ec46_6week_prev_v1025';
 const LR6_PRESSURE_CACHE='rw_ec46_pressure_v1024';
 function lr6Finite(v){v=Number(v);return Number.isFinite(v)?v:null}
 function lr6Arr(w,k,i){return lr6Finite(w?.[k]?.[i])}
@@ -2662,7 +2662,7 @@ function lr6Mean(a){const b=a.filter(Number.isFinite);return b.length?b.reduce((
 function lr6WindDir(deg){if(!Number.isFinite(deg))return'';const a=['N','NO','O','ZO','Z','ZW','W','NW'];return a[Math.round((((deg%360)+360)%360)/45)%8]}
 function lr6TempClass(a){if(!Number.isFinite(a))return{label:'temperatuursignaal onbekend',cls:''};if(a>=2.5)return{label:'veel warmer dan normaal',cls:'longRangeWarm'};if(a>=1.0)return{label:'warmer dan normaal',cls:'longRangeWarm'};if(a>=.4)return{label:'iets warmer dan normaal',cls:'longRangeWarm'};if(a<=-2.5)return{label:'veel kouder dan normaal',cls:'longRangeCool'};if(a<=-1.0)return{label:'kouder dan normaal',cls:'longRangeCool'};if(a<=-.4)return{label:'iets kouder dan normaal',cls:'longRangeCool'};return{label:'rond normaal',cls:''}}
 function lr6RainClass(a,p){if(Number.isFinite(p)){if(p>=70)return{label:'duidelijk natter signaal',cls:'longRangeWet'};if(p>=58)return{label:'eerder natter dan normaal',cls:'longRangeWet'};if(p<=30)return{label:'duidelijk droger signaal',cls:'longRangeDry'};if(p<=42)return{label:'eerder droger dan normaal',cls:'longRangeDry'}}if(Number.isFinite(a)){if(a>1)return{label:'natter dan normaal',cls:'longRangeWet'};if(a<-1)return{label:'droger dan normaal',cls:'longRangeDry'}}return{label:'geen sterk neerslagsignaal',cls:''}}
-function lr6SunClass(a){if(!Number.isFinite(a))return'';if(a>0)return'meer zon dan normaal';if(a<0)return'minder zon dan normaal';return'zon rond normaal'}
+function lr6SunClass(a,n,i=0){if(!Number.isFinite(a))return'geen duidelijk zonnesignaal';const threshold=Math.max(i>=2?.75:.5,Number.isFinite(n)?Math.abs(n)*.15:0);if(a>=threshold)return'meer zon dan normaal';if(a<=-threshold)return'minder zon dan normaal';return'geen duidelijk zonnesignaal'}
 function lr6Conf(i,pWarm,pWet){let c=i<=1?'redelijk':i<=3?'matig':'laag';const strong=(Number.isFinite(pWarm)&&Math.abs(pWarm-50)>=25)||(Number.isFinite(pWet)&&Math.abs(pWet-50)>=25);return strong&&i<=2?'redelijk tot duidelijk':c}
 function lr6NormForRange(rows,start,end,key){if(!Array.isArray(rows)||!rows.length)return null;let ds=[],cur=start;while(cur<=end){ds.push(cur);cur=lr6AddDays(cur,1);if(ds.length>8)break}const daily=ds.map(d=>{const md=d.slice(5),vals=rows.filter(r=>r.year>=1996&&r.year<=2025&&r.date?.slice(5)===md&&Number.isFinite(r[key])).map(r=>Number(r[key]));return lr6Mean(vals)}).filter(Number.isFinite);return lr6Mean(daily)}
 function lr6ConvertSun(v,unit){if(!Number.isFinite(v))return null;const u=(unit||'').toLowerCase();if(u.includes('s'))return v/3600;if(u.includes('h'))return v;return v>100?v/3600:v}
