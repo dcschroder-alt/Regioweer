@@ -50,6 +50,11 @@
 .hourCell{padding:10px 8px;min-height:122px;display:flex;flex-direction:column;justify-content:center;align-items:center;box-shadow:0 2px 8px rgba(25,48,72,.06)}
 .hourTime{font-size:12px;color:#4f6278}
 .hourWeatherIcon{font-size:24px;line-height:1;margin:4px 0 2px}
+.wxArt{display:inline-block;width:1em;height:1em;object-fit:contain;vertical-align:-0.12em;border-radius:22%;filter:drop-shadow(0 1px 2px rgba(31,59,88,.08))}
+.icon .wxArt{width:62px;height:62px;vertical-align:middle}.compact .icon .wxArt{width:48px;height:48px}
+.bigwx .wxArt{width:64px;height:64px}.todayTomorrowIcon .wxArt{width:48px;height:48px}.detailHeroIcon .wxArt{width:86px;height:86px}
+.partIcon .wxArt{width:46px;height:46px}.hourWeatherIcon .wxArt{width:34px;height:34px}
+
 .hourTemp{font-size:24px;font-weight:950;color:#e05b3f;margin:1px 0 3px}
 .hourDry{font-size:11px;font-weight:850;color:#55706a;margin-top:2px}
 .hourRain{font-size:11px;font-weight:800;color:#1768a8;margin-top:2px}
@@ -215,7 +220,6 @@ body{min-width:0}
 .nationalScanControls{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.nationalScanControls button{border:1px solid rgba(80,120,160,.28);background:rgba(120,160,200,.09);color:var(--text);border-radius:999px;padding:7px 12px;font-weight:800}.nationalScanControls button.active{background:#1768c5;color:white;border-color:#1768c5}.nationalCompactDay .nationalDaySummary{margin-bottom:8px}.nationalCompactDay .nationalDaySummary b{font-size:19px;line-height:1.25}.nationalCompactDay>.nationalCard{padding:8px 10px;margin:5px 0}.nationalCompactDay>.nationalCard>b{font-size:14px;margin-bottom:2px}.nationalCompactDay>.nationalCard span,.nationalCompactDay>.nationalCard small{font-size:13px;line-height:1.35}.nationalCompactMeta{padding:8px 10px;border-radius:12px;background:rgba(120,140,160,.08);font-size:13px;line-height:1.45;color:var(--muted);margin-bottom:8px}
 
 .nowPanel{border:1px solid #cfe2f2;background:linear-gradient(135deg,#eef8ff,#f9fcff)}.nowGrid{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}.nowIcon{font-size:46px}.nowTemp{font-size:36px;font-weight:950;color:#173a63}.nowState{font-size:18px;font-weight:900;color:#1f3d5c}.nowWind{font-weight:800;margin-top:3px;color:#49627b}.walkBox{margin-top:12px;padding:12px 14px;border-radius:15px;background:#edf8ef;border:1px solid #cce6d1;font-size:16px;color:#244c31}.walkBox.wet{background:#eef6ff;border-color:#c8dff3;color:#244966}.walkBox b{font-weight:950}.nowMeta{font-size:11px;color:#718195;margin-top:8px}.dark .nowPanel{background:linear-gradient(135deg,#172a3a,#142331);border-color:#314a60}.dark .nowTemp,.dark .nowState{color:#eef7ff}.dark .nowWind,.dark .nowMeta{color:#b5c6d5}.dark .walkBox{background:#193325;border-color:#315b3f;color:#dff5e5}.dark .walkBox.wet{background:#172d40;border-color:#31516c;color:#e0f0ff}
-.wxsvg{display:inline-flex;width:1em;height:1em;align-items:center;justify-content:center;vertical-align:-.12em;line-height:1}.wxsvg svg{display:block;width:100%;height:100%;overflow:visible}.icon .wxsvg,.previewDay .icon .wxsvg{filter:drop-shadow(0 2px 1px rgba(20,55,80,.08))}.detailHeroIcon .wxsvg,.partIcon .wxsvg{filter:drop-shadow(0 2px 2px rgba(20,55,80,.10))}.dark .wxsvg{filter:drop-shadow(0 2px 2px rgba(0,0,0,.28))}
 </style>
 
 <style>
@@ -605,21 +609,8 @@ function agreementDisplay(v,count=3){if(count<=1)return 'geen vergelijking';if(c
 function agreementBadge(r){const txt=agreementDisplay(r.agreement,r.count||0);const cls=(r.count||0)<3?' limited':'';const style=Number.isFinite(r.agreement)&&(r.count||0)>=3?` style="background:${agreementColor(r.agreement)}"`:'';return `<div class="agree${cls}"${style}>${txt}</div>`}
 function qualitativeAgreement(v){if(!Number.isFinite(v))return 'onbekend';if(v>=85)return 'zeer hoog';if(v>=70)return 'hoog';if(v>=55)return 'redelijk';return 'laag'}
 function forecastText(r){return r?._visualText||centralForecastText(r)}
-function weatherSvg(t){
- const wrap=x=>`<span class="wxsvg" aria-hidden="true">${x}</span>`;
- const sun=`<svg viewBox="0 0 64 64" focusable="false"><defs><linearGradient id="sunG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFD84D"/><stop offset="1" stop-color="#FF9F1C"/></linearGradient></defs><g stroke="#FFB000" stroke-width="4" stroke-linecap="round"><path d="M32 4v8M32 52v8M4 32h8M52 32h8M12.2 12.2l5.7 5.7M46.1 46.1l5.7 5.7M51.8 12.2l-5.7 5.7M17.9 46.1l-5.7 5.7"/></g><circle cx="32" cy="32" r="14" fill="url(#sunG)"/></svg>`;
- const cloud=`<svg viewBox="0 0 64 64" focusable="false"><defs><linearGradient id="clG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F3F7FA"/><stop offset="1" stop-color="#C9D6DF"/></linearGradient></defs><path d="M18 48h29c7 0 12-4.7 12-10.7S54 26.6 47.8 26.6c-1 0-2 .1-2.9.4C42.5 20.7 36.8 17 30.4 17c-8.4 0-15.2 6.3-16 14.4C8.4 32 4 36.1 4 41c0 4 3 7 6.8 7H18z" fill="url(#clG)" stroke="#AFC0CC" stroke-width="1.6"/></svg>`;
- const moon=`<svg viewBox="0 0 64 64" focusable="false"><defs><linearGradient id="moonG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE98A"/><stop offset="1" stop-color="#FFC94A"/></linearGradient></defs><path d="M44 48C29 50 17 39 17 25c0-8 4-15 10-19-3 1-6 3-8 5-11 10-12 27-2 38 9 10 25 12 36 4 2-2 4-4 5-7-4 1-9 2-14 2z" fill="url(#moonG)"/></svg>`;
- const rain=`<svg viewBox="0 0 64 64" focusable="false"><defs><linearGradient id="rclG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#EDF4F8"/><stop offset="1" stop-color="#B8C8D3"/></linearGradient></defs><path d="M14 35h34c6 0 11-4 11-9s-5-9-11-9c-1 0-2 0-3 .3C42 11.8 37 9 31 9c-7 0-13 5-14 12C10 21 5 25 5 30c0 3 3 5 9 5z" fill="url(#rclG)" stroke="#AFC0CC" stroke-width="1.4"/><g stroke="#35A7E8" stroke-width="4" stroke-linecap="round"><path d="M18 42l-3 7M32 42l-3 7M46 42l-3 7"/></g></svg>`;
- const sunCloud=`<svg viewBox="0 0 64 64" focusable="false"><defs><linearGradient id="scSun" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFD84D"/><stop offset="1" stop-color="#FF9F1C"/></linearGradient><linearGradient id="scCl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F5F8FA"/><stop offset="1" stop-color="#C7D4DE"/></linearGradient></defs><g stroke="#FFB000" stroke-width="3.3" stroke-linecap="round"><path d="M24 3v7M24 31v7M3 20h7M38 20h7M9 7l5 5M34 28l5 5M39 7l-5 5M14 28l-5 5"/></g><circle cx="24" cy="20" r="11" fill="url(#scSun)"/><path d="M20 52h31c6 0 10-4 10-9s-4-9-10-9c-1 0-2 .1-3 .4C45 28.8 40 26 34 26c-8 0-14 6-15 13-6 0-10 4-10 8 0 3 3 5 11 5z" fill="url(#scCl)" stroke="#AFC0CC" stroke-width="1.5"/></svg>`;
- const sunRain=`<svg viewBox="0 0 64 64" focusable="false"><defs><linearGradient id="srSun" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFD84D"/><stop offset="1" stop-color="#FF9F1C"/></linearGradient><linearGradient id="srCl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F5F8FA"/><stop offset="1" stop-color="#C7D4DE"/></linearGradient></defs><g stroke="#FFB000" stroke-width="3" stroke-linecap="round"><path d="M23 3v7M23 30v7M3 19h7M37 19h7M9 7l5 5M33 27l5 5M38 7l-5 5M14 27l-5 5"/></g><circle cx="23" cy="19" r="10.5" fill="url(#srSun)"/><path d="M19 43h31c6 0 10-4 10-9s-4-9-10-9c-1 0-2 .1-3 .4C44 20 39 17 33 17c-8 0-14 6-15 13-6 0-10 4-10 8 0 3 3 5 11 5z" fill="url(#srCl)" stroke="#AFC0CC" stroke-width="1.5"/><g stroke="#35A7E8" stroke-width="3.7" stroke-linecap="round"><path d="M24 48l-3 7M38 48l-3 7M52 48l-3 7"/></g></svg>`;
- const moonCloud=`<svg viewBox="0 0 64 64" focusable="false"><defs><linearGradient id="mcMoon" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFE98A"/><stop offset="1" stop-color="#FFC94A"/></linearGradient><linearGradient id="mcCl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F2F6F9"/><stop offset="1" stop-color="#C6D3DD"/></linearGradient></defs><path d="M35 37C24 38 16 30 16 20c0-6 3-11 8-14-2 1-4 2-6 4-8 7-9 20-2 28 6 7 18 9 26 3 2-1 3-3 4-5-3 1-7 1-11 1z" fill="url(#mcMoon)"/><path d="M21 54h29c6 0 10-4 10-9s-4-9-10-9c-1 0-2 .1-3 .4C44 31 39 28 33 28c-8 0-14 6-15 13-6 0-10 4-10 8 0 3 3 5 11 5z" fill="url(#mcCl)" stroke="#AFC0CC" stroke-width="1.5"/></svg>`;
- const map={sun,partly:sunCloud,cloud,sunshowers:sunRain,showers:sunRain,rain,clear_night:moon,partly_night:moonCloud,cloud_night:moonCloud,rain_night:rain};
- return wrap(map[t]||cloud);
-}
-function iconFor(t){return weatherSvg(t)}
-function weatherSvgFromEmoji(e){if(e==='☀️'||e==='☀')return weatherSvg('sun');if(e==='🌤️'||e==='🌤')return weatherSvg('partly');if(e==='🌦️'||e==='🌦')return weatherSvg('sunshowers');if(e==='🌧️'||e==='🌧')return weatherSvg('rain');if(e==='🌙'||e==='🌙️')return weatherSvg('clear_night');if((e||'').includes('🌙'))return weatherSvg('partly_night');return weatherSvg('cloud')}
-
+function wxArt(name,alt=''){return `<img class="wxArt" src="./weather-icons/${name}.png" alt="${alt}">`}
+function iconFor(t){const m={sun:'sun',partly:'partly',cloud:'cloud',sunshowers:'showers',showers:'showers',rain:'rain',clear_night:'clear_night',partly_night:'partly_night',cloud_night:'cloud_night',rain_night:'rain_night'};return wxArt(m[t]||'cloud',t||'weer')}
 function fmt(n,d=1){return Number.isFinite(n)?n.toFixed(d).replace('.',','):'n.b.'}
 function mixKeysForOffset(off,date,maps){
   const available=list=>list.filter(k=>maps[k]?.[date]);
@@ -688,7 +679,12 @@ function hourVisualClass(r){
 }
 function hourEmoji(r){
  const h=Number(r.time?.slice(11,13)),night=Number.isFinite(h)&&(h<7||h>=20),c=Number(r.code),p=Number(r.precip)||0;
- if(c>=95)return '⛈️';if(c>=71&&c<=77)return '🌨️';if(p>=0.1||((c>=51&&c<=67)||(c>=80&&c<=82)))return night?'🌧️':'🌦️';if(c<=1)return night?'🌙':'☀️';if(c<=3)return night?'☁️':'🌤️';return '☁️';
+ if(c>=95)return wxArt(night?'thunder_night':'thunder','onweer');
+ if(c>=71&&c<=77)return wxArt('snow','sneeuw');
+ if(p>=0.1||((c>=51&&c<=67)||(c>=80&&c<=82)))return wxArt(night?'rain_night':'showers','neerslag');
+ if(c<=1)return wxArt(night?'clear_night':'sun',night?'heldere nacht':'zonnig');
+ if(c<=3)return wxArt(night?'partly_night':'partly',night?'licht bewolkt':'vrij zonnig');
+ return wxArt(night?'cloud_night':'cloud','bewolkt');
 }
 function relativeDayLabel(date){const base=new Date(nlToday()+'T12:00:00Z'),d=new Date(date+'T12:00:00Z'),n=Math.round((d-base)/86400000);return n<=0?'vandaag':n===1?'morgen':`over ${n} dagen`}
 function temperatureMilestones(rows){
@@ -729,7 +725,7 @@ async function renderNowPanel(){
   if(!all.length){p.classList.add('hidden');return}
   const h=nlHourNow(),future=all.filter(r=>+r.time.slice(11,13)>=h),rows=future.length?future:all.slice(-1),cur=rows[0];p.classList.remove('hidden');
   const wet=r=>(Number(r.precip)||0)>=.05||(Number(r.rainPct)||0)>=35, isWet=wet(cur),temp=Number.isFinite(cur.temp)?Math.round(cur.temp):null;
-  $('nowIcon').textContent=hourEmoji(cur);$('nowTemp').textContent=temp!==null?temp+'°':'—';$('nowState').textContent=isWet?((cur.precip||0)>=.5?'Regen':'Kans op lichte regen'):'Droog';
+  $('nowIcon').innerHTML=hourEmoji(cur);$('nowTemp').textContent=temp!==null?temp+'°':'—';$('nowState').textContent=isWet?((cur.precip||0)>=.5?'Regen':'Kans op lichte regen'):'Droog';
   $('nowWind').textContent=`💨 ${compass(cur.dir)} ${bftText(cur.wind)}`+(Number.isFinite(cur.gust)&&cur.gust>=45?` · stoten ${Math.round(cur.gust)} km/u`:'');
   let msg='',cls='walkBox';
   if(isWet){let start=-1;for(let i=0;i<rows.length;i++){if(!wet(rows[i])){let n=0;for(let j=i;j<rows.length&&!wet(rows[j]);j++)n++;if(n>=2){start=i;break}}}if(start>=0){const t=rows[start].time.slice(11,16);let n=0;for(let j=start;j<rows.length&&!wet(rows[j]);j++)n++;msg=`🚶 <b>Droog vanaf ongeveer ${t}</b>${n>=2?` · daarna circa ${n} uur droog`:''}.`; }else msg='☔ <b>Voorlopig geen betrouwbaar droog venster</b> in de komende uren.';cls+=' wet';
@@ -1394,13 +1390,13 @@ function dayPartSummary(rows,label,h0,h1,date=null){
  const circ=arr=>{if(!arr.length)return null;let x=0,y=0;for(const d of arr){const z=d*Math.PI/180;x+=Math.cos(z);y+=Math.sin(z)}return(Math.atan2(y,x)*180/Math.PI+360)%360};
  const tfirst=temps.length?Math.round(temps[0]):null,tlast=temps.length?Math.round(temps[temps.length-1]):null,code=dominantHourlyCode(codes);let wx=hourEmoji({code,precip:p,time:(date||'2000-01-01')+'T'+String(h0).padStart(2,'0')+':00'});
  // Ochtend is een dagdeel: toon hier nooit een maan, ook niet als 06:00 nog voor zonsopkomst ligt.
- if(label==='Ochtend'){if(p>=.05)wx='🌦️';else if(code<=1)wx='☀️';else if(code<=3)wx='🌤️';else wx='☁️'}
+ if(label==='Ochtend'){if(p>=.05)wx=wxArt('showers','buien');else if(code<=1)wx=wxArt('sun','zonnig');else if(code<=3)wx=wxArt('partly','vrij zonnig');else wx=wxArt('cloud','bewolkt')}
  // Avondicoon volgt de echte zonsondergang: als meer dan de helft van 18-24 uur
  // na zonsondergang valt, toon een maanvariant. Zo verschuift dit vanzelf met het seizoen.
- if(label==='Avond'&&date){const ss=sunsetMinutesForDate(date),nightShare=Number.isFinite(ss)?Math.max(0,Math.min(360,1440-Math.max(1080,ss)))/360:0;if(nightShare>.5){if(p>=.05)wx='🌧️';else if(code<=1)wx='🌙';else if(code<=3)wx='🌙☁️';else wx='☁️'}}
+ if(label==='Avond'&&date){const ss=sunsetMinutesForDate(date),nightShare=Number.isFinite(ss)?Math.max(0,Math.min(360,1440-Math.max(1080,ss)))/360:0;if(nightShare>.5){if(p>=.05)wx=wxArt('rain_night','nachtregen');else if(code<=1)wx=wxArt('clear_night','heldere nacht');else if(code<=3)wx=wxArt('partly_night','licht bewolkte nacht');else wx=wxArt('cloud_night','bewolkte nacht')}}
  const wind=winds.length?Math.round(winds.reduce((x,y)=>x+y,0)/winds.length):null,dir=circ(dirs),pressure=press.length?Math.round(press.reduce((x,y)=>x+y,0)/press.length):null,gust=gusts.length?Math.round(Math.max(...gusts)):null,cloud=clouds.length?Math.round(clouds.reduce((x,y)=>x+y,0)/clouds.length):null,dew=dews.length?Math.round(dews.reduce((x,y)=>x+y,0)/dews.length):null,vis=a.map(r=>r.visibility).filter(Number.isFinite),hum=a.map(r=>r.humidity).filter(Number.isFinite),minVis=vis.length?Math.min(...vis):null,maxHum=hum.length?Math.max(...hum):null,mist=!!date&&strictMistSignal(date)&&Number.isFinite(minVis)&&minVis>0&&minVis<1500; 
  const rain=p>=.05?`💧 ${p.toFixed(1).replace('.',',')} mm${pct?` · ${pct}% modellen nat`:''}`:'💧 droog';
- return `<div class="dayPart"><b>${label}</b><div class="partIcon">${weatherSvgFromEmoji(wx)}</div><div class="partTemp">${Number.isFinite(tfirst)?tfirst+'°':'—'}${Number.isFinite(tlast)&&tlast!==tfirst?' → '+tlast+'°':''}</div><div class="partMeta">${rain}<br>💨 ${Number.isFinite(wind)?bftText(wind):'—'} ${compass(dir)}<br>◉ ${Number.isFinite(pressure)?pressure+' hPa MSL':'—'}${Number.isFinite(gust)&&gust>=35?`<br>💨 stoten ${gust} km/u`:''}${Number.isFinite(cloud)?` · ☁️ ${cloud}%`:''}${Number.isFinite(dew)?`<br>💧 dauwpunt ${dew}°`:''}${mist?`<br>🌫️ mistsignaal`:''}</div></div>`;
+ return `<div class="dayPart"><b>${label}</b><div class="partIcon">${wx}</div><div class="partTemp">${Number.isFinite(tfirst)?tfirst+'°':'—'}${Number.isFinite(tlast)&&tlast!==tfirst?' → '+tlast+'°':''}</div><div class="partMeta">${rain}<br>💨 ${Number.isFinite(wind)?bftText(wind):'—'} ${compass(dir)}<br>◉ ${Number.isFinite(pressure)?pressure+' hPa MSL':'—'}${Number.isFinite(gust)&&gust>=35?`<br>💨 stoten ${gust} km/u`:''}${Number.isFinite(cloud)?` · ☁️ ${cloud}%`:''}${Number.isFinite(dew)?`<br>💧 dauwpunt ${dew}°`:''}${mist?`<br>🌫️ mistsignaal`:''}</div></div>`;
 }
 function dayAdviceCards(dayMix,rows,dew,gust,date=null){
  const isToday=date===nlToday(),temps=rows?.map(r=>r.temp).filter(Number.isFinite)||[];
