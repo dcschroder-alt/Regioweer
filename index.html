@@ -212,7 +212,7 @@ body{min-width:0}
 .nationalThreshold{padding:8px 10px;margin:0 0 8px;border-radius:12px;background:rgba(255,193,7,.10);display:flex;flex-direction:column;gap:2px}.nationalThreshold.hot{background:rgba(255,87,34,.14)}.nationalThreshold b{font-size:15px}.nationalThreshold span{font-size:12px}.nationalRunChange{margin-top:8px;padding:7px 9px;border-radius:10px;background:#eef5fb;border:1px solid #d7e4f1;font-size:11px;line-height:1.4;color:#35506d}.nationalRunChange strong{color:#173a63}.nationalRunChange.down{background:#fff4ef;border-color:#f0cabc}.nationalRunChange.up{background:#eef8ef;border-color:#cde5cf}.nationalRunChange.flat{background:#f5f7fa;border-color:#e0e6ed;color:#66758a}.dark .nationalRunChange{background:#182b3f;border-color:#2d4863;color:#bdd0e2}.dark .nationalRunChange.down{background:#3a261f;border-color:#664638}.dark .nationalRunChange.up{background:#1f3527;border-color:#385b43}
 .nationalExtremeCard{background:linear-gradient(135deg,rgba(255,193,7,.16),rgba(255,248,220,.55));border-color:rgba(214,162,0,.38)}.dark .nationalExtremeCard{background:linear-gradient(135deg,rgba(255,193,7,.14),rgba(255,193,7,.05));border-color:rgba(255,193,7,.28)}.extremeModelSignal{margin-top:4px!important;padding:6px 8px;border-radius:10px;background:rgba(255,193,7,.16);font-weight:850!important;opacity:1!important;color:var(--text)}.nationalRunSignal{margin-top:10px}.nationalRunSignal b{font-size:15px}.nationalRunSignal span{font-size:13px}.nationalScanLeadHidden{display:none!important}
 
-.nationalScanControls{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.nationalScanControls button{border:1px solid rgba(80,120,160,.28);background:rgba(120,160,200,.09);color:var(--text);border-radius:999px;padding:7px 12px;font-weight:800}.nationalScanControls button.active{background:#1768c5;color:white;border-color:#1768c5}.nationalCompactDay .nationalDaySummary{margin-bottom:8px}.nationalCompactMeta{padding:8px 10px;border-radius:12px;background:rgba(120,140,160,.08);font-size:13px;line-height:1.45;color:var(--muted);margin-bottom:8px}
+.nationalScanControls{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.nationalScanControls button{border:1px solid rgba(80,120,160,.28);background:rgba(120,160,200,.09);color:var(--text);border-radius:999px;padding:7px 12px;font-weight:800}.nationalScanControls button.active{background:#1768c5;color:white;border-color:#1768c5}.nationalCompactDay .nationalDaySummary{margin-bottom:8px}.nationalCompactDay .nationalDaySummary b{font-size:19px;line-height:1.25}.nationalCompactDay>.nationalCard{padding:8px 10px;margin:5px 0}.nationalCompactDay>.nationalCard>b{font-size:14px;margin-bottom:2px}.nationalCompactDay>.nationalCard span,.nationalCompactDay>.nationalCard small{font-size:13px;line-height:1.35}.nationalCompactMeta{padding:8px 10px;border-radius:12px;background:rgba(120,140,160,.08);font-size:13px;line-height:1.45;color:var(--muted);margin-bottom:8px}
 
 .nowPanel{border:1px solid #cfe2f2;background:linear-gradient(135deg,#eef8ff,#f9fcff)}.nowGrid{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}.nowIcon{font-size:46px}.nowTemp{font-size:36px;font-weight:950;color:#173a63}.nowState{font-size:18px;font-weight:900;color:#1f3d5c}.nowWind{font-weight:800;margin-top:3px;color:#49627b}.walkBox{margin-top:12px;padding:12px 14px;border-radius:15px;background:#edf8ef;border:1px solid #cce6d1;font-size:16px;color:#244c31}.walkBox.wet{background:#eef6ff;border-color:#c8dff3;color:#244966}.walkBox b{font-weight:950}.nowMeta{font-size:11px;color:#718195;margin-top:8px}.dark .nowPanel{background:linear-gradient(135deg,#172a3a,#142331);border-color:#314a60}.dark .nowTemp,.dark .nowState{color:#eef7ff}.dark .nowWind,.dark .nowMeta{color:#b5c6d5}.dark .walkBox{background:#193325;border-color:#315b3f;color:#dff5e5}.dark .walkBox.wet{background:#172d40;border-color:#31516c;color:#e0f0ff}
 </style>
@@ -1406,6 +1406,10 @@ function detailDayVisual(rows,dayMix){
  const today=dayMix?.date===nlToday();if(today&&isDarkNow()){const nv=nightVisual(rows);if(nv)return nv}
  const daylight=rows.filter(r=>{const h=+r.time.slice(11,13);return h>=8&&h<19});if(!daylight.length){const nv=today?nightVisual(rows):null;return nv||{type:dayMix?.type||weatherType(dayMix||{}),text:forecastText(dayMix||{})}};
  const dry=daylight.filter(r=>(r.precip||0)<.05).length/daylight.length,sunny=daylight.filter(r=>Number(r.code)<=1).length/daylight.length,bright=daylight.filter(r=>Number(r.code)<=2).length/daylight.length;
+ const wetHours=daylight.filter(r=>(r.precip||0)>=.05), firstWet=wetHours.length?+wetHours[0].time.slice(11,13):null;
+ // Een later buiensignaal mag het zonnige deel van de dag niet verbergen, maar moet wel in de hoofdtekst terugkomen.
+ if(wetHours.length&&firstWet>=15&&bright>=.45)return{type:'sunshowers',text:'Geregeld zon, later buien'};
+ if(wetHours.length&&firstWet>=15&&sunny>=.35)return{type:'sunshowers',text:'Zonnig, later kans op buien'};
  if(dry>=.85&&sunny>=.6)return{type:'sun',text:'Zonnig'};
  if(dry>=.8&&bright>=.65)return{type:'partly',text:'Vrij zonnig'};
  return{type:dayMix?.type||weatherType(dayMix||{}),text:forecastText(dayMix||{})};
@@ -2575,7 +2579,8 @@ function nsRainScope(day,regions=null){
 }
 function nsRainText(r,label='Neerslag'){
  if(!Number.isFinite(r?.mix))return '';
- const mix=r.mix<0.05?'vrijwel droog':`${nsFmt(r.mix)} mm`;
+ const allZero=Number.isFinite(r.lo)&&Number.isFinite(r.hi)&&r.lo===0&&r.hi===0;
+ const mix=allZero?'droog':r.mix<0.05?'vrijwel droog':`${nsFmt(r.mix)} mm`;
  const range=Number.isFinite(r.lo)&&Number.isFinite(r.hi)?`${nsFmt(r.lo)}–${nsFmt(r.hi)} mm`:'';
  return `🌧️ ${label} modelmix <strong>${mix}</strong>${range?` · modellen <strong>${range}</strong>`:''}`;
 }
