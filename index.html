@@ -1378,6 +1378,8 @@ function dayPartSummary(rows,label,h0,h1,date=null){
  const winds=a.map(r=>r.wind).filter(Number.isFinite),dirs=a.map(r=>r.dir).filter(Number.isFinite),press=a.map(r=>saneMsl(r.pressure)).filter(Number.isFinite),gusts=a.map(r=>r.gust).filter(Number.isFinite),clouds=a.map(r=>r.cloud).filter(Number.isFinite),dews=a.map(r=>r.dew).filter(Number.isFinite);
  const circ=arr=>{if(!arr.length)return null;let x=0,y=0;for(const d of arr){const z=d*Math.PI/180;x+=Math.cos(z);y+=Math.sin(z)}return(Math.atan2(y,x)*180/Math.PI+360)%360};
  const tfirst=temps.length?Math.round(temps[0]):null,tlast=temps.length?Math.round(temps[temps.length-1]):null,code=dominantHourlyCode(codes);let wx=hourEmoji({code,precip:p,time:(date||'2000-01-01')+'T'+String(h0).padStart(2,'0')+':00'});
+ // Ochtend is een dagdeel: toon hier nooit een maan, ook niet als 06:00 nog voor zonsopkomst ligt.
+ if(label==='Ochtend'){if(p>=.05)wx='🌦️';else if(code<=1)wx='☀️';else if(code<=3)wx='🌤️';else wx='☁️'}
  // Avondicoon volgt de echte zonsondergang: als meer dan de helft van 18-24 uur
  // na zonsondergang valt, toon een maanvariant. Zo verschuift dit vanzelf met het seizoen.
  if(label==='Avond'&&date){const ss=sunsetMinutesForDate(date),nightShare=Number.isFinite(ss)?Math.max(0,Math.min(360,1440-Math.max(1080,ss)))/360:0;if(nightShare>.5){if(p>=.05)wx='🌧️';else if(code<=1)wx='🌙';else if(code<=3)wx='🌙☁️';else wx='☁️'}}
