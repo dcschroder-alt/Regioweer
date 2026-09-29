@@ -303,6 +303,19 @@ body{min-width:0}
 <div id="dayDetail" class="detailPanel hidden"><div class="detailSheet"><div class="detailHead"><div><div class="detailTitle" id="detailTitle">Dagdetail</div><div class="smallstatus" id="detailSub">Uur-tot-uur</div></div><button class="detailClose" id="detailClose" type="button">Sluiten</button></div><div id="detailHero" class="detailHero"></div><div id="detailNowcast" class="nowcastBox hidden"></div><div id="detailNarrative" class="journalBox" style="margin-top:12px"></div><div id="detailAdvice" class="detailAdvice"></div><div id="recordBox" class="recordBox hidden"></div><div id="dayParts" class="dayParts"></div><div id="rainWindow" class="rainWindow hidden"></div><div id="detailMetrics" class="detailMetrics"></div><div id="rainTimeline" class="rainTimeline"></div><div id="hourlyList" class="hourlyList"></div><details class="detailMore"><summary>Grafiek & modeldetails</summary><div id="detailStatus" class="status">Gegevens laden…</div><canvas id="detailCanvas" class="detailCanvas" width="720" height="290"></canvas></details></div></div>
 <script>
 const $=id=>document.getElementById(id); const NL=['zo','ma','di','wo','do','vr','za'];
+function rwSafeSet(key,value){
+  try{localStorage.setItem(key,value);return true}catch(e){
+    const quota=e && (e.name==='QuotaExceededError'||e.name==='NS_ERROR_DOM_QUOTA_REACHED'||String(e.message||'').toLowerCase().includes('quota'));
+    if(!quota){console.warn('Opslaan mislukt',key,e);return false}
+    try{
+      const keep=new Set(['regioweer-place','regioweer-favorites','rw-home-place','rw-recent','rw-dark','rw-compact','rw-auto-refresh']);
+      const disposable=[];
+      for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!k||keep.has(k)||k===key)continue;if(/cache|hist|history|snapshot|plume|national|ensemble|knmi|ec46|smart|model|verify|baseline|runs|favmini/i.test(k))disposable.push(k)}
+      disposable.forEach(k=>localStorage.removeItem(k));
+      localStorage.setItem(key,value);return true
+    }catch(err){console.warn('Opslagruimte blijft vol',key,err);return false}
+  }
+}
 $('date').value=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Amsterdam',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 async function findPlace(){
   const q=$('place').value.trim(); if(!q){$('placeInfo').textContent='Vul eerst een plaatsnaam in.';return false}
@@ -314,7 +327,7 @@ async function findPlace(){
     $('lat').value=g.latitude; $('lon').value=g.longitude;
     const bits=[g.name,g.admin1,g.country_code].filter(Boolean);
     $('place').value=g.name; $('placeInfo').textContent=`${bits.join(' · ')} · ${g.latitude.toFixed(4)}, ${g.longitude.toFixed(4)}`;
-    localStorage.setItem('regioweer-place',JSON.stringify({name:g.name,lat:g.latitude,lon:g.longitude,info:$('placeInfo').textContent}));
+    rwSafeSet('regioweer-place',JSON.stringify({name:g.name,lat:g.latitude,lon:g.longitude,info:$('placeInfo').textContent}));
     addRecentPlace({name:g.name,lat:g.latitude,lon:g.longitude,info:$('placeInfo').textContent});
     renderRecentPlaces();
     return true;
@@ -329,12 +342,12 @@ $('savePlace').onclick=()=>{const name=$('place').value.trim();if(!name)return;l
 
 // ---- v38 gebruiksgemak ----
 function getJson(key,fb=null){try{return JSON.parse(localStorage.getItem(key)||'null')??fb}catch(e){return fb}}
-function addRecentPlace(o){let a=getJson('rw-recent',[]).filter(x=>x.name!==o.name);a.unshift(o);localStorage.setItem('rw-recent',JSON.stringify(a.slice(0,5)))}
-function renderRecentPlaces(){const box=$('recentPlaces');if(!box)return;const a=getJson('rw-recent',[]);box.innerHTML='<span class="recentlabel">Recent:</span>'+a.map(x=>`<button class="placechip" type="button" data-recent="${x.name.replace(/"/g,'&quot;')}">${x.name}</button>`).join('');box.querySelectorAll('[data-recent]').forEach(b=>b.onclick=()=>{const x=a.find(q=>q.name===b.dataset.recent);if(!x)return;$('place').value=x.name;$('lat').value=x.lat;$('lon').value=x.lon;$('placeInfo').textContent=x.info||x.name;localStorage.setItem('regioweer-place',JSON.stringify(x))})}
-function renderHome(){const h=getJson('rw-home-place');const b=$('homePlace');if(!b)return;const fixed=document.querySelector('[data-place="Houten"]');if(fixed)fixed.style.display=(h&&h.name.toLowerCase()==='houten')?'none':'';if(h){b.classList.remove('hidden');b.textContent='⌂ '+h.name;b.onclick=()=>{$('place').value=h.name;$('lat').value=h.lat;$('lon').value=h.lon;$('placeInfo').textContent=h.info||h.name;localStorage.setItem('regioweer-place',JSON.stringify(h))}}else b.classList.add('hidden')}
+function addRecentPlace(o){let a=getJson('rw-recent',[]).filter(x=>x.name!==o.name);a.unshift(o);rwSafeSet('rw-recent',JSON.stringify(a.slice(0,5)))}
+function renderRecentPlaces(){const box=$('recentPlaces');if(!box)return;const a=getJson('rw-recent',[]);box.innerHTML='<span class="recentlabel">Recent:</span>'+a.map(x=>`<button class="placechip" type="button" data-recent="${x.name.replace(/"/g,'&quot;')}">${x.name}</button>`).join('');box.querySelectorAll('[data-recent]').forEach(b=>b.onclick=()=>{const x=a.find(q=>q.name===b.dataset.recent);if(!x)return;$('place').value=x.name;$('lat').value=x.lat;$('lon').value=x.lon;$('placeInfo').textContent=x.info||x.name;rwSafeSet('regioweer-place',JSON.stringify(x))})}
+function renderHome(){const h=getJson('rw-home-place');const b=$('homePlace');if(!b)return;const fixed=document.querySelector('[data-place="Houten"]');if(fixed)fixed.style.display=(h&&h.name.toLowerCase()==='houten')?'none':'';if(h){b.classList.remove('hidden');b.textContent='⌂ '+h.name;b.onclick=()=>{$('place').value=h.name;$('lat').value=h.lat;$('lon').value=h.lon;$('placeInfo').textContent=h.info||h.name;rwSafeSet('regioweer-place',JSON.stringify(h))}}else b.classList.add('hidden')}
 $('setHome').onclick=()=>{const h={name:$('place').value.trim()||'Thuis',lat:Number($('lat').value),lon:Number($('lon').value),info:$('placeInfo').textContent};localStorage.setItem('rw-home-place',JSON.stringify(h));renderHome();setStatus(`Thuisplaats ingesteld: ${h.name}`,100)};
 $('clearRecent').onclick=()=>{localStorage.removeItem('rw-recent');renderRecentPlaces()};
-$('useGps').onclick=()=>{if(!navigator.geolocation){setStatus('Locatie is niet beschikbaar op dit apparaat.',100);return}setStatus('Locatie bepalen…',20);navigator.geolocation.getCurrentPosition(pos=>{const o={name:'Mijn locatie',lat:pos.coords.latitude,lon:pos.coords.longitude,info:`Mijn locatie · ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`};$('place').value=o.name;$('lat').value=o.lat;$('lon').value=o.lon;$('placeInfo').textContent=o.info;localStorage.setItem('regioweer-place',JSON.stringify(o));addRecentPlace(o);renderRecentPlaces();setStatus('Locatie ingesteld.',100)},e=>setStatus('Locatie niet beschikbaar: '+e.message,100),{enableHighAccuracy:false,timeout:8000,maximumAge:600000})};
+$('useGps').onclick=()=>{if(!navigator.geolocation){setStatus('Locatie is niet beschikbaar op dit apparaat.',100);return}setStatus('Locatie bepalen…',20);navigator.geolocation.getCurrentPosition(pos=>{const o={name:'Mijn locatie',lat:pos.coords.latitude,lon:pos.coords.longitude,info:`Mijn locatie · ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`};$('place').value=o.name;$('lat').value=o.lat;$('lon').value=o.lon;$('placeInfo').textContent=o.info;rwSafeSet('regioweer-place',JSON.stringify(o));addRecentPlace(o);renderRecentPlaces();setStatus('Locatie ingesteld.',100)},e=>setStatus('Locatie niet beschikbaar: '+e.message,100),{enableHighAccuracy:false,timeout:8000,maximumAge:600000})};
 renderRecentPlaces();renderHome();
 try{const home=getJson('rw-home-place');if(home&&!localStorage.getItem('rw-home-loaded')){localStorage.setItem('rw-home-loaded','1');$('place').value=home.name;$('lat').value=home.lat;$('lon').value=home.lon;$('placeInfo').textContent=home.info||home.name}}catch(e){}
 function updateOnline(){const p=$('onlinePill');p.textContent=navigator.onLine?'● Online':'● Offline';p.className='healthpill '+(navigator.onLine?'ok':'bad')}
