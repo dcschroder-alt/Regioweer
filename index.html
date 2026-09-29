@@ -342,6 +342,39 @@ $('savePlace').onclick=()=>{const name=$('place').value.trim();if(!name)return;l
 
 // ---- v38 gebruiksgemak ----
 function getJson(key,fb=null){try{return JSON.parse(localStorage.getItem(key)||'null')??fb}catch(e){return fb}}
+function rwAmsterdamDayKey(ts=Date.now()){try{return new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Amsterdam',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(ts))}catch(e){return new Date(ts).toISOString().slice(0,10)}}
+function rwYesterdayKey(){const t=rwAmsterdamDayKey(),d=new Date(t+'T12:00:00Z');d.setUTCDate(d.getUTCDate()-1);return d.toISOString().slice(0,10)}
+function rwKeepRecentTs(ts){return Number.isFinite(Number(ts))&&rwAmsterdamDayKey(Number(ts))>=rwYesterdayKey()}
+function rwAutoCleanupOldRuns(){
+ const y=rwYesterdayKey();let removed=0;
+ const put=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+ const read=k=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}};
+ try{
+  // Grote modelcaches: bewaar alleen records van vandaag en gisteren.
+  for(const k of ['rw-forecast-cache-v103','rw-full-modelmix-cache-v104','rw-day-hourly-v106']){
+   const o=read(k);if(!o||Array.isArray(o)||typeof o!=='object')continue;let changed=false;
+   for(const id of Object.keys(o)){const ts=o[id]?.savedAt||o[id]?.loadedAt;if(ts&&!rwKeepRecentTs(ts)){delete o[id];removed++;changed=true}}
+   if(changed)put(k,o);
+  }
+  // Runhistorie met timestamps.
+  for(const k of ['rw-run-history-v1','rw-smart-history-v1','rw-national-scan-history-v10']){
+   const a=read(k);if(!Array.isArray(a))continue;const b=a.filter(x=>rwKeepRecentTs(x?.t||x?.savedAt));removed+=a.length-b.length;if(a.length!==b.length)put(k,b);
+  }
+  // Ochtendreferenties: sleutel eindigt op YYYY-MM-DD.
+  const am=read('rw-assistant-morning-v125');if(am&&typeof am==='object'&&!Array.isArray(am)){let ch=false;for(const k of Object.keys(am)){const d=k.slice(-10);if(/^\d{4}-\d{2}-\d{2}$/.test(d)&&d<y){delete am[k];removed++;ch=true}}if(ch)put('rw-assistant-morning-v125',am)}
+  // Modelhistorie gebruikt issued als datum/run-dag.
+  const mh=read('rw-model-history-v95');if(mh&&typeof mh==='object'&&!Array.isArray(mh)){let ch=false;for(const k of Object.keys(mh)){const d=mh[k]?.issued;if(/^\d{4}-\d{2}-\d{2}$/.test(d)&&d<y){delete mh[k];removed++;ch=true}}if(ch)put('rw-model-history-v95',mh)}
+  // Pluim- en kansenruns: id bevat doorgaans ISO/run-tijd. Laat onbekende ids staan.
+  for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(!k)continue;
+   if(k.startsWith('rw-snapshot:')){const o=read(k),ts=o?.time;if(ts&&!rwKeepRecentTs(ts)){localStorage.removeItem(k);removed++;}continue}
+   if(k.startsWith('rw-plume-history-v2:')||k.startsWith('rw-risk-history-v1:')){const a=read(k);if(!Array.isArray(a))continue;const b=a.filter(x=>{const m=String(x?.id||'').match(/(20\d{2}-\d{2}-\d{2})/);return !m||m[1]>=y});removed+=a.length-b.length;if(a.length!==b.length)put(k,b)}
+  }
+  localStorage.setItem('rw-last-auto-cleanup',JSON.stringify({time:Date.now(),removed,keepFrom:y}));
+ }catch(e){console.warn('Automatische opslagopschoning mislukt',e)}
+ return removed;
+}
+try{rwAutoCleanupOldRuns()}catch(e){};
+
 function addRecentPlace(o){let a=getJson('rw-recent',[]).filter(x=>x.name!==o.name);a.unshift(o);rwSafeSet('rw-recent',JSON.stringify(a.slice(0,5)))}
 function renderRecentPlaces(){const box=$('recentPlaces');if(!box)return;const a=getJson('rw-recent',[]);box.innerHTML='<span class="recentlabel">Recent:</span>'+a.map(x=>`<button class="placechip" type="button" data-recent="${x.name.replace(/"/g,'&quot;')}">${x.name}</button>`).join('');box.querySelectorAll('[data-recent]').forEach(b=>b.onclick=()=>{const x=a.find(q=>q.name===b.dataset.recent);if(!x)return;$('place').value=x.name;$('lat').value=x.lat;$('lon').value=x.lon;$('placeInfo').textContent=x.info||x.name;rwSafeSet('regioweer-place',JSON.stringify(x))})}
 function renderHome(){const h=getJson('rw-home-place');const b=$('homePlace');if(!b)return;const fixed=document.querySelector('[data-place="Houten"]');if(fixed)fixed.style.display=(h&&h.name.toLowerCase()==='houten')?'none':'';if(h){b.classList.remove('hidden');b.textContent='⌂ '+h.name;b.onclick=()=>{$('place').value=h.name;$('lat').value=h.lat;$('lon').value=h.lon;$('placeInfo').textContent=h.info||h.name;rwSafeSet('regioweer-place',JSON.stringify(h))}}else b.classList.add('hidden')}
