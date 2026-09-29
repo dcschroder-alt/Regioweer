@@ -2182,7 +2182,7 @@ async function climateMergeRecent(rows,today){
  return out;
 }
 async function loadClimateSun5(end){
- const cacheKey='rw-climate-sun5-v1017';
+ const cacheKey='rw-climate-sun5-v1016';
  try{const o=JSON.parse(localStorage.getItem(cacheKey)||'null');if(o?.map&&Date.now()-(o.time||0)<6*3600e3)return o.map}catch(e){}
  const url='https://www.daggegevens.knmi.nl/klimatologie/daggegevens';
  const stations=[235,280,260,310,380]; // Den Helder/De Kooy, Eelde, De Bilt, Vlissingen, Maastricht
@@ -2324,68 +2324,27 @@ function editorialMissed(rows,stories){const out=[];const future=rows.filter(r=>
 async function renderEditorialDesk(stories=window.__climateStories||[]){const p=$('editorialDeskPanel');if(!p)return;if($('model')?.value!=='mix'||!lastRows.length||!storyLocationOk()){p.classList.add('hidden');return}p.classList.remove('hidden');const status=$('editorialDeskStatus'),lead=$('editorialDeskLead'),grid=$('editorialDeskGrid');status.textContent='redactie scant…';const rows=lastRows.filter(r=>r.date>=forecastStartDate()).slice(0,10),top=stories.slice(0,3);if(!top.length){lead.innerHTML='<b>Geen sterke artikelkans uit de klimaatscanner</b><span>De redactionele scan blijft wel zoeken naar opvallende daggegevens en omslagen.</span>';const missed=editorialMissed(rows,stories);grid.innerHTML=missed.map(x=>`<div class="climateStoryCard"><b>🔎 Heb ik iets gemist?</b><span>${x}</span></div>`).join('');status.textContent=missed.length?`${missed.length} ander signaal`:'geen sterk signaal';return}const first=top[0],fds=editorialRelevantDays(first).slice(0,1),facts=fds.map(d=>({d,f:editorialDayFacts(d)})).filter(x=>x.f);lead.innerHTML=`<b>📰 Artikelkans: ${first.title}</b><span>${first.text}</span><div class="climateStoryMeta">${first.meta||''}</div>${facts.length?`<div style="margin-top:9px"><b>📋 Daggegevens</b><br>${facts.map(x=>`${dayShort(x.d)} · ${x.f}`).join('<br>')}</div>`:''}<div style="margin-top:9px"><b>🔮 Als de verwachting uitkomt</b><br>${editorialIfForecast(first)}</div>`;const cards=[];for(const st of top.slice(1)){const ds=editorialRelevantDays(st),f=ds.map(d=>editorialDayFacts(d)).filter(Boolean);cards.push(`<div class="climateStoryCard"><b>✍️ ${st.title}</b><span>${st.text}</span>${f.length?`<small>📋 ${f.slice(0,2).join('<br>')}</small>`:''}<div class="climateStoryMeta">${st.meta||''}</div></div>`)}const missed=editorialMissed(rows,stories);if(missed.length)cards.push(`<div class="climateStoryCard"><b>🔎 Heb ik iets gemist?</b><span>${missed.join(' ')}</span><small>Extra scan op minima, neerslag en grote dag-op-dagomslagen.</small></div>`);grid.innerHTML=cards.join('');status.textContent=`${top.length} artikelkans${top.length===1?'':'en'} · dagdata gekoppeld`}
 
 
-function l5SunDailyNormals(rows,a=1996,b=2025){
- const byMd={};
- for(const r of rows){
-  if(r.year<a||r.year>b||!Number.isFinite(r.sun)||r.sunSource!=='5 hoofdstations')continue;
-  const md=r.date.slice(5);
-  (byMd[md]||(byMd[md]=[])).push(r.sun);
- }
- const out={};
- for(const [md,v] of Object.entries(byMd)){
-  // Een enkele ontbrekende L5-dag in een historisch jaar mag de jaarnorm niet omlaag trekken.
-  // Gebruik daarom het klimatologische daggemiddelde wanneer voldoende jaren beschikbaar zijn.
-  if(v.length>=15)out[md]=v.reduce((x,y)=>x+y,0)/v.length;
- }
- return out;
-}
 function annualSunNormal(rows,a=1996,b=2025){
- const dn=l5SunDailyNormals(rows,a,b);
- let total=0;
- for(const [md,v] of Object.entries(dn)){
-  if(md==='02-29')continue;
-  total+=v;
- }
- // 1996–2025 bevat 7 schrikkeldagen; neem 29 februari dus naar rato mee in de 30-jaarsnorm.
- if(Number.isFinite(dn['02-29']))total+=dn['02-29']*(7/30);
- return total>0?total:null;
-}
-function l5SunYtdNormal(rows,cutoff,a=1996,b=2025){
- if(!cutoff)return null;
- const dn=l5SunDailyNormals(rows,a,b),year=+cutoff.slice(0,4),end=new Date(cutoff+'T12:00:00Z');
- let d=new Date(Date.UTC(year,0,1,12)),sum=0,n=0;
- while(d<=end){
-  const iso=d.toISOString().slice(0,10),md=iso.slice(5),v=dn[md];
-  if(Number.isFinite(v)){sum+=v;n++}
-  d.setUTCDate(d.getUTCDate()+1);
- }
- return n?sum:null;
+ const totals=[];for(let y=a;y<=b;y++){const rr=rows.filter(r=>r.year===y&&isOfficialClimateRow(r)&&Number.isFinite(r.sun));if(rr.length>=360)totals.push(climateSum(rr,'sun'))}
+ return totals.length>=25?totals.reduce((x,y)=>x+y,0)/totals.length:null;
 }
 function annualSunCrossing(rows,year,target){
- let sum=0;for(const r of rows.filter(r=>r.year===year&&Number.isFinite(r.sun)&&r.sunSource==='5 hoofdstations').sort((a,b)=>a.date.localeCompare(b.date))){sum+=r.sun;if(sum>=target)return{date:r.date,sum,kind:'observed'}}return null;
+ let sum=0;for(const r of rows.filter(r=>r.year===year&&isOfficialClimateRow(r)).sort((a,b)=>a.date.localeCompare(b.date))){if(Number.isFinite(r.sun))sum+=r.sun;if(sum>=target)return{date:r.date,sum,kind:'observed'}}return null;
+}
+function projectedSunCrossing(rows,year,target,today){
+ let sum=climateSum(rows.filter(r=>r.year===year&&r.date<=today),'sun');if(sum>=target)return null;
+ for(const r of lastRows.filter(r=>+r.date.slice(0,4)===year&&r.date>today).sort((a,b)=>a.date.localeCompare(b.date))){sum+=Number(r.sun)||0;if(sum>=target)return{date:r.date,sum,kind:'modelmix'}}return null;
 }
 function annualSunStory(rows,year,today){
- const official=rows.filter(r=>r.year===year&&Number.isFinite(r.sun)&&r.sunSource==='5 hoofdstations'&&r.date<=today).sort((a,b)=>a.date.localeCompare(b.date));
- if(!official.length)return'';
- const latest=official.at(-1).date;
- const cur=official.reduce((a,r)=>a+r.sun,0);
- const fullNormal=annualSunNormal(rows,1996,2025);
- const ytdNormal=l5SunYtdNormal(rows,latest,1996,2025);
- if(!Number.isFinite(fullNormal))return'';
- const ytdDiff=Number.isFinite(ytdNormal)?cur-ytdNormal:null;
- const cross=annualSunCrossing(rows,year,fullNormal);
- const fmtDate=d=>new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'long'});
- let s=`<div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(120,140,160,.25)">☀️ <b>Zonuren ${year} · L5:</b> <b>${climateFmt(cur)} uur</b> · definitief t/m <b>${fmtDate(latest)}</b>. `;
- if(Number.isFinite(ytdNormal)){
-  s+=`Norm 1996–2025 t/m die datum <b>${climateFmt(ytdNormal)} uur</b>`;
-  if(Math.abs(ytdDiff)<0.05)s+=` · precies rond normaal. `;
-  else s+=` · <b>${climateFmt(Math.abs(ytdDiff))} uur ${ytdDiff>0?'boven':'onder'}</b> normaal. `;
- }
- s+=`Gemiddeld volledig L5-jaartotaal 1996–2025: <b>${climateFmt(fullNormal)} uur</b>. `;
- if(cur>=fullNormal){
-  s+=`✅ Deze grens is in de definitieve L5-reeks bereikt${cross?` rond <b>${fmtDate(cross.date)}</b>`:''}.`;
+ const normalRows=rows.filter(r=>r.year>=1996&&r.year<=2025&&Number.isFinite(r.sun)); const normalYears=[...new Set(normalRows.map(r=>r.year))]; const normal=normalYears.length?normalRows.reduce((a,r)=>a+r.sun,0)/normalYears.length:null; // rechtstreeks berekend uit KNMI L5 1996–2025
+ const cur=climateSum(rows.filter(r=>r.year===year&&r.date<=today),'sun'),diff=cur-normal,cross=annualSunCrossing(rows,year,normal),proj=!cross?projectedSunCrossing(rows,year,normal,today):null;
+ let s=`<div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(120,140,160,.25)">☀️ <b>Zonuren ${year} · 5 hoofdstations:</b> <b>${climateFmt(cur)} uur</b> · jaarnormaal 1996–2025 <b>${climateFmt(normal)} uur</b>. `;
+ if(diff>=0){
+   s+=`Dat is <b>${climateFmt(diff)} uur boven</b> de jaarnormaal.`;
+   if(cross)s+=` ✅ De grens werd rond <b>${new Date(cross.date+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'long'})}</b> bereikt.`;
  }else{
-  s+=`Nog <b>${climateFmt(fullNormal-cur)} uur</b> tot het gemiddelde volledige jaartotaal.`;
+   s+=`Nog <b>${climateFmt(-diff)} uur</b> tot de jaarnormaal.`;
+   if(proj)s+=` 🔮 Met de huidige modelmix wordt deze grens waarschijnlijk rond <b>${new Date(proj.date+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'long'})}</b> bereikt.`;
  }
  return s+'</div>';
 }
