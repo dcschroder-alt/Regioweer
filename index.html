@@ -357,7 +357,7 @@ function rwAutoCleanupOldRuns(){
    if(changed)put(k,o);
   }
   // Runhistorie met timestamps.
-  for(const k of ['rw-run-history-v1','rw-smart-history-v1','rw-national-scan-history-v10']){
+  for(const k of ['rw-run-history-v1','rw-smart-history-v1','rw-national-scan-history-v11']){
    const a=read(k);if(!Array.isArray(a))continue;const b=a.filter(x=>rwKeepRecentTs(x?.t||x?.savedAt));removed+=a.length-b.length;if(a.length!==b.length)put(k,b);
   }
   // Ochtendreferenties: sleutel eindigt op YYYY-MM-DD.
@@ -2577,7 +2577,7 @@ async function assistFollowItems(rows,turn,outliers,morning){const a=[];if(story
 const NATIONAL_SCAN_CACHE='rw-national-scan-v12-same-modelmix';
 let nationalScanViewDays=Number(localStorage.getItem('rw-national-scan-view-days')||5);if(![5,7,10].includes(nationalScanViewDays))nationalScanViewDays=5;
 let nationalScanLastPack=null;
-const NATIONAL_SCAN_HISTORY='rw-national-scan-history-v10';
+const NATIONAL_SCAN_HISTORY='rw-national-scan-history-v11';
 function nsHistoryRead(){try{const a=JSON.parse(localStorage.getItem(NATIONAL_SCAN_HISTORY)||'[]');return Array.isArray(a)?a:[]}catch(e){return[]}}
 function nsHistoryPush(pack){if(!pack?.days?.length||!pack.savedAt)return;try{let a=nsHistoryRead().filter(x=>x?.savedAt!==pack.savedAt);a.unshift({savedAt:pack.savedAt,days:pack.days,models:pack.models||[]});a=a.sort((x,y)=>(y.savedAt||0)-(x.savedAt||0)).slice(0,12);localStorage.setItem(NATIONAL_SCAN_HISTORY,JSON.stringify(a))}catch(e){}}
 function nsPreviousNationalSnapshot(){return nsHistoryRead()[0]||null}
@@ -2716,26 +2716,56 @@ function nsRandstadModels(day){
  for(const x of (day?.pts||[])){if(!regs.includes(x?.point?.r))continue;for(const v of (x.modelVals||[]))if(v?.model&&(Number.isFinite(v.tx)||Number.isFinite(v.rain)||Number.isFinite(v.wind)))set.add(v.model)}
  return [...set];
 }
-function nsRandstadDuiding(d,rs,rain,models){
+function nsWindDelta(a,b){if(!Number.isFinite(a)||!Number.isFinite(b))return null;return b-a}
+function nsHourMean(rows,key,a,b){const vals=rows.filter(x=>x.hour>=a&&x.hour<b).map(x=>x[key]).filter(Number.isFinite);return vals.length?vals.reduce((s,v)=>s+v,0)/vals.length:null}
+function nsHourDir(rows,a,b){return nsCircularMean(rows.filter(x=>x.hour>=a&&x.hour<b).map(x=>x.dir))}
+function nsHourWindows(hours){const wet=hours.filter(x=>x.wet).map(x=>x.hour);if(!wet.length)return[];const out=[];let a=wet[0],p=wet[0];for(const h of wet.slice(1)){if(h<=p+1){p=h;continue}out.push([a,p+1]);a=p=h}out.push([a,p+1]);return out}
+function nsTime(h){return `${String(Math.max(0,Math.min(24,Math.round(h)))).padStart(2,'0')}:00`}
+async function nsFetchRandstadTiming(date){
+ const points=[{n:'kust',lat:52.11,lon:4.28},{n:'westelijk binnenland',lat:52.01,lon:4.71},{n:'Utrecht/Flevoland',lat:52.03,lon:5.17}];
+ const lat=points.map(x=>x.lat).join(','),lon=points.map(x=>x.lon).join(',');
+ const vars='temperature_2m,precipitation,precipitation_probability,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m';
+ const u=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=${vars}&timezone=Europe%2FAmsterdam&start_date=${date}&end_date=${date}&wind_speed_unit=kmh`;
+ const r=await fetch(u,{cache:'no-store'}),j=await r.json();if(!r.ok||j?.error)throw new Error(j?.reason||'uurdata niet beschikbaar');
+ const arr=Array.isArray(j)?j:[j],loc=[];
+ arr.forEach((x,idx)=>{const h=x?.hourly||{},times=h.time||[];const rows=times.map((t,i)=>({hour:Number(t.slice(11,13)),rain:Number(h.precipitation?.[i]),pop:Number(h.precipitation_probability?.[i]),cloud:Number(h.cloud_cover?.[i]),wind:Number(h.wind_speed_10m?.[i]),dir:Number(h.wind_direction_10m?.[i]),gust:Number(h.wind_gusts_10m?.[i])}));loc.push({name:points[idx]?.n||`regio ${idx+1}`,rows})});
+ const hours=[];for(let hour=0;hour<24;hour++){const rs=loc.map(l=>l.rows.find(x=>x.hour===hour)).filter(Boolean),rain=nsMedian(rs.map(x=>x.rain)),pop=nsMedian(rs.map(x=>x.pop)),cloud=nsMedian(rs.map(x=>x.cloud)),wind=nsMedian(rs.map(x=>x.wind)),dir=nsCircularMean(rs.map(x=>x.dir)),gust=nsMax(rs.map(x=>x.gust));const wetVotes=rs.filter(x=>(x.rain||0)>=0.1||(x.pop||0)>=45).length;hours.push({hour,rain,pop,cloud,wind,dir,gust,wet:wetVotes>=Math.max(1,Math.ceil(rs.length/2))})}
+ const firstWet={};loc.forEach(l=>{const x=l.rows.find(x=>(x.rain||0)>=0.1||(x.pop||0)>=45);firstWet[l.name]=x?.hour??null});
+ return {hours,loc,firstWet};
+}
+function nsRandstadTimingText(t){
+ if(!t?.hours?.length)return'';const h=t.hours,w=nsHourWindows(h),bits=[];
+ if(!w.length)bits.push('De uurverwachting houdt de Randstad de hele dag droog.');
+ else{const first=w[0][0],last=w[w.length-1][1];if(first>=12)bits.push(`Eerst blijft het droog; vanaf ongeveer ${nsTime(first)} neemt de kans op buien of regen toe.`);else if(first>=7)bits.push(`In de ochtend neemt vanaf ongeveer ${nsTime(first)} de kans op buien of regen toe.`);else if(last<=13)bits.push(`In de nacht en ochtend kan regen of een bui vallen; vanaf ongeveer ${nsTime(last)} wordt het op de meeste plaatsen droger.`);else if(w.length>=2)bits.push(`Er zijn meerdere natte perioden in beeld: ongeveer ${w.map(x=>`${nsTime(x[0])}–${nsTime(x[1])}`).join(' en ')}.`);else bits.push(`Buien of regen zijn vooral tussen ongeveer ${nsTime(first)} en ${nsTime(last)} in beeld.`);
+  const c=t.firstWet['kust'],o=t.firstWet['Utrecht/Flevoland'];if(Number.isFinite(c)&&Number.isFinite(o)&&Math.abs(c-o)>=2)bits.push(c<o?'De neerslag bereikt waarschijnlijk eerst de kust en later Utrecht/Flevoland.':'De eerste neerslag ligt juist eerder landinwaarts; de kust volgt waarschijnlijk later.');}
+ const wm=nsHourMean(h,'wind',6,12),wa=nsHourMean(h,'wind',12,18),we=nsHourMean(h,'wind',18,24),dm=nsHourDir(h,6,12),da=nsHourDir(h,12,18),de=nsHourDir(h,18,24);const morning=Number.isFinite(wm)?wm:wa,later=Number.isFinite(we)?we:wa,delta=nsWindDelta(morning,later);
+ if(Number.isFinite(delta)&&Math.abs(delta)>=5){bits.push(delta>0?`Eerst staat er weinig wind; later neemt de wind toe van ongeveer ${bftText(morning)} naar ${bftText(later)}.`:`De wind is eerst het sterkst en neemt later af van ongeveer ${bftText(morning)} naar ${bftText(later)}.`)}else if(Number.isFinite(wa))bits.push(`De wind blijft overdag vrij gelijkmatig rond ${bftText(wa)}.`);
+ if(Number.isFinite(dm)&&Number.isFinite(de)){const dd=Math.abs(((de-dm+540)%360)-180);if(dd>=45)bits.push(`De wind draait in de loop van de dag van ${nsDir(dm)} naar ${nsDir(de)}.`)}
+ const cm=nsHourMean(h,'cloud',6,12),ca=nsHourMean(h,'cloud',12,18);if(Number.isFinite(cm)&&Number.isFinite(ca)&&Math.abs(ca-cm)>=20)bits.push(ca<cm?'In de middag breekt de zon duidelijk vaker door.':'In de middag neemt de bewolking duidelijk toe.');
+ const maxG=nsMax(h.map(x=>x.gust));if(Number.isFinite(maxG)&&maxG>=45)bits.push(`De zwaarste windstoten liggen rond ${Math.round(maxG)} km/u.`);
+ return bits.join(' ');
+}
+function nsRandstadDuiding(d,rs,rain,models,timing=null){
  const tx=nsMedian(rs.map(x=>x.tx)),tn=nsMedian(rs.map(x=>x.tn)),sun=nsMedian(rs.map(x=>x.sun)),wind=nsMedian(rs.map(x=>x.wind)),gust=nsMax(rs.map(x=>x.gust)),dir=nsCircularMean(rs.map(x=>x.dir));
  const wx=nsWx(rain?.mix,sun);let a=`${wx.charAt(0).toUpperCase()+wx.slice(1)} in de Randstad`;
- if(Number.isFinite(tx))a+=` met maxima rond ${Math.round(tx)}°`;
- a+='.';
+ if(Number.isFinite(tx))a+=` met maxima rond ${Math.round(tx)}°`;a+='.';
+ const timingText=nsRandstadTimingText(timing);if(timingText)a+=` ${timingText}`;
  if(Number.isFinite(rain?.mix)){if(rain.lo===0&&rain.hi===0)a+=' Het blijft volgens de gebruikte modellen droog.';else a+=` De neerslagmodelmix komt uit op ${nsFmt(rain.mix)} mm, met een modelrange van ${nsFmt(rain.lo)}–${nsFmt(rain.hi)} mm.`}
  if(Number.isFinite(sun))a+=` Er wordt rond ${Math.round(sun)} uur zon berekend.`;
- if(Number.isFinite(wind))a+=` De wind waait overwegend uit ${nsDir(dir)} en is rond ${bftText(wind)}${Number.isFinite(gust)&&gust>=40?`, met windstoten tot circa ${Math.round(gust)} km/u`:''}.`;
+ if(!timingText&&Number.isFinite(wind))a+=` De wind waait overwegend uit ${nsDir(dir)} en is rond ${bftText(wind)}${Number.isFinite(gust)&&gust>=40?`, met windstoten tot circa ${Math.round(gust)} km/u`:''}.`;
  a+=` Voor deze dag leveren ${models.length} ${models.length===1?'model':'modellen'} bruikbare Randstad-data.`;
  return a;
 }
-function nsOpenRandstad(date){
+async function nsOpenRandstad(date){
  const d=nationalScanLastPack?.days?.find(x=>x.date===date);if(!d)return;
  const rk=nsRegion(d,['Randstad-kust']),rw=nsRegion(d,['Randstad-west']),ro=nsRegion(d,['Randstad-oost']),rs=[rk,rw,ro],rain=nsRainScope(d,['Randstad-kust','Randstad-west','Randstad-oost']),models=nsRandstadModels(d),cf=nsConfidence({pts:(d.pts||[]).filter(x=>['Randstad-kust','Randstad-west','Randstad-oost'].includes(x?.point?.r))});
  const tx=nsMedian(rs.map(x=>x.tx)),tn=nsMedian(rs.map(x=>x.tn)),sun=nsMedian(rs.map(x=>x.sun)),gust=nsMax(rs.map(x=>x.gust));
  const region=(name,r)=>`<div class="nationalCard"><b>${name}</b><span>${Number.isFinite(r.tx)?`TX <strong>${Math.round(r.tx)}°</strong>`:'TX —'}${Number.isFinite(r.tn)?` · TN ${Math.round(r.tn)}°`:''}</span><small>${Number.isFinite(r.sun)?`☀ ${Math.round(r.sun)} u · `:''}${Number.isFinite(r.rain)?`☔ ${nsFmt(r.rain)} mm · `:''}${Number.isFinite(r.wind)?`💨 ${nsDir(r.dir)} ${bftText(r.wind)}`:''}</small></div>`;
  $('randstadModalTitle').textContent=`🏙️ Randstad · ${dayShort(d.date)}`;
  $('randstadModalMeta').textContent=`${models.length} ${models.length===1?'model':'modellen'} · modelzekerheid ${cf.label}${cf.spread!=null?` · TX-spreiding circa ${nsFmt(cf.spread,1)}°`:''}`;
- $('randstadModalBody').innerHTML=`<div class="assistantCard"><b>${nsWx(rain.mix,sun)}${Number.isFinite(tx)?` · ${Math.round(tx)}°`:''}</b><span>${Number.isFinite(tn)?`Minimum rond ${Math.round(tn)}° · `:''}${nsRainText(rain,'Randstad')}${Number.isFinite(gust)&&gust>=40?` · stoten tot ${Math.round(gust)} km/u`:''}</span></div><div class="randstadDetailGrid">${region('🌊 Kust',rk)}${region('🏙️ Westelijk binnenland',rw)}${region('🌳 Utrecht/Flevoland',ro)}</div><div class="nationalCard"><b>📝 Dagduiding Randstad</b><div class="randstadDuiding">${nsRandstadDuiding(d,rs,rain,models)}</div></div><div class="nationalCard"><b>🧩 Modellen voor deze dag</b><span>${models.join(' · ')||'Nog geen bruikbare modeldata'}</span></div>`;
+ $('randstadModalBody').innerHTML=`<div class="assistantCard"><b>${nsWx(rain.mix,sun)}${Number.isFinite(tx)?` · ${Math.round(tx)}°`:''}</b><span>${Number.isFinite(tn)?`Minimum rond ${Math.round(tn)}° · `:''}${nsRainText(rain,'Randstad')}${Number.isFinite(gust)&&gust>=40?` · stoten tot ${Math.round(gust)} km/u`:''}</span></div><div class="randstadDetailGrid">${region('🌊 Kust',rk)}${region('🏙️ Westelijk binnenland',rw)}${region('🌳 Utrecht/Flevoland',ro)}</div><div class="nationalCard"><b>📝 Dagduiding Randstad</b><div class="randstadDuiding" id="randstadDuidingText">${nsRandstadDuiding(d,rs,rain,models)} <small>Uurtiming wordt opgehaald…</small></div></div><div class="nationalCard"><b>🧩 Modellen voor deze dag</b><span>${models.join(' · ')||'Nog geen bruikbare modeldata'}</span></div>`;
  $('randstadModal').classList.remove('hidden');$('randstadModal').setAttribute('aria-hidden','false');
+ try{const timing=await nsFetchRandstadTiming(d.date);const el=$('randstadDuidingText');if(el&&$('randstadModalTitle')?.textContent.includes(dayShort(d.date)))el.textContent=nsRandstadDuiding(d,rs,rain,models,timing)}catch(e){const el=$('randstadDuidingText');if(el)el.textContent=nsRandstadDuiding(d,rs,rain,models)}
 }
 function nsBindRandstadCards(){document.querySelectorAll('.randstadDayCard[data-randstad-date]').forEach(el=>{if(el.dataset.bound)return;el.dataset.bound='1';const open=()=>nsOpenRandstad(el.dataset.randstadDate);el.addEventListener('click',open);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}})})}
 function nsCloseRandstad(){const m=$('randstadModal');if(m){m.classList.add('hidden');m.setAttribute('aria-hidden','true')}}
