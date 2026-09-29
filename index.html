@@ -2734,7 +2734,7 @@ function renderNationalScanData(days,models,fromCache=false){
  nsBindRandstadCards();$('nationalScanStatus').textContent=`${nationalScanViewDays}-daagse scan · ${NATIONAL_POINTS.length} punten${new Date(new Date().toLocaleString('en-US',{timeZone:'Europe/Amsterdam'})).getHours()>=18?' · vanaf morgen':''}${fromCache?' · cache':''}`
 }
 $('randstadClose')?.addEventListener('click',nsCloseRandstad);$('randstadModal')?.addEventListener('click',e=>{if(e.target?.id==='randstadModal')nsCloseRandstad()});document.addEventListener('keydown',e=>{if(e.key==='Escape')nsCloseRandstad()});
-function nsBindControls(){const c=$('nationalScanControls');if(!c)return;const buttons=[...c.querySelectorAll('[data-nsdays]')];buttons.forEach(b=>{if(b.dataset.bound)return;b.dataset.bound='1';b.addEventListener('click',()=>{const days=Number(b.dataset.nsdays);if(![5,7,10].includes(days))return;nationalScanViewDays=days;localStorage.setItem('rw-national-scan-view-days',String(days));nsUpdateControlState();if(nationalScanLastPack?.days?.length){renderNationalScanData(nationalScanLastPack.days,nationalScanLastPack.models||[],nationalScanLastPack.fromCache)}else{renderNationalScan(false).catch(console.warn)}})});nsUpdateControlState()}
+function nsBindControls(){const c=$('nationalScanControls');if(!c)return;const buttons=[...c.querySelectorAll('[data-nsdays]')];buttons.forEach(b=>{if(b.dataset.bound)return;b.dataset.bound='1';b.addEventListener('click',()=>{const days=Number(b.dataset.nsdays);if(![5,7,10].includes(days))return;nationalScanViewDays=days;try{if(typeof rwSafeSet==='function')rwSafeSet('rw-national-scan-view-days',String(days));else localStorage.setItem('rw-national-scan-view-days',String(days))}catch(e){}nsUpdateControlState();if(nationalScanLastPack?.days?.length){renderNationalScanData(nationalScanLastPack.days,nationalScanLastPack.models||[],nationalScanLastPack.fromCache)}else{renderNationalScan(false).catch(console.warn)}})});nsUpdateControlState()}
 function nsUpdateControlState(){document.querySelectorAll('[data-nsdays]').forEach(b=>b.classList.toggle('active',Number(b.dataset.nsdays)===nationalScanViewDays))}
 async function renderNationalScan(force=false){
  nsBindControls();
@@ -2844,5 +2844,12 @@ try{$('longRangeRefresh')?.addEventListener('click',()=>renderLongRange(true))}c
 })();
 </script>
 
-<div id="randstadModal" class="randstadModal hidden" aria-hidden="true"><div class="randstadSheet" role="dialog" aria-modal="true" aria-labelledby="randstadModalTitle"><div class="randstadSheetHead"><div><b id="randstadModalTitle">🏙️ Randstad</b><div class="note" id="randstadModalMeta"></div></div><button class="randstadClose" id="randstadClose" type="button" aria-label="Sluiten">×</button></div><div id="randstadModalBody"></div></div></div>
+<div id="randstadModal" class="randstadModal hidden" aria-hidden="true" onclick="if(event.target===this)nsCloseRandstad()"><div class="randstadSheet" role="dialog" aria-modal="true" aria-labelledby="randstadModalTitle"><div class="randstadSheetHead"><div><b id="randstadModalTitle">🏙️ Randstad</b><div class="note" id="randstadModalMeta"></div></div><button class="randstadClose" id="randstadClose" type="button" aria-label="Sluiten" onclick="nsCloseRandstad()">×</button></div><div id="randstadModalBody"></div></div></div>
+<script>
+// Randstad UI robustness: modal exists only after the main script has run.
+(function(){
+  const close=document.getElementById('randstadClose');
+  if(close&&!close.dataset.boundLate){close.dataset.boundLate='1';close.addEventListener('click',()=>{try{nsCloseRandstad()}catch(e){const m=document.getElementById('randstadModal');if(m)m.classList.add('hidden')}});}
+})();
+</script>
 </body></html>
