@@ -2574,7 +2574,7 @@ function assistantDayWindowSentence(date){
 function assistWindowCards(rows){const cards=[];for(let i=0;i<rows.length;i++){const lead=Math.round((new Date(rows[i].date+'T12:00:00')-new Date(forecastStartDate()+'T12:00:00'))/864e5);if(lead<3)continue;const w=assistantDayWindowData(rows[i].date);if(!w)continue;const spread=w.tx1-w.tx0,cert=spread<=2?'Hoge zekerheid':spread<=4?'Redelijke zekerheid':'Lagere zekerheid',main=w.n>=3?`${Math.round(w.txMed)}° mediaan`:w.n===2?`${Math.round(w.txMed)}° centraal`:`${Math.round(w.txMed)}°`;const range=w.n>=2?`${w.tx0}–${w.tx1}° range`:'1 model';const rain=Number.isFinite(w.prMed)?(w.n>=2?`☔ ${fmt(w.prMed)} mm · bereik ${w.pr0}–${w.pr1} mm`:`☔ ${fmt(w.prMed)} mm`):'☔ geen neerslagwaarde';cards.push(`<div class="assistantWindow"><b>${dayShort(rows[i].date)}</b><strong>${main}</strong><small>${range}</small><span class="windowRain">${rain}</span><span class="windowCert">${cert} · ${w.n} modellen</span></div>`);if(cards.length>=5)break}return cards.join('')||'<div class="assistantWindow"><b>Nog te vroeg</b><small>Bandbreedtes verschijnen zodra meerdere modellen voldoende ver vooruit reiken.</small></div>'}
 function assistOutliers(rows){const found=[];for(const r of rows.slice(0,7)){const ms=cockpitItemsForDate(r.date).items;if(ms.length<4)continue;const tx=ms.map(x=>x.row.max).filter(Number.isFinite),pm=ms.map(x=>x.row.precip).filter(Number.isFinite),gm=ms.map(x=>x.row.gust).filter(Number.isFinite),txm=sMed(tx),prm=sMed(pm),gum=sMed(gm);for(const x of ms){if(Number.isFinite(x.row.max)&&Number.isFinite(txm)&&Math.abs(x.row.max-txm)>=3)found.push({score:Math.abs(x.row.max-txm),date:r.date,text:`${MODELS[x.key]?.name||x.key} is ${dayShort(r.date)} een temperatuurafwijker: ${Math.round(x.row.max)}° tegenover een modelmediaan van ${Math.round(txm)}°.`});if(Number.isFinite(x.row.precip)&&Number.isFinite(prm)){const d=x.row.precip-prm;if((x.row.precip>=5&&Math.abs(d)>=5)||(prm>=5&&x.row.precip<=1))found.push({score:3+Math.abs(d)/5,date:r.date,text:`${MODELS[x.key]?.name||x.key} wijkt ${dayShort(r.date)} bij neerslag duidelijk af: ${fmt(x.row.precip)} mm tegenover mediaan ${fmt(prm)} mm.`})}if(Number.isFinite(x.row.gust)&&Number.isFinite(gum)&&Math.abs(x.row.gust-gum)>=20)found.push({score:2+Math.abs(x.row.gust-gum)/20,date:r.date,text:`${MODELS[x.key]?.name||x.key} wijkt ${dayShort(r.date)} bij windstoten af: ${Math.round(x.row.gust)} km/u tegenover mediaan ${Math.round(gum)} km/u.`})}}found.sort((a,b)=>b.score-a.score);const out=[];for(const f of found){if(out.some(x=>x.date===f.date&&x.text.split(' ')[0]===f.text.split(' ')[0]))continue;out.push(f);if(out.length>=2)break}return out}
 async function assistFollowItems(rows,turn,outliers,morning){const a=[];if(storyLocationOk()){try{const recs=await loadDeBiltDailyRecords();for(const r of rows.slice(0,10)){const rec=recs?.[r.date.slice(5).replace('-','')];if(!rec)continue;const sigs=[[recordHighSignal(r.max,r.txHigh,rec.txHi||rec.tx,'warmterecord mogelijk','warmterecord komt in beeld'),rec.txHi||rec.tx,r.max],[recordLowSignal(r.max,r.txLow,rec.txLo,'kouderecord maximum mogelijk','kouderecord maximum komt in beeld'),rec.txLo,r.max],[recordHighSignal(r.min,r.tnHigh,rec.tnHi,'recordhoog minimum mogelijk','recordhoog minimum komt in beeld'),rec.tnHi,r.min],[recordLowSignal(r.min,r.tnLow,rec.tnLo||rec.tn,'recordlaag minimum mogelijk','recordlaag minimum komt in beeld'),rec.tnLo||rec.tn,r.min]];for(const [sig,rr,val] of sigs)if(sig&&rr)a.push({score:sig.kind==='possible'?8:6,text:`${dayShort(r.date)}: ${sig.label} (${Math.round(val)}° tegenover ${rr.value.toFixed(1).replace('.',',')}°).`})}}catch(e){}}for(const r of rows){const at=smartAttention(r);if(at.pts>=2)a.push({score:4+at.pts,text:`${dayShort(r.date)}: ${at.why.join(' en ')} verdient aandacht.`});const sc=smartScore(r);if(sc<60)a.push({score:3,text:`${dayShort(r.date)}: lage modelzekerheid; de modellen liggen duidelijk uiteen en de spreiding verdient extra aandacht.`})}if(turn?.score>=3)a.push({score:5,text:`Omslag rond ${turn.date?dayShort(turn.date):'de komende dagen'} blijven volgen; timing kan nog schuiven.`});if(outliers?.length)a.push({score:3.5,text:`Modelafwijker controleren: ${outliers[0].text}`});if(morning?.score>=4&&morning.items?.length)a.push({score:4.5,text:`Grootste verandering sinds de ochtendmix: ${morning.items[0].text}.`});a.sort((x,y)=>y.score-x.score);const uniq=[];for(const x of a){const k=x.text.replace(/\d+[,.]?\d*/g,'#').slice(0,70);if(uniq.some(y=>y.k===k))continue;uniq.push({...x,k});if(uniq.length>=3)break}return uniq}
-const NATIONAL_SCAN_CACHE='rw-national-scan-v11-longmodels';
+const NATIONAL_SCAN_CACHE='rw-national-scan-v12-same-modelmix';
 let nationalScanViewDays=Number(localStorage.getItem('rw-national-scan-view-days')||5);if(![5,7,10].includes(nationalScanViewDays))nationalScanViewDays=5;
 let nationalScanLastPack=null;
 const NATIONAL_SCAN_HISTORY='rw-national-scan-history-v10';
@@ -2613,7 +2613,7 @@ function nsAggregate(modelSets){
   const d=x.daily.time[i],o=raw[d]||(raw[d]={}),p=x.point.n,q=o[p]||(o[p]={point:x.point,vals:[]});
   const get=(arr)=>{const v=arr?.[i];return Number.isFinite(v)?v:null};
   const sunRaw=get(x.daily.sunshine_duration);
-  const v={model:ms.name,group:ms.group,tx:get(x.daily.temperature_2m_max),tn:get(x.daily.temperature_2m_min),rain:get(x.daily.precipitation_sum),sun:Number.isFinite(sunRaw)?sunRaw/3600:null,wind:get(x.daily.wind_speed_10m_max),gust:get(x.daily.wind_gusts_10m_max),dir:get(x.daily.wind_direction_10m_dominant)};
+  const v={model:ms.name,key:ms.key,group:ms.group,tx:get(x.daily.temperature_2m_max),tn:get(x.daily.temperature_2m_min),rain:get(x.daily.precipitation_sum),sun:Number.isFinite(sunRaw)?sunRaw/3600:null,wind:get(x.daily.wind_speed_10m_max),gust:get(x.daily.wind_gusts_10m_max),dir:get(x.daily.wind_direction_10m_dominant)};
   if([v.tx,v.tn,v.rain,v.sun,v.wind,v.gust].some(Number.isFinite))q.vals.push(v)
  }
  const allDates=Object.keys(raw).sort();
@@ -2622,9 +2622,18 @@ function nsAggregate(modelSets){
  const dates=allDates.filter(d=>!(nowNl.getHours()>=18&&d<=todayNl)).slice(0,10);
  return dates.map((date,lead)=>{
   const pts=Object.values(raw[date]).map(x=>{
-   const fine=x.vals.filter(v=>v.group==='fine'),long=x.vals.filter(v=>v.group==='long');
-   const pool=lead<2?(fine.length?fine:long):(long.length?long:fine);
-   return {point:x.point,tx:nsMedian(pool.map(v=>v.tx)),tn:nsMedian(pool.map(v=>v.tn)),rain:nsMedian(pool.map(v=>v.rain)),sun:nsMedian(pool.map(v=>v.sun)),wind:nsMedian(pool.map(v=>v.wind)),gust:nsMax(pool.map(v=>v.gust)),dir:nsCircularMean(pool.map(v=>v.dir)),models:[...new Set(pool.map(v=>v.model))],modelVals:pool.map(v=>({model:v.model,tx:v.tx,tn:v.tn,rain:v.rain,sun:v.sun,gust:v.gust}))}
+   // Gebruik per termijn dezelfde modelset als de plaatselijke dagkaart.
+   // Dag 1-3: alle beschikbare 11 modellen; daarna valt een model pas weg
+   // wanneer het buiten zijn bruikbare termijn komt.
+   const allowed=lead<=2
+     ? ['harmonie','harmonie_eu','dmi_harmonie','icon_d2','arome','icon','arpege','ecmwf','ukmo','gfs','aifs']
+     : lead<=4
+       ? ['icon','arpege','ecmwf','ukmo','gfs','aifs','harmonie_eu','dmi_harmonie']
+       : lead<=7
+         ? ['ecmwf','ukmo','gfs','aifs','arpege','icon']
+         : ['ecmwf','gfs','aifs','ukmo'];
+   const pool=x.vals.filter(v=>allowed.includes(v.key));
+   return {point:x.point,tx:nsMedian(pool.map(v=>v.tx)),tn:nsMedian(pool.map(v=>v.tn)),rain:nsMedian(pool.map(v=>v.rain)),sun:nsMedian(pool.map(v=>v.sun)),wind:nsMedian(pool.map(v=>v.wind)),gust:nsMax(pool.map(v=>v.gust)),dir:nsCircularMean(pool.map(v=>v.dir)),models:[...new Set(pool.map(v=>v.model))],modelVals:pool.map(v=>({model:v.model,key:v.key,tx:v.tx,tn:v.tn,rain:v.rain,sun:v.sun,wind:v.wind,gust:v.gust,dir:v.dir}))}
   });
   const valid=pts.filter(x=>Number.isFinite(x.tx)&&Number.isFinite(x.tn));
   const models=[...new Set(pts.flatMap(x=>x.models||[]))];
@@ -2774,10 +2783,15 @@ async function renderNationalScan(force=false){
  const p=$('nationalScanPanel');if(!p)return;if($('model')?.value!=='mix'){p.classList.add('hidden');return}p.classList.remove('hidden');$('nationalScanStatus').textContent='landelijke scan wordt opgehaald…';let cached=null;try{cached=JSON.parse(localStorage.getItem(NATIONAL_SCAN_CACHE)||'null')}catch(e){}
  if(!force&&cached?.days&&Date.now()-(cached.savedAt||0)<3*3600e3){renderNationalScanData(cached.days,cached.models||[],true);return}
  const got=[];
- const fine=[['HARMONIE',MODELS.harmonie.code],['ICON-D2',MODELS.icon_d2.code],['AROME',MODELS.arome.code]];
- const longer=[['ICON-EU',MODELS.icon.code],['ECMWF',MODELS.ecmwf.code],['GFS',MODELS.gfs.code],['AIFS',MODELS.aifs.code],['UKMO',MODELS.ukmo.code]];
- for(const [name,code] of fine){try{const data=await nsFetchModel(code);if(data.length)got.push({name,group:'fine',data})}catch(e){console.warn('Landelijke scan',name,e.message)}}
- for(const [name,code] of longer){try{const data=await nsFetchModel(code);if(data.length)got.push({name,group:'long',data})}catch(e){console.warn('Landelijke scan',name,e.message)}}
+ const scanModels=[
+  ['harmonie','HARMONIE NL'],['harmonie_eu','HARMONIE EU'],['dmi_harmonie','DMI HARMONIE'],
+  ['icon_d2','ICON-D2'],['arome','AROME'],['icon','ICON-EU'],['arpege','ARPEGE'],
+  ['ecmwf','ECMWF'],['ukmo','UKMO'],['gfs','GFS'],['aifs','AIFS']
+ ];
+ for(const [key,name] of scanModels){
+  try{const data=await nsFetchModel(MODELS[key].code);if(data.length)got.push({key,name,group:['harmonie','harmonie_eu','dmi_harmonie','icon_d2','arome'].includes(key)?'fine':'long',data})}
+  catch(e){console.warn('Landelijke scan',name,e.message)}
+ }
  if(!got.length){if(cached?.days){renderNationalScanData(cached.days,cached.models||[],true);$('nationalScanStatus').textContent+=' · ophalen mislukt'}else $('nationalScanStatus').textContent='landelijke scan tijdelijk niet beschikbaar';return}
  if(cached?.days?.length)nsHistoryPush(cached);
  const days=nsAggregate(got);try{localStorage.setItem(NATIONAL_SCAN_CACHE,JSON.stringify({savedAt:Date.now(),days,models:got.map(x=>x.name)}))}catch(e){}renderNationalScanData(days,got.map(x=>x.name),false)
