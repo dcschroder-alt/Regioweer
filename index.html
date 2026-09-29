@@ -1704,17 +1704,34 @@ async function fetchFixedGfs0012(candidate){
   for(const code of codes){try{const u=`https://single-runs-api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&run=${encodeURIComponent(run)}&models=${encodeURIComponent(code)}&hourly=temperature_2m&timezone=Europe%2FAmsterdam&forecast_hours=384`;const r=await fetch(u,{cache:'no-store'}),j=await r.json();if(!r.ok||j.error)throw new Error(j.reason||`HTTP ${r.status}`);if(!j.hourly?.time)throw new Error('Geen uurgegevens');const rows=hourlyToDaily(j.hourly);if(!rows.length)throw new Error('Geen dagwaarden');rows._fixedRun=run;return rows}catch(e){err=e}}
   throw err||new Error('GFS-run niet beschikbaar');
 }
-const GFS0012_CACHE_KEY='rw-gfs0012-cache-v103';
-function readGfs0012Cache(){try{return JSON.parse(localStorage.getItem(GFS0012_CACHE_KEY)||'null')}catch(e){return null}}
-function saveGfs0012Cache(rows){try{localStorage.setItem(GFS0012_CACHE_KEY,JSON.stringify({savedAt:Date.now(),run:rows._fixedRun||null,rows:Array.from(rows,r=>({...r}))}))}catch(e){}}
+const GFS0012_CACHE_KEY='rw-gfs0012-cache-v104';
+function gfsSelectionKey(){return isAutoRun()?'auto':`${$('date').value}|${$('run').value}`}
+function readGfs0012Cache(key=gfsSelectionKey()){
+ try{
+   const box=JSON.parse(localStorage.getItem(GFS0012_CACHE_KEY)||'null');
+   if(!box)return null;
+   if(box.entries)return box.entries[key]||null;
+   return key==='auto'&&box.rows?.length?box:null;
+ }catch(e){return null}
+}
+function saveGfs0012Cache(rows,key=gfsSelectionKey()){
+ try{
+   let box=JSON.parse(localStorage.getItem(GFS0012_CACHE_KEY)||'{"entries":{}}');
+   if(!box||typeof box!=='object'||!box.entries)box={entries:{}};
+   box.entries[key]={savedAt:Date.now(),run:rows._fixedRun||null,rows:Array.from(rows,r=>({...r}))};
+   const keys=Object.keys(box.entries).sort((a,b)=>(box.entries[b]?.savedAt||0)-(box.entries[a]?.savedAt||0)).slice(0,8);
+   const keep={};for(const k of keys)keep[k]=box.entries[k];
+   localStorage.setItem(GFS0012_CACHE_KEY,JSON.stringify({entries:keep}));
+ }catch(e){}
+}
 function showGfs0012Cache(rec,note='opgeslagen'){if(!rec?.rows?.length)return false;lastGfsRows=rec.rows.map(r=>({...r}));lastGfsRows._fixedRun=rec.run||'';renderGfs(lastGfsRows);const age=Math.max(0,Math.round((Date.now()-(rec.savedAt||Date.now()))/60000)),run=(rec.run||'').replace('T',' ').replace(':00',' UTC');$('gfsStatus').textContent=`GFS ${run||'laatste run'} · ${note} · ${age} min geleden opgeslagen · vaste locatie 52.019260 / 5.172830`;return true}
 async function loadGfsRunTable(force=false){
- const cached=readGfs0012Cache();
- if(!force&&cached?.rows?.length&&Date.now()-(cached.savedAt||0)<4*60*60*1000){showGfs0012Cache(cached,'lokale cache');return}
+ const selectionKey=gfsSelectionKey(),cached=readGfs0012Cache(selectionKey);
+ if(!force&&cached?.rows?.length&&Date.now()-(cached.savedAt||0)<4*60*60*1000){showGfs0012Cache(cached,'lokale cache voor deze selectie');return}
  if(forecastRateLimitedToday()){if(showGfs0012Cache(cached,'API-daglimiet bereikt; laatste goede run'))return;$('gfsStatus').textContent='API-daglimiet bereikt; nog geen GFS 00/12-run lokaal opgeslagen.';return}
  let lastErr=null;$('gfsStatus').textContent=isAutoRun()?'Nieuwste beschikbare 00/12 UTC GFS zoeken…':'Gekozen periode: bijbehorende 00/12 UTC GFS zoeken…';
  for(const cand of gfs0012Candidates().slice(0,3)){
-   try{const rows=await fetchFixedGfs0012(cand);lastGfsRows=rows;saveGfs0012Cache(rows);renderGfs(lastGfsRows);const run=rows._fixedRun.replace('T',' ').replace(':00',' UTC');$('gfsStatus').textContent=`GFS ${run} · ${isAutoRun()?'nieuwste 00/12':'volgt gekozen run'} · vaste locatie 52.019260 / 5.172830 · ${rows.length} dagwaarden`;return}catch(e){lastErr=e;console.warn('GFS 00/12 kandidaat niet beschikbaar',cand.toISOString(),e.message);if(isForecastRateLimit(e.message)){markForecastRateLimited();break}}
+   try{const rows=await fetchFixedGfs0012(cand);lastGfsRows=rows;saveGfs0012Cache(rows,selectionKey);renderGfs(lastGfsRows);const run=rows._fixedRun.replace('T',' ').replace(':00',' UTC');$('gfsStatus').textContent=`GFS ${run} · ${isAutoRun()?'nieuwste 00/12':'volgt gekozen run'} · vaste locatie 52.019260 / 5.172830 · ${rows.length} dagwaarden`;return}catch(e){lastErr=e;console.warn('GFS 00/12 kandidaat niet beschikbaar',cand.toISOString(),e.message);if(isForecastRateLimit(e.message)){markForecastRateLimited();break}}
  }
  if(showGfs0012Cache(cached,'laatste goede run'))return;
  lastGfsRows=[];renderGfs([]);$('gfsStatus').textContent='Geen 00/12 UTC GFS-run beschikbaar; probeer later opnieuw.';console.warn(lastErr);
@@ -1723,7 +1740,7 @@ $('refreshGfsTable').onclick=()=>loadGfsRunTable(true).catch(console.warn);
 $('copyTx').onclick=()=>copyGfs('max');
 
 $('copyTn').onclick=()=>copyGfs('min');
-setTimeout(()=>{const c=readGfs0012Cache();if(c?.rows?.length)showGfs0012Cache(c,'lokale cache')},100);
+setTimeout(()=>{const c=readGfs0012Cache(gfsSelectionKey());if(c?.rows?.length)showGfs0012Cache(c,'lokale cache voor deze selectie')},100);
 async function fetchUvFallback(){
   try{
     const lat=$('lat').value,lon=$('lon').value,start=$('date').value;
@@ -2465,6 +2482,8 @@ $('shareFive').onclick=async()=>{try{const c=await drawFiveDayFigure(false);if(!
 $('sitePack').onclick=async()=>{await drawFiveDayFigure(true);$('csv').click();if(lastRiskCanvas)$('riskSave').click();setStatus('Sitepakket opgeslagen: 5-daagse + CSV'+(lastRiskCanvas?' + kansentabel':''),100)};
 function syncRunMode(){const auto=isAutoRun();if(auto)$('date').value=nlToday();$('date').disabled=auto;$('date').style.opacity=auto?'.55':'1';const ff=$('modelForecastFrom');if(ff)ff.textContent=(auto&&nlHourNow()>=18?'vanaf morgen':'vanaf vandaag')+' · tik op een dag voor uurdetails';$('status').textContent=auto?'Auto: ieder model gebruikt zijn nieuwste beschikbare run.':'Handmatige run: alle modellen proberen hetzelfde gekozen UTC-tijdstip.';updateTodayButton()}
 $('run').addEventListener('change',syncRunMode);syncRunMode();
+$('run').addEventListener('change',()=>{setTimeout(()=>loadGfsRunTable(false).catch(console.warn),50)});
+$('date').addEventListener('change',()=>{if(!isAutoRun())setTimeout(()=>loadGfsRunTable(false).catch(console.warn),50)});
 
 function updateModelSettingsSummary(){const s=$('modelSettingsSummary');if(!s)return;const m=$('model').selectedOptions[0]?.textContent||'Modelmix',r=isAutoRun()?'nieuwste runs':$('run').value+' UTC';s.textContent=`⚙ ${m} · ${r}`;$('date').closest('.field').style.display=isAutoRun()?'none':''}
 $('model').addEventListener('change',updateModelSettingsSummary);$('run').addEventListener('change',updateModelSettingsSummary);updateModelSettingsSummary();
