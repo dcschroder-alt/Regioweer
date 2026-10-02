@@ -1632,12 +1632,14 @@ function buildDayNarrative(date,dayMix,rows,arrays,wind,dir,gust,dew){
    if(lead>=7&&n<=3&&!why.some(x=>x.includes('volledige dekking')))why.push('op deze langere termijn minder modellen volledige dekking hebben');
    if(!why.length)why.push('de modellen op meerdere onderdelen net onvoldoende dicht bij elkaar liggen');
    const reasonText=why.length===1?why[0]:why.length===2?`${why[0]} en ${why[1]}`:`${why.slice(0,-1).join(', ')} en ${why.at(-1)}`;
-   bits.push(`De ${sc<60?'lage':'matige'} modelovereenkomst komt vooral doordat ${reasonText}.`);
+   bits.push(`De ${sc<60?'lage':'redelijke'} modelovereenkomst komt vooral doordat ${reasonText}.`);
  }
  const narrativeRows=isToday?rows:rows.filter(r=>{const h=+String(r.time||'').slice(11,13);return h>=6&&h<18}),wet=narrativeRows.filter(r=>(r.precip||0)>=.05), rain=rainSummary(narrativeRows),scope=isToday?'de rest van de dag':'overdag';
  const remainPrec=narrativeRows.reduce((a,r)=>a+(Number(r.precip)||0),0),remainPop=Math.max(0,...narrativeRows.map(r=>Number(r.rainPct)||0));
  const dayMedian=Number.isFinite(dayMix.dayPrecip)?Number(dayMix.dayPrecip):Number(dayMix.precip)||0,dayPop=Number.isFinite(dayMix.dayPop)?Number(dayMix.dayPop):Number(dayMix.pop)||0;
- const dryNow=isToday?(remainPrec<.1&&remainPop<35):(dayMedian<.1&&dayPop<50);
+ const rowDayPrec=narrativeRows.reduce((a,r)=>a+(Number(r.precip)||0),0);
+ const rowDayPop=Math.max(0,...narrativeRows.map(r=>Number(r.rainPct)||0));
+ const dryNow=isToday?(remainPrec<.1&&remainPop<35):(dayMedian<.1&&dayPop<50&&rowDayPrec<.1&&rowDayPop<35);
  if(dryNow){
    bits.push(`Het blijft ${isToday?'de rest van de dag ':''}<strong>droog</strong>${!isToday?' overdag':''}.`);
  } else if(wet.length||dayMedian>=.1){
@@ -1656,7 +1658,7 @@ function buildDayNarrative(date,dayMix,rows,arrays,wind,dir,gust,dew){
  if(Number.isFinite(wind)){
    const wp=(a,b)=>{const q=rows.filter(r=>{const h=+String(r.time||'').slice(11,13);return h>=a&&h<b&&Number.isFinite(r.wind)});if(!q.length)return null;const ws=q.map(r=>Number(r.wind)),ds=q.map(r=>Number(r.dir)).filter(Number.isFinite);return {w:ws.reduce((x,y)=>x+y,0)/ws.length,d:ds.length?ds[Math.floor(ds.length/2)]:null}};
    const wO=wp(6,12),wM=wp(12,18),wA=wp(18,24),firstW=wO||wM||wA,lastW=wA||wM||wO;
-   if(firstW&&lastW&&Math.abs(lastW.w-firstW.w)>=5){const up=lastW.w>firstW.w;bits.push(`${up?'Eerst staat er weinig wind; later neemt de wind toe':'In het begin staat meer wind; later neemt de wind af'} van ongeveer <strong>${bftText(firstW.w)}</strong> naar <strong>${bftText(lastW.w)}</strong>${Number.isFinite(firstW.d)&&Number.isFinite(lastW.d)&&compass(firstW.d)!==compass(lastW.d)?`, waarbij de wind draait van ${compass(firstW.d)} naar ${compass(lastW.d)}`:` uit ${compass(lastW.d??dir)}`}.${Number.isFinite(gust)&&gust>=45?` Windstoten kunnen oplopen tot circa <strong>${gust} km/u</strong>.`:''}`);
+   if(firstW&&lastW&&Math.abs(lastW.w-firstW.w)>=5&&bftText(firstW.w)!==bftText(lastW.w)){const up=lastW.w>firstW.w;bits.push(`${up?'Eerst staat er weinig wind; later neemt de wind toe':'In het begin staat meer wind; later neemt de wind af'} van ongeveer <strong>${bftText(firstW.w)}</strong> naar <strong>${bftText(lastW.w)}</strong>${Number.isFinite(firstW.d)&&Number.isFinite(lastW.d)&&compass(firstW.d)!==compass(lastW.d)?`, waarbij de wind draait van ${compass(firstW.d)} naar ${compass(lastW.d)}`:` uit ${compass(lastW.d??dir)}`}.${Number.isFinite(gust)&&gust>=45?` Windstoten kunnen oplopen tot circa <strong>${gust} km/u</strong>.`:''}`);
    }else if(firstW&&lastW&&Number.isFinite(firstW.d)&&Number.isFinite(lastW.d)&&compass(firstW.d)!==compass(lastW.d))bits.push(`De windkracht verandert weinig (${bftText(wind)}), maar de wind draait in de loop van de dag van ${compass(firstW.d)} naar ${compass(lastW.d)}.${Number.isFinite(gust)&&gust>=45?` Windstoten tot circa <strong>${gust} km/u</strong>.`:''}`);
    else bits.push(`Er staat ${bftText(wind)} uit ${compass(dir)}${Number.isFinite(gust)&&gust>=45?`, met windstoten tot circa <strong>${gust} km/u</strong>`:''}.`);
  }
