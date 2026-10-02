@@ -2208,7 +2208,14 @@ async function drawModelmixCardsPng(){
 $('modelmixPng')?.addEventListener('click',()=>drawModelmixCardsPng().catch(e=>setStatus('PNG maken lukte niet: '+e.message,100)));
 
 function randstadPngWeatherType(rain,sun){
- const mm=Number(rain?.mix);if(Number.isFinite(mm)&&mm>=3)return 'rain';if(Number.isFinite(mm)&&mm>=.25)return Number.isFinite(sun)&&sun>=5?'sunshowers':'showers';if(Number.isFinite(sun)&&sun>=7)return 'sun';if(Number.isFinite(sun)&&sun>=3)return 'partly';return 'cloud';
+ const mm=Number(rain?.mix),su=Number(sun);
+ // In de Randstad-PNG blijft de verwachte zon zichtbaar, ook op natte dagen.
+ // Zo krijgt een dag met bijvoorbeeld 6-10 uur zon en enkele mm neerslag geen kaal regenicoon.
+ if(Number.isFinite(mm)&&mm>=3)return Number.isFinite(su)&&su>=4?'sunshowers':'rain';
+ if(Number.isFinite(mm)&&mm>=.25)return Number.isFinite(su)&&su>=3?'sunshowers':'showers';
+ if(Number.isFinite(su)&&su>=7)return 'sun';
+ if(Number.isFinite(su)&&su>=3)return 'partly';
+ return 'cloud';
 }
 async function getRandstadSunTimes(rows){
  try{const start=rows[0]?.date,end=rows[rows.length-1]?.date;if(!start||!end)return {};const u=`https://api.open-meteo.com/v1/forecast?latitude=52.10&longitude=4.70&daily=sunrise,sunset&timezone=Europe%2FAmsterdam&start_date=${start}&end_date=${end}`;const r=await fetch(u,{cache:'no-store'}),j=await r.json();if(!r.ok||!j?.daily?.time)return {};const out={};for(let i=0;i<j.daily.time.length;i++)out[j.daily.time[i]]={rise:(j.daily.sunrise?.[i]||'').slice(11,16),set:(j.daily.sunset?.[i]||'').slice(11,16)};return out}catch(e){return {}}
