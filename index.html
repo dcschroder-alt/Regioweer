@@ -1464,14 +1464,17 @@ function dayPartSummary(rows,label,h0,h1,date=null){
 }
 function dayAdviceCards(dayMix,rows,dew,gust,date=null){
  const isToday=date===nlToday(),temps=rows?.map(r=>r.temp).filter(Number.isFinite)||[];
+ const lead=date?Math.max(0,Math.round((new Date(date+'T12:00:00')-new Date(forecastStartDate()+'T12:00:00'))/864e5)):0;
  const cards=[],rain=rainSummary(rows),uv=(isToday&&nlHourNow()>=17)?null:dayMix?.uv,max=isToday&&temps.length?Math.max(...temps):dayMix?.max,min=isToday&&temps.length?Math.min(...temps):dayMix?.min;
  const adviceRows=isToday?(rows||[]):(rows||[]).filter(r=>{const h=+String(r.time||'').slice(11,13);return h>=6&&h<18});
  const rowPrec=adviceRows.length?adviceRows.reduce((a,r)=>a+(Number(r.precip)||0),0):null;
  const rowPop=adviceRows.length?Math.max(0,...adviceRows.map(r=>Number(r.rainPct)||0)):null;
  const pop=Number.isFinite(dayMix?.dayPop)?Number(dayMix.dayPop):(Number.isFinite(rowPop)?rowPop:(dayMix?.pop||0)),prec=Number.isFinite(dayMix?.dayPrecip)?Number(dayMix.dayPrecip):(Number.isFinite(rowPrec)?rowPrec:(dayMix?.precip||0));
  const lateRows=(rows||[]).filter(r=>{const h=+String(r.time||'').slice(11,13);return h>=15&&h<21}),latePrec=lateRows.reduce((a,r)=>a+(Number(r.precip)||0),0),latePop=Math.max(0,...lateRows.map(r=>Number(r.rainPct)||0));
- const lateShower=!isToday&&lateRows.length&&latePrec>=.05&&((Number(dayMix?.precip)||0)>=.5||latePop>=40||(Number(dayMix?.pop)||0)>=60);
- if(lateShower)cards.push(['rain','☂️ Later kans op een bui',`Het grootste deel van de dag kan droog verlopen, maar later neemt de buienkans toe.`]);
+ const lateShower=!isToday&&lead<=5&&lateRows.length&&latePrec>=.05&&((Number(dayMix?.precip)||0)>=.5||latePop>=40||(Number(dayMix?.pop)||0)>=60);
+ if(lead>=11&&(prec>=.1||pop>=50))cards.push(['rain','🌧️ Buiensignaal',`Er is een neerslagsignaal, maar timing en hoeveelheid zijn op deze termijn nog onzeker.`]);
+ else if(lead>=6&&(prec>=.1||pop>=50))cards.push(['rain','☂️ Kans op een bui',`Er is kans op een bui, maar de precieze timing is op deze termijn nog onzeker.`]);
+ else if(lateShower)cards.push(['rain','☂️ Later kans op een bui',`Het grootste deel van de dag kan droog verlopen, maar later neemt de buienkans toe.`]);
  else if(prec>=.1||pop>=50)cards.push(['rain','☂️ Paraplu mee',rain.includes('Geen betekenisvolle')?(isToday?'Kans op een bui gedurende de resterende uren.':'Overdag kans op een bui.'):rain.replace(/\s*\([^)]*modellen\)/g,'')]);else cards.push(['ok','☂️ Geen paraplu nodig',isToday?'De resterende uren verlopen waarschijnlijk droog.':'Overdag blijft het volgens de modelmix droog.']);
  if(Number.isFinite(uv)&&uv>=6)cards.push(['sun','🧴 Insmeren',`UV ${Math.round(uv)} · vooral rond het middaguur goed beschermen.`]);else if(Number.isFinite(uv)&&uv>=3)cards.push(['sun','🧴 Zonbescherming',`UV ${Math.round(uv)} · bij langer buiten zijn insmeren.`]);
  if(Number.isFinite(max)&&max>=28)cards.push(['warm','🥤 Warm weer',`Rond ${Math.round(max)}° · voldoende drinken en zo nodig verkoeling zoeken.`]);
@@ -1618,11 +1621,15 @@ function buildDayNarrative(date,dayMix,rows,arrays,wind,dir,gust,dew){
  if(!isToday&&rows?.length){
    const part=(a,b)=>{const q=rows.filter(r=>{const h=+r.time.slice(11,13);return h>=a&&h<b});if(!q.length)return null;const pr=q.reduce((z,r)=>z+(Number(r.precip)||0),0),wet=Math.max(0,...q.map(r=>Number(r.rainPct)||0)),cl=q.map(r=>Number(r.cloud)).filter(Number.isFinite),cloud=cl.length?cl.reduce((x,y)=>x+y,0)/cl.length:null;return{pr,wet,cloud}};
    const nPart=part(0,6),oPart=part(6,12),mPart=part(12,18),aPart=part(18,24),wetp=x=>x&&(x.pr>=.1||x.wet>=25),dryp=x=>x&&!wetp(x);
-   if(wetp(nPart)&&dryp(oPart)&&dryp(mPart))bits.push(`Na een natte nacht wordt het overdag droog${Number(dayMix.sun)>=4?' en krijgt de zon steeds meer ruimte':''}.`);
-   else if(wetp(nPart)&&wetp(oPart)&&dryp(mPart))bits.push(`In de nacht en ochtend kan neerslag vallen; in de middag wordt het droog${Number(dayMix.sun)>=4?' en zonniger':''}.`);
-   else if(dryp(oPart)&&dryp(mPart)&&wetp(aPart))bits.push(`Ochtend en middag verlopen overwegend droog; in de avond neemt de kans op regen of buien toe.`);
-   else if(dryp(oPart)&&wetp(mPart)&&wetp(aPart))bits.push(`De ochtend verloopt overwegend droog, vanaf de middag neemt de kans op regen of buien toe.`);
-   else if(wetp(oPart)&&wetp(mPart)&&wetp(aPart)&&daytimePrecip(dayMix)>=.1)bits.push(`In de ochtend, middag en avond is er kans op buien.`);
+   if(lead<=5){
+     if(wetp(nPart)&&dryp(oPart)&&dryp(mPart))bits.push(`Na een natte nacht wordt het overdag droog${Number(dayMix.sun)>=4?' en krijgt de zon steeds meer ruimte':''}.`);
+     else if(wetp(nPart)&&wetp(oPart)&&dryp(mPart))bits.push(`In de nacht en ochtend kan neerslag vallen; in de middag wordt het droog${Number(dayMix.sun)>=4?' en zonniger':''}.`);
+     else if(dryp(oPart)&&dryp(mPart)&&wetp(aPart))bits.push(`Ochtend en middag verlopen overwegend droog; in de avond neemt de kans op regen of buien toe.`);
+     else if(dryp(oPart)&&wetp(mPart)&&wetp(aPart))bits.push(`De ochtend verloopt overwegend droog, vanaf de middag neemt de kans op regen of buien toe.`);
+     else if(wetp(oPart)&&wetp(mPart)&&wetp(aPart)&&daytimePrecip(dayMix)>=.1)bits.push(`In de ochtend, middag en avond is er kans op buien.`);
+   } else if((daytimePrecip(dayMix)>=.1)||(wetp(oPart)||wetp(mPart)||wetp(aPart))){
+     bits.push(lead>=11?`Er is een neerslagsignaal, maar timing en hoeveelheid zijn op deze termijn nog onzeker.`:`Er is kans op enkele buien; de precieze timing is op deze termijn nog onzeker.`);
+   }
  }
  if(isMix&&Number.isFinite(lo)&&Number.isFinite(hi)&&lead<3){
    const spread=hi-lo;
@@ -1655,7 +1662,8 @@ function buildDayNarrative(date,dayMix,rows,arrays,wind,dir,gust,dew){
    const rainMed=modelRain.length?medianNums(modelRain):Number(dayMix.precip),rainLo=modelRain.length?Math.min(...modelRain):null,rainHi=modelRain.length?Math.max(...modelRain):null;
    let amount='';
    if(Number.isFinite(rainMed)&&Number.isFinite(rainLo)&&Number.isFinite(rainHi))amount=` De neerslagmediaan ligt rond <strong>${rainMed.toFixed(1).replace('.',',')} mm</strong>, met een modelrange van <strong>${rainLo.toFixed(1).replace('.',',')}–${rainHi.toFixed(1).replace('.',',')} mm</strong>.`;
-   bits.push(`Neerslag is het belangrijkste aandachtspunt: ${rain.replace(/\s*\([^)]*modellen\)/g,'')}.${amount}`);
+   if(lead<=5)bits.push(`Neerslag is het belangrijkste aandachtspunt: ${rain.replace(/\s*\([^)]*modellen\)/g,'')}.${amount}`);
+   else bits.push(`${lead>=11?'Er is een neerslagsignaal':'Er is kans op neerslag of een bui'}, maar de precieze timing is op deze termijn nog onzeker.${amount}`);
  }
  if(isToday){
    const sun=rows.reduce((a,r)=>a+(Number(r.sun)||0),0);
