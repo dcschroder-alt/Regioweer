@@ -1469,7 +1469,10 @@ function dayAdviceCards(dayMix,rows,dew,gust,date=null){
  const rowPrec=adviceRows.length?adviceRows.reduce((a,r)=>a+(Number(r.precip)||0),0):null;
  const rowPop=adviceRows.length?Math.max(0,...adviceRows.map(r=>Number(r.rainPct)||0)):null;
  const pop=Number.isFinite(dayMix?.dayPop)?Number(dayMix.dayPop):(Number.isFinite(rowPop)?rowPop:(dayMix?.pop||0)),prec=Number.isFinite(dayMix?.dayPrecip)?Number(dayMix.dayPrecip):(Number.isFinite(rowPrec)?rowPrec:(dayMix?.precip||0));
- if(prec>=.1||pop>=50)cards.push(['rain','☂️ Paraplu mee',rain.includes('Geen betekenisvolle')?(isToday?'Kans op een bui gedurende de resterende uren.':'Overdag kans op een bui.'):rain.replace(/\s*\([^)]*modellen\)/g,'')]);else cards.push(['ok','☂️ Geen paraplu nodig',isToday?'De resterende uren verlopen waarschijnlijk droog.':'Overdag blijft het volgens de modelmix droog.']);
+ const lateRows=(rows||[]).filter(r=>{const h=+String(r.time||'').slice(11,13);return h>=15&&h<21}),latePrec=lateRows.reduce((a,r)=>a+(Number(r.precip)||0),0),latePop=Math.max(0,...lateRows.map(r=>Number(r.rainPct)||0));
+ const lateShower=!isToday&&lateRows.length&&latePrec>=.05&&((Number(dayMix?.precip)||0)>=.5||latePop>=40||(Number(dayMix?.pop)||0)>=60);
+ if(lateShower)cards.push(['rain','☂️ Later kans op een bui',`Het grootste deel van de dag kan droog verlopen, maar later neemt de buienkans toe.`]);
+ else if(prec>=.1||pop>=50)cards.push(['rain','☂️ Paraplu mee',rain.includes('Geen betekenisvolle')?(isToday?'Kans op een bui gedurende de resterende uren.':'Overdag kans op een bui.'):rain.replace(/\s*\([^)]*modellen\)/g,'')]);else cards.push(['ok','☂️ Geen paraplu nodig',isToday?'De resterende uren verlopen waarschijnlijk droog.':'Overdag blijft het volgens de modelmix droog.']);
  if(Number.isFinite(uv)&&uv>=6)cards.push(['sun','🧴 Insmeren',`UV ${Math.round(uv)} · vooral rond het middaguur goed beschermen.`]);else if(Number.isFinite(uv)&&uv>=3)cards.push(['sun','🧴 Zonbescherming',`UV ${Math.round(uv)} · bij langer buiten zijn insmeren.`]);
  if(Number.isFinite(max)&&max>=28)cards.push(['warm','🥤 Warm weer',`Rond ${Math.round(max)}° · voldoende drinken en zo nodig verkoeling zoeken.`]);
  if(Number.isFinite(max)&&max<10)cards.push(['cold','🧥 Warme jas',`Overdag rond ${Math.round(max)}°.`]);else if(Number.isFinite(max)&&max<16)cards.push(['cold','🧥 Jas aan',`Met maximaal ${Math.round(max)}° is een jas prettig.`]);
@@ -1512,7 +1515,12 @@ function daypartMixVisual(rows,dayMix){
    else if(Number.isFinite(sf)&&sf>=.35){type='partly';text='Geregeld zon'}
    else if(cloud<75){type='partly';text='Zon en wolken'}
    else{type='cloud';text='Veel bewolking'}
-   if(dayPop>=40)text+=', kleine kans op een bui';
+   // Een droge mediaan mag een minderheidsbui niet dominant maken, maar een
+   // duidelijk (laat) dagsignaal moet wel zichtbaar blijven in icoon en tekst.
+   const lateShowerSignal=lateWet&&((Number(dayMix?.precip)||0)>=.5||dayPop>=40||hourlyRain>=.1);
+   const broadShowerSignal=dayPop>=60&&((Number(dayMix?.precip)||0)>=.3||hourlyRain>=.1);
+   if(lateShowerSignal||broadShowerSignal){type='sunshowers';text+=lateWet&&!earlyWet?', later kans op een bui':', kans op een bui'}
+   else if(dayPop>=40)text+=', kleine kans op een bui';
    return{type,text};
  }
  if(medianRain>=4&&wetFrac>=.35)return{type:'rain',text:'Perioden met regen'};
