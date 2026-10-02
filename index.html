@@ -270,7 +270,7 @@ body{min-width:0}
 <section class="panel hidden" id="overviewPanel"><div style="font-weight:850;font-size:17px">In één oogopslag</div><div class="note">Belangrijkste signalen uit de huidige modelmix.</div><div class="overviewGrid"><div class="overviewCard"><div class="overviewLabel">Komende dagen</div><div class="overviewValue" id="ovModels">—</div><div class="overviewSub" id="ovModelsSub">—</div></div><div class="overviewCard"><div class="overviewLabel">Zekerheid weerbeeld</div><div class="overviewValue" id="ovAgree">—</div><div class="overviewSub" id="ovAgreeSub">—</div></div><div class="overviewCard"><div class="overviewLabel">Natste dag</div><div class="overviewValue" id="ovRain">—</div><div class="overviewSub" id="ovRainSub">—</div></div><div class="overviewCard"><div class="overviewLabel">Temperatuurtrend</div><div class="overviewValue" id="ovTemp">—</div><div class="overviewSub" id="ovTempSub">—</div></div></div><div id="mixSignals" class="topBadges"></div><div id="confidenceStrip" class="confidenceStrip"></div></section>
 <section class="panel hidden" id="todayTomorrowPanel"><div style="font-weight:850;font-size:17px" id="todayTomorrowTitle">Vandaag & morgen</div><div class="note" id="todayTomorrowNote">Snel overzicht op basis van de nieuwste beschikbare modeldata.</div><div class="todayTomorrowGrid" id="todayTomorrowGrid"></div></section>
 
-<section class="panel hidden" id="fineSignalsPanel"><details open><summary style="font-weight:900;font-size:17px;cursor:pointer">🔬 Fijnmazige korte-termijnsignalen</summary><div class="note">HARMONIE NL, HARMONIE Europe, DMI HARMONIE, ICON-D2 en AROME. Signalen voor koude nacht, mist, gladheid, sneeuw/ijzel, onweer/hagel, zware neerslag en wind in de komende 24–48 uur.</div><div id="fineSignals" class="fineSignals"><div class="note">Wordt na de modelmix gevuld.</div></div></details></section>
+<section class="panel hidden" id="fineSignalsPanel"><details open><summary style="font-weight:900;font-size:17px;cursor:pointer">🔬 Fijnmazige korte-termijnsignalen</summary><div class="note">HARMONIE NL, ICON-D2 en AROME. Signalen voor koude nacht, mist, gladheid, sneeuw/ijzel, onweer/hagel, zware neerslag en wind in de komende 24–48 uur.</div><div id="fineSignals" class="fineSignals"><div class="note">Wordt na de modelmix gevuld.</div></div></details></section>
 <section class="panel hidden" id="ensembleMixPanel"><details open><summary style="font-weight:900;font-size:17px;cursor:pointer">🌐 Ensemble-modelmix</summary><div class="note">Meerdere ensembles worden eerst ieder afzonderlijk samengevat en daarna even zwaar gecombineerd. Dag 1–10 voor concrete kansen; dag 11–15 vooral als trend en spreiding. GEM telt voorlopig niet mee.</div><div id="ensembleMixBox" class="fineSignals"><div class="note">Wordt na de modelmix gevuld.</div></div></details></section>
 <section class="panel hidden" id="v95InsightPanel"><div class="previewHead"><div><div style="font-weight:850;font-size:17px">🧠 Slimme modelanalyse</div><div class="note">Temperatuurtrend, afwijking van normaal, modelspreiding en lerende modelweging.</div></div><div class="smallstatus" id="v95InsightStatus">wordt opgebouwd</div></div><div id="v95WeekFeel" class="insightGrid"></div><div class="trendWrap"><div id="v95TrendChart"></div><div class="trendLegend"><span>▲ TX modelmix</span><span>▼ TN modelmix</span><span>│ modelspreiding TX</span></div></div><div id="v95NormalCards" class="insightGrid"></div><details style="margin-top:12px"><summary style="font-weight:850;cursor:pointer">🎯 Welke modellen presteren het best?</summary><div class="note" style="margin-top:7px">De app leert lokaal van eerdere voorspellingen. Pas vanaf minimaal 3 controleerbare dagen wordt een kleine bonus toegepast; maximaal ±10%, zodat één model de mix nooit overneemt.</div><div id="v95SkillList"></div></details></section>
 
@@ -299,7 +299,7 @@ body{min-width:0}
 <section class="panel hidden" id="plumePanel"><div style="font-weight:850;font-size:17px">Pluim</div><div class="note">Actuele ensemblepluim voor de gekozen plaats. De pluim gebruikt de nieuwste beschikbare ensemble-run en staat los van de gekozen deterministische run hierboven.</div><div class="note"><b>Automatisch verversen aan?</b> Dan worden alle beschikbare pluimen op de achtergrond bijgewerkt en met hun vorige run vergeleken. De laatst succesvolle pluim blijft zichtbaar als een nieuwe run of de API tijdelijk niet beschikbaar is.</div><div class="plumecontrols"><select id="plumeModel"><option value="ecmwf_ifs025_ensemble">ECMWF ENS 0,25° (51 leden · 15 d)</option><option value="ecmwf_aifs025_ensemble">ECMWF AIFS ENS (51 leden · 15 d)</option><option value="ncep_gefs025">GEFS 0,25° (31 leden · 10 d)</option><option value="ncep_gefs05">GEFS 0,5° (31 leden · 35 d)</option><option value="dwd_icon_eu_eps">ICON-EPS Europe (40 leden · 5 d)</option></select><button class="primary" id="plumeLoad" type="button">Pluim ophalen</button></div><div class="status" id="plumeStatus">Kies een ensemble en tik op Pluim ophalen.</div><div class="plumeActions"><button class="ghost" id="plumeSave" type="button" disabled>⬇ Download pluim (PNG)</button></div><div class="plumewrap"><canvas id="plumeCanvas" width="1200" height="650"></canvas></div></section>
 <section class="panel hidden" id="riskPanel"><div style="font-weight:850;font-size:17px">Kansenpluim</div><div class="note">Ensemblekansen voor de gekozen plaats. Kies één ensemble of Modelmix kansen. Bij de modelmix is de mediaan de hoofdwaarde; gemiddelde, bandbreedte en consensus staan bij de dagdetails.</div><div class="note"><b>Automatisch verversen aan?</b> Dan worden ook de kansen van alle beschikbare ensembles en de modelmix bijgewerkt. De laatst succesvolle kansen blijven zichtbaar bij een fout of API-limiet.</div><div class="riskcontrols"><select id="riskModel"><option value="modelmix">🌐 Modelmix kansen</option><option value="ecmwf_ifs025_ensemble">ECMWF ENS 0,25° · 15 d</option><option value="ecmwf_aifs025_ensemble">ECMWF AIFS ENS · 15 d</option><option value="ncep_gefs025">GEFS 0,25° · 10 d</option><option value="ncep_gefs05">GEFS 0,5° · 35 d</option><option value="dwd_icon_eu_eps">ICON-EPS Europe · 5 d</option></select><button class="primary" id="riskLoad" type="button">Kansen ophalen</button></div><div class="status" id="riskStatus">Kies een ensemble en tik op Kansen ophalen.</div><div class="riskActions"><button class="ghost" id="riskSave" type="button" disabled>⬇ Download kansenpluim (PNG)</button></div><div id="riskSummary" class="riskSummary hidden"></div><div id="riskDateStrip" class="riskDateStrip hidden"></div><div id="riskDayCard" class="riskDayCard hidden"></div><details class="riskAll"><summary>Toon alle kansen</summary><div class="riskwrap"><canvas id="riskCanvas" width="1500" height="760"></canvas></div></details><div class="note">Bij één ensemble is de kans het aandeel leden dat de drempel bereikt. Modelmix kansen combineert de beschikbare ensembles met de mediaan als hoofdwaarde en toont ook gemiddelde, min–max en consensus.</div></section>
 <section class="panel" id="gfsPanel"><div style="font-weight:850;font-size:17px">GFS 00/12 UTC · TX/TN voor Excel</div><div class="note">Altijd vaste locatie 52.019260 / 5.172830. In Auto gebruikt de app de nieuwste beschikbare 00/12 UTC-run. Kies je bovenaan handmatig een eerdere run, dan volgt dit blok de bijbehorende 00/12 UTC-run.</div><div class="fixedGfs">📍 52.019260 / 5.172830 · onafhankelijk van de gekozen plaats bovenaan</div><div id="gfsStatus" class="note" style="margin-top:6px">Nog niet opgehaald.</div><div id="gfsTable" class="gfsgrid"><div class="gfshead"><div class="gfscell">Datum</div><div class="gfscell">TX</div><div class="gfscell">TN</div></div></div><div class="gfsactions"><button class="ghost" id="refreshGfsTable" type="button">↻ GFS verversen</button><button class="ghost" id="copyTx" disabled>TX kopiëren</button><button class="ghost" id="copyTn" disabled>TN kopiëren</button></div></section>
-<section class="panel"><div class="note"><b>Beste-modelmix:</b> TX/TN gebruikt een robuuste <b>gewogen mediaan</b>. Dag 1–3 wegen HARMONIE, ICON-D2, AROME, ARPEGE en ICON-EU zwaarder; ECMWF, UKMO, GFS en AIFS blijven als globale controle volledig meedoen. Recente modelverificatie kan de gewichten beperkt bijsturen en meerdere HARMONIE-configuraties worden als familie afgeremd. Verder vooruit verschuift het gewicht geleidelijk naar de globale modellen. <b>ECMWF ENS P50 en GEFS P50</b> tellen ieder als één extra temperatuuranker mee voor TX/TN; individuele ensembleleden tellen nooit als losse stemmen. Neerslag en zon blijven robuust op de mediaan van de beschikbare deterministische modellen.</div></section>
+<section class="panel"><div class="note"><b>Kernmodelmix:</b> TX/TN gebruikt een robuuste <b>gewogen mediaan</b>. Dag 1–3 bestaat de kern uit HARMONIE NL, ICON-D2, AROME, ICON-EU, ARPEGE, ECMWF, GFS en AIFS. HARMONIE EU, DMI-HARMONIE en UKMO tellen niet meer mee in de centrale mix, zodat vergelijkbare modellen de uitkomst niet onnodig dubbel beïnvloeden. Verder vooruit vallen de fijnmazige modellen automatisch weg en nemen ECMWF, GFS, AIFS en de beschikbare Europese modellen het over. <b>ECMWF ENS P50 en GEFS P50</b> tellen ieder als één extra temperatuuranker mee voor TX/TN. Neerslag en zon blijven op de mediaan van de beschikbare deterministische kernmodellen.</div></section>
 </div>
 <div id="shareMode" class="shareMode hidden"><div class="shareModeInner"><div class="shareTop"><div><div class="shareTitle">Regioweer · meerdaagse</div><div class="shareSub" id="shareModeSub">Modelmix</div></div><button class="ghost" id="shareModeClose" type="button">Sluiten</button></div><div id="shareModeSignals" class="topBadges"></div><div id="shareModeGrid" class="shareForecast"></div><div class="note" style="margin-top:10px">Tik op Sluiten om terug te gaan. Deze weergave is geoptimaliseerd voor screenshotten en delen.</div></div></div>
 <div id="dayDetail" class="detailPanel hidden"><div class="detailSheet"><div class="detailHead"><div><div class="detailTitle" id="detailTitle">Dagdetail</div><div class="smallstatus" id="detailSub">Uur-tot-uur</div></div><button class="detailClose" id="detailClose" type="button">Sluiten</button></div><div id="detailHero" class="detailHero"></div><div id="detailNowcast" class="nowcastBox hidden"></div><div id="detailNarrative" class="journalBox" style="margin-top:12px"></div><div id="detailAdvice" class="detailAdvice"></div><div id="recordBox" class="recordBox hidden"></div><div id="dayParts" class="dayParts"></div><div id="rainWindow" class="rainWindow hidden"></div><div id="detailMetrics" class="detailMetrics"></div><div id="rainTimeline" class="rainTimeline"></div><div id="hourlyList" class="hourlyList"></div><details class="detailMore"><summary>Grafiek & modeldetails</summary><div id="detailStatus" class="status">Gegevens laden…</div><canvas id="detailCanvas" class="detailCanvas" width="720" height="290"></canvas></details></div></div>
@@ -353,7 +353,7 @@ function rwAutoCleanupOldRuns(){
  const read=k=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}};
  try{
   // Grote modelcaches: bewaar alleen records van vandaag en gisteren.
-  for(const k of ['rw-forecast-cache-v103','rw-full-modelmix-cache-v104','rw-day-hourly-v106']){
+  for(const k of ['rw-forecast-cache-v104-core8','rw-full-modelmix-cache-v104','rw-day-hourly-v106']){
    const o=read(k);if(!o||Array.isArray(o)||typeof o!=='object')continue;let changed=false;
    for(const id of Object.keys(o)){const ts=o[id]?.savedAt||o[id]?.loadedAt;if(ts&&!rwKeepRecentTs(ts)){delete o[id];removed++;changed=true}}
    if(changed)put(k,o);
@@ -430,9 +430,10 @@ const MODELS={
  harmonie_eu:{code:'knmi_harmonie_arome_europe',name:'KNMI HARMONIE Europe',hours:61},
  dmi_harmonie:{code:'dmi_harmonie_arome_europe',name:'DMI HARMONIE Europe',hours:61}
 }
-const MODEL_TOTAL=Object.keys(MODELS).length;
-const FORECAST_CACHE_KEY='rw-forecast-cache-v103',FORECAST_RATE_KEY='rw-forecast-rate-v103';
-const FULL_MIX_CACHE_KEY='rw-full-modelmix-cache-v105';
+const CORE_MIX_MODELS=['harmonie','icon_d2','arome','icon','arpege','ecmwf','gfs','aifs'];
+const MODEL_TOTAL=CORE_MIX_MODELS.length;
+const FORECAST_CACHE_KEY='rw-forecast-cache-v104-core8',FORECAST_RATE_KEY='rw-forecast-rate-v104-core8';
+const FULL_MIX_CACHE_KEY='rw-full-modelmix-cache-v106-core8';
 function mixLocationId(){const lat=Number($('lat').value),lon=Number($('lon').value);return `${Number.isFinite(lat)?lat.toFixed(3):$('lat').value},${Number.isFinite(lon)?lon.toFixed(3):$('lon').value}`}
 function cleanStoredRow(r){if(!r||typeof r!=='object')return null;return {date:r.date,max:r.max,min:r.min,precip:r.precip,dayPrecip:r.dayPrecip,sun:r.sun,snow:r.snow,pop:r.pop,dayPop:r.dayPop,uv:r.uv,gust:r.gust,wind:r.wind,windDir:r.windDir,cloud:r.cloud,humidity:r.humidity,dew:r.dew,pressure:r.pressure,cape:r.cape,thunder:r.thunder,hail:r.hail,complete:r.complete!==false,tempHourCount:r.tempHourCount,firstTempHour:r.firstTempHour,lastTempHour:r.lastTempHour,dayCodes:Array.isArray(r.dayCodes)?r.dayCodes:[],codes:Array.isArray(r.codes)?r.codes:[]}}
 function saveFullMixCache(data,mixRows){try{if($('model').value!=='mix'||!mixRows?.length)return;const all=JSON.parse(localStorage.getItem(FULL_MIX_CACHE_KEY)||'{}'),models={};for(const [k,rows] of Object.entries(data||{})){if(!rows?.length)continue;models[k]={runUsed:rows._runUsed||null,loadedAt:rows._loadedAt||Date.now(),rows:Array.from(rows,cleanStoredRow).filter(Boolean)}}all[mixLocationId()]={savedAt:Date.now(),place:$('place').value||'',models,mixRows:Array.from(mixRows,r=>({...cleanStoredRow(r),txLow:r.txLow,txHigh:r.txHigh,tnLow:r.tnLow,tnHigh:r.tnHigh,count:r.count,agreement:r.agreement,tempAgreement:r.tempAgreement,precipAgreementScore:r.precipAgreementScore,typeAgreement:r.typeAgreement,sunAgreement:r.sunAgreement,modelKeys:r.modelKeys,mixMode:r.mixMode,type:r.type,shortTermMix:r.shortTermMix,ensembleCount:r.ensembleCount||0,ensembleNames:r.ensembleNames||[],ensembleKeys:r.ensembleKeys||[]})).filter(Boolean)};const ids=Object.keys(all).sort((a,b)=>(all[b]?.savedAt||0)-(all[a]?.savedAt||0));for(const id of ids.slice(10))delete all[id];localStorage.setItem(FULL_MIX_CACHE_KEY,JSON.stringify(all))}catch(e){console.warn('Volledige modelmixcache opslaan mislukt',e)}}
@@ -662,30 +663,22 @@ function iconFor(t){return {sun:'☀️',partly:'🌤️',cloud:'☁️',sunshow
 function fmt(n,d=1){return Number.isFinite(n)?n.toFixed(d).replace('.',','):'n.b.'}
 function mixKeysForOffset(off,date,maps){
   const available=list=>list.filter(k=>maps[k]?.[date]);
-  const shortBase=['harmonie','harmonie_eu','dmi_harmonie','icon_d2','arome','icon','arpege'];
-  const globalBest=['ecmwf','ukmo','gfs','aifs'];
-  // Dag 1–3: toon en gebruik alle beschikbare modellen. Regionale modellen krijgen
-  // via modelWeight duidelijk meer invloed; globale modellen blijven als controle meedoen.
-  if(off<=2)return available([...shortBase,...globalBest]);
-  if(off<=4)return available(['icon','arpege','ecmwf','ukmo','gfs','aifs','harmonie_eu','dmi_harmonie']);
-  if(off<=7)return available(['ecmwf','ukmo','gfs','aifs','arpege','icon']);
-  return available(['ecmwf','gfs','aifs','ukmo']);
+  // Compacte kernmix: overlap tussen HARMONIE-configuraties en UKMO is uit de
+  // centrale mix gehaald. Ze blijven desgewenst handmatig selecteerbaar.
+  if(off<=2)return available(['harmonie','icon_d2','arome','icon','arpege','ecmwf','gfs','aifs']);
+  if(off<=4)return available(['icon','arpege','ecmwf','gfs','aifs']);
+  if(off<=7)return available(['ecmwf','gfs','aifs','arpege','icon']);
+  return available(['ecmwf','gfs','aifs']);
 }
 function modelWeight(key,off){
-  if(off<=2){return {harmonie:3.2,harmonie_eu:2.7,dmi_harmonie:2.6,icon_d2:3.3,arome:3.0,icon:2.5,arpege:2.2,ecmwf:1.55,ukmo:1.4,gfs:1.2,aifs:1.2}[key]||1}
-  if(off<=4)return {icon:1.55,arpege:1.35,ecmwf:1.8,ukmo:1.5,gfs:1.3,aifs:1.35,harmonie_eu:1.5,dmi_harmonie:1.45}[key]||1;
-  return {ecmwf:1.75,ukmo:1.45,gfs:1.35,aifs:1.35,arpege:1.05,icon:1.05}[key]||1;
+  if(off<=2){return {harmonie:3.2,icon_d2:3.3,arome:3.0,icon:2.5,arpege:2.2,ecmwf:1.65,gfs:1.3,aifs:1.3}[key]||1}
+  if(off<=4)return {icon:1.55,arpege:1.35,ecmwf:1.9,gfs:1.4,aifs:1.45}[key]||1;
+  return {ecmwf:1.85,gfs:1.45,aifs:1.45,arpege:1.05,icon:1.05}[key]||1;
 }
 function adjustedWeight(key,off,items){
   let w=modelWeight(key,off);
   const sk=getModelSkill()?.[key];
   if(sk&&sk.n>=3&&Number.isFinite(sk.multiplier))w*=sk.multiplier;
-  // Meerdere HARMONIE-configuraties zijn nuttig om te tonen, maar mogen samen
-  // niet drie stemmen waard zijn. Deel hun gezamenlijke invloed over de familie.
-  if(['harmonie','harmonie_eu','dmi_harmonie'].includes(key)){
-    const n=items.filter(x=>['harmonie','harmonie_eu','dmi_harmonie'].includes(x.key)).length||1;
-    w/=Math.sqrt(n);
-  }
   return w;
 }
 function weightedAvg(items,key,off){const a=items.filter(x=>Number.isFinite(x.row?.[key]));if(!a.length)return null;let sw=0,sv=0;for(const x of a){const w=adjustedWeight(x.key,off,items);sw+=w;sv+=x.row[key]*w}return sv/sw}
@@ -739,7 +732,7 @@ function buildMix(data){
    let usedKeys=items.map(x=>x.key),txs=vals.map(v=>v.max).filter(Number.isFinite),tns=vals.map(v=>v.min).filter(Number.isFinite);
    const ens=ensembleTempForDate(date),ensTx=ens.map(x=>x.tx).filter(Number.isFinite),ensTn=ens.map(x=>x.tn).filter(Number.isFinite),allTx=[...txs,...ensTx],allTn=[...tns,...ensTn];
    const ad=modelAgreementDetail(vals),tempAgreementWithEns=spreadScore(allTx);
-   let r={date,max:weightedMedianTemperature(items,ens,'max',off),min:weightedMedianTemperature(items,ens,'min',off),txLow:allTx.length?Math.min(...allTx):null,txHigh:allTx.length?Math.max(...allTx):null,tnLow:allTn.length?Math.min(...allTn):null,tnHigh:allTn.length?Math.max(...allTn):null,modelKeys:usedKeys,ensembleCount:ens.length,ensembleNames:ens.map(x=>x.name),ensembleKeys:ens.map(x=>x.key),precip:modelMedian(vals,'precip'),dayPrecip:modelMedian(vals,'dayPrecip'),sun:modelMedian(vals,'sun'),pop:finalPop,dayPop,uv:modelMedian(vals,'uv'),wind:modelMedian(vals,'wind'),windDir:weightedCircularAvg(items,'windDir',off),gust:maxv(vals,'gust'),gustChance:pct(gustVals.filter(v=>v>=75).length,gustVals.length),snow:modelMedian(vals,'snow'),snowChance:pct(snowVals.filter(v=>v>0.1).length,snowVals.length),thunderChance,hailChance,count:vals.length,complete:vals.every(v=>v.complete),agreement:ad.total,tempAgreement:tempAgreementWithEns,precipAgreementScore:ad.precip,typeAgreement:ad.type,sunAgreement:ad.sun,shortTermMix:off<=2&&usedKeys.some(k=>['harmonie','harmonie_eu','dmi_harmonie','icon_d2','arome','icon','arpege'].includes(k)),dayCodes:vals.flatMap(v=>v.dayCodes||[]),mixMode:off<=2?(usedKeys.filter(k=>['harmonie','harmonie_eu','dmi_harmonie','icon_d2','arome','icon','arpege'].includes(k)).length>=3?'breed-kortetermijn':'aangevuld'):'globaal'};
+   let r={date,max:weightedMedianTemperature(items,ens,'max',off),min:weightedMedianTemperature(items,ens,'min',off),txLow:allTx.length?Math.min(...allTx):null,txHigh:allTx.length?Math.max(...allTx):null,tnLow:allTn.length?Math.min(...allTn):null,tnHigh:allTn.length?Math.max(...allTn):null,modelKeys:usedKeys,ensembleCount:ens.length,ensembleNames:ens.map(x=>x.name),ensembleKeys:ens.map(x=>x.key),precip:modelMedian(vals,'precip'),dayPrecip:modelMedian(vals,'dayPrecip'),sun:modelMedian(vals,'sun'),pop:finalPop,dayPop,uv:modelMedian(vals,'uv'),wind:modelMedian(vals,'wind'),windDir:weightedCircularAvg(items,'windDir',off),gust:maxv(vals,'gust'),gustChance:pct(gustVals.filter(v=>v>=75).length,gustVals.length),snow:modelMedian(vals,'snow'),snowChance:pct(snowVals.filter(v=>v>0.1).length,snowVals.length),thunderChance,hailChance,count:vals.length,complete:vals.every(v=>v.complete),agreement:ad.total,tempAgreement:tempAgreementWithEns,precipAgreementScore:ad.precip,typeAgreement:ad.type,sunAgreement:ad.sun,shortTermMix:off<=2&&usedKeys.some(k=>['harmonie','icon_d2','arome','icon','arpege'].includes(k)),dayCodes:vals.flatMap(v=>v.dayCodes||[]),mixMode:off<=2?(usedKeys.filter(k=>['harmonie','icon_d2','arome','icon','arpege'].includes(k)).length>=3?'breed-kortetermijn':'aangevuld'):'globaal'};
    r.type=centralWeatherType(r);out.push(r)
  }
  return out
@@ -1042,7 +1035,7 @@ async function renderTodayTomorrow(sourceData=null,singleKey=null){
  box.innerHTML=nightHtml+dayHtml;
 }
 
-const FINE_KEYS=['harmonie','harmonie_eu','dmi_harmonie','icon_d2','arome'];
+const FINE_KEYS=['harmonie','icon_d2','arome'];
 function fineMedian(v){const a=v.filter(Number.isFinite).sort((x,y)=>x-y);if(!a.length)return null;const m=Math.floor(a.length/2);return a.length%2?a[m]:(a[m-1]+a[m])/2}
 function fineGroundFrostState(x){
  const tn=x.tn,wind=x.wind,cloud=x.cloud,dew=x.dew;
@@ -1371,7 +1364,7 @@ async function fetchFavoriteModelDay(g,key){
  try{const rr=await fetch(url,{cache:'no-store'}),j=await rr.json();if(!rr.ok||j.error||!j.daily?.time)return null;const tomorrow=isoDatePlus(nlToday(),1),i=j.daily.time.indexOf(tomorrow);if(i<0)return null;return {key,date:tomorrow,max:+j.daily.temperature_2m_max[i],min:+j.daily.temperature_2m_min[i],precip:+j.daily.precipitation_sum[i]||0,sun:(+j.daily.sunshine_duration?.[i]||0)/3600,type:wmoType(j.daily.weather_code[i])}}catch(e){return null}
 }
 async function favoriteDynamicMix(g){
- const keys=['harmonie','icon_d2','arome','icon','ecmwf','ukmo','gfs','arpege','aifs'];const got=(await Promise.all(keys.map(k=>fetchFavoriteModelDay(g,k)))).filter(Boolean);if(!got.length)return null;
+ const keys=['harmonie','icon_d2','arome','icon','ecmwf','gfs','arpege','aifs'];const got=(await Promise.all(keys.map(k=>fetchFavoriteModelDay(g,k)))).filter(Boolean);if(!got.length)return null;
  const short=got.filter(x=>['harmonie','icon_d2','arome','icon'].includes(x.key));let use=short.length>=3?short:short.concat(got.filter(x=>!short.includes(x))).slice(0,6);if(!use.length)use=got.slice(0,6);
  const vals=use.map(x=>({max:x.max,min:x.min,precip:x.precip,sun:x.sun,pop:x.precip>=.1?100:0}));const ad=modelAgreementDetail(vals),wet=use.filter(x=>x.precip>=.1).length;const r={date:use[0].date,max:avg(use,'max'),min:avg(use,'min'),precip:avg(use,'precip'),sun:avg(use,'sun'),pop:pct(wet,use.length),count:use.length,agreement:ad.total,modelKeys:use.map(x=>x.key)};r.type=centralWeatherType(r);return r;
 }
@@ -1384,7 +1377,7 @@ function detailKeysForDate(date){
   if($('model').value!=='mix')return [$('model').value];
   const day=lastRows.find(r=>r.date===date);
   if(day?.modelKeys?.length)return [...day.modelKeys];
-  return ['ecmwf','ukmo','gfs','icon','arpege','aifs'].filter(k=>MODELS[k]);
+  return ['ecmwf','gfs','icon','arpege','aifs'].filter(k=>MODELS[k]);
 }
 function dayDetailUrl(m,date){
   const lat=$('lat').value,lon=$('lon').value,vars='temperature_2m,apparent_temperature,dew_point_2m,precipitation,sunshine_duration,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m,pressure_msl,visibility,relative_humidity_2m';
@@ -1809,7 +1802,7 @@ $('load').onclick=async()=>{
   try{
     setStatus('Modelgegevens parallel ophalen…',10);
     if($('model').value==='mix'){
-      const order=['gfs','ecmwf','aifs','icon','icon_d2','ukmo','arome','arpege','harmonie','harmonie_eu','dmi_harmonie'];
+      const order=['gfs','ecmwf','aifs','icon','icon_d2','arome','arpege','harmonie'];
       const storedMix=forecastRateLimitedToday()?bestStoredMix():null;
       if(storedMix?.mixRows?.length){
         const data=storedMix.data||{};lastMixData=data;lastRows=storedMix.mixRows.map(r=>({...r}));
@@ -1926,7 +1919,7 @@ async function drawFiveDayFigure(save=true){
     let y=466;for(const [ico,label,val] of lines){x.textAlign='left';x.font='18px Arial';x.fillStyle='#116bd0';x.fillText(ico,left+16,y);x.font='15px Arial';x.fillStyle='#21364f';x.fillText(label,left+48,y);x.textAlign='right';x.font='700 15px Arial';x.fillStyle='#142b4e';x.fillText(val,left+cw-14,y);x.strokeStyle='#dce7f3';x.beginPath();x.moveTo(left+14,y+14);x.lineTo(left+cw-14,y+14);x.stroke();y+=54;}
   }
   x.textAlign='left';x.font='14px Arial';x.fillStyle='#5f7186';x.fillText(`${isAutoRun()?'Auto · nieuwste runs':('Run '+$('date').value+' '+$('run').value+' UTC')} · ${$('place').value || ($('lat').value+' N, '+$('lon').value+' E')}`,28,862);
-  x.textAlign='right';x.fillText('HARMONIE · AROME · ICON · ECMWF · GFS · UKMO · AIFS',W-28,862);if(rows.some(r=>Number.isFinite(r.gustChance)&&r.gustChance>0)){x.textAlign='left';x.font='12px Arial';x.fillStyle='#7b8899';x.fillText('Kans ≥ 75 km/u = aandeel modellen dat zware windstoten berekent',28,885);}
+  x.textAlign='right';x.fillText('HARMONIE · AROME · ICON · ARPEGE · ECMWF · GFS · AIFS',W-28,862);if(rows.some(r=>Number.isFinite(r.gustChance)&&r.gustChance>0)){x.textAlign='left';x.font='12px Arial';x.fillStyle='#7b8899';x.fillText('Kans ≥ 75 km/u = aandeel modellen dat zware windstoten berekent',28,885);}
   lastFiveCanvas=c;
   if(save)c.toBlob(b=>download(b,`regioweer-5-daagse-${$('date').value}.png`),'image/png');
   return c;
@@ -2210,7 +2203,7 @@ function getPrevSnapshot(){try{return JSON.parse(localStorage.getItem(snapshotKe
 function saveSnapshot(){try{localStorage.setItem(snapshotKey(),JSON.stringify({time:Date.now(),rows:lastRows.map(r=>({date:r.date,max:r.max,min:r.min,precip:r.precip,dayPrecip:r.dayPrecip,sun:r.sun,gust:r.gust,wind:r.wind,windDir:r.windDir,uv:r.uv,pop:r.pop,dayPop:r.dayPop,snow:r.snow,agreement:r.agreement,tempAgreement:r.tempAgreement,precipAgreementScore:r.precipAgreementScore,typeAgreement:r.typeAgreement,sunAgreement:r.sunAgreement,count:r.count,txLow:r.txLow,txHigh:r.txHigh,tnLow:r.tnLow,tnHigh:r.tnHigh,modelKeys:r.modelKeys,mixMode:r.mixMode,type:r.type,complete:r.complete})),mode:$('model').value}))}catch(e){}}
 function renderChanges(prev){const p=$('changesPanel'),box=$('changesList');if(!p||!box)return;if(!prev?.rows?.length||!lastRows.length){p.classList.remove('hidden');box.innerHTML='<div class="changeItem">Eerste referentie opgeslagen. Bij de volgende verversing zie je hier wat de verwachting veranderde.</div>';return}const pm=Object.fromEntries(prev.rows.map(r=>[r.date,r])),items=[];for(const r of lastRows.slice(0,6)){const o=pm[r.date];if(!o)continue;const tx=r.max-o.max,tn=r.min-o.min,pr=(r.precip||0)-(o.precip||0),su=(r.sun||0)-(o.sun||0);let parts=[];if(Math.abs(tx)>=1)parts.push(`TX ${tx>0?'▲ +':'▼ '}${tx.toFixed(1).replace('.',',')}°`);if(Math.abs(tn)>=1.5)parts.push(`TN ${tn>0?'▲ +':'▼ '}${tn.toFixed(1).replace('.',',')}°`);if(Math.abs(pr)>=2)parts.push(`${pr>0?'natter':'droger'} ${Math.abs(pr).toFixed(1).replace('.',',')} mm`);if(Math.abs(su)>=2)parts.push(`${su>0?'zonniger':'minder zon'} ${Math.abs(su).toFixed(1).replace('.',',')} u`);if(parts.length)items.push({date:r.date,parts,strong:Math.abs(tx)>=3||Math.abs(pr)>=10})}p.classList.remove('hidden');box.innerHTML=items.length?items.slice(0,6).map(i=>`<div class="changeItem ${i.strong?'strong':''}"><b>${dayShort(i.date)}</b> · ${i.parts.join(' · ')}</div>`).join(''):'<div class="changeItem">Geen grote veranderingen sinds de vorige verversing.</div>'}
 function likelyOutsideDomain(k){const lat=+$('lat').value,lon=+$('lon').value;if(k==='harmonie')return !(lat>=49&&lat<=55.8&&lon>=1.5&&lon<=8.5);if(k==='icon_d2')return !(lat>=43&&lat<=58&&lon>=-4&&lon<=20);if(k==='arome')return !(lat>=37&&lat<=55&&lon>=-12&&lon<=18);return false}
-function renderModelStatus(data){const p=$('modelStatusPanel'),box=$('modelStatusGrid');if(!p||!box)return;p.classList.remove('hidden');const keys=$('model').value==='mix'?Object.keys(MODELS):[$('model').value];box.innerHTML=keys.map(k=>{const rows=data[k]||[];const ok=rows.length>0;const ru=rows._runUsed||(isAutoRun()?'nieuwste automatisch':runIso());const lt=rows._loadedAt?new Date(rows._loadedAt).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}):'';const why=likelyOutsideDomain(k)?'buiten modeldomein':'run of gegevens niet beschikbaar';return `<div class="modelPill ${ok?'':'missing'}"><b>${MODELS[k]?.name||k}</b>${ok?'✓ beschikbaar':'✕ niet beschikbaar'}<br><span>${ok?ru:why}</span>${ok&&lt?`<div class="freshMini">geladen ${lt}</div>`:''}</div>`}).join('')+($('model').value==='mix'?`<div class="modelPill"><b>🌐 Modelmix</b>✓ ${keys.filter(k=>(data[k]||[]).length).length}/${keys.length} modellen<br><span>vanaf 3 modellen mediaan · bij 2 centrale waarde + range</span></div>`:'')}
+function renderModelStatus(data){const p=$('modelStatusPanel'),box=$('modelStatusGrid');if(!p||!box)return;p.classList.remove('hidden');const keys=$('model').value==='mix'?CORE_MIX_MODELS:[$('model').value];box.innerHTML=keys.map(k=>{const rows=data[k]||[];const ok=rows.length>0;const ru=rows._runUsed||(isAutoRun()?'nieuwste automatisch':runIso());const lt=rows._loadedAt?new Date(rows._loadedAt).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'}):'';const why=likelyOutsideDomain(k)?'buiten modeldomein':'run of gegevens niet beschikbaar';return `<div class="modelPill ${ok?'':'missing'}"><b>${MODELS[k]?.name||k}</b>${ok?'✓ beschikbaar':'✕ niet beschikbaar'}<br><span>${ok?ru:why}</span>${ok&&lt?`<div class="freshMini">geladen ${lt}</div>`:''}</div>`}).join('')+($('model').value==='mix'?`<div class="modelPill"><b>🌐 Modelmix</b>✓ ${keys.filter(k=>(data[k]||[]).length).length}/${keys.length} modellen<br><span>kernmix · gewogen mediaan TX/TN · bij 2 centrale waarde + range</span></div>`:'')}
 
 function favoriteNames(){let a=['Houten'];try{a=[...a,...JSON.parse(localStorage.getItem('regioweer-favorites')||'[]')]}catch(e){}return [...new Set(a)].slice(0,6)}
 function saveFavoriteMini(){if(!lastRows.length)return;let cache={};try{cache=JSON.parse(localStorage.getItem('rw-favmini')||'{}')}catch(e){};const r=lastRows.find(x=>x.date>$('date').value)||lastRows[0];cache[$('place').value]={time:Date.now(),r:{max:r.max,min:r.min,type:r.type||centralWeatherType(r),date:r.date,precip:r.precip}};localStorage.setItem('rw-favmini',JSON.stringify(cache));renderFavoriteMini()}
@@ -2696,12 +2689,12 @@ function nsAggregate(modelSets){
    // Dag 1-3: alle beschikbare 11 modellen; daarna valt een model pas weg
    // wanneer het buiten zijn bruikbare termijn komt.
    const allowed=lead<=2
-     ? ['harmonie','harmonie_eu','dmi_harmonie','icon_d2','arome','icon','arpege','ecmwf','ukmo','gfs','aifs']
+     ? ['harmonie','icon_d2','arome','icon','arpege','ecmwf','gfs','aifs']
      : lead<=4
-       ? ['icon','arpege','ecmwf','ukmo','gfs','aifs','harmonie_eu','dmi_harmonie']
+       ? ['icon','arpege','ecmwf','gfs','aifs']
        : lead<=7
-         ? ['ecmwf','ukmo','gfs','aifs','arpege','icon']
-         : ['ecmwf','gfs','aifs','ukmo'];
+         ? ['ecmwf','gfs','aifs','arpege','icon']
+         : ['ecmwf','gfs','aifs'];
    const pool=x.vals.filter(v=>allowed.includes(v.key));
    return {point:x.point,tx:nsMedian(pool.map(v=>v.tx)),tn:nsMedian(pool.map(v=>v.tn)),rain:nsMedian(pool.map(v=>v.rain)),sun:nsMedian(pool.map(v=>v.sun)),wind:nsMedian(pool.map(v=>v.wind)),gust:nsMax(pool.map(v=>v.gust)),dir:nsCircularMean(pool.map(v=>v.dir)),models:[...new Set(pool.map(v=>v.model))],modelVals:pool.map(v=>({model:v.model,key:v.key,tx:v.tx,tn:v.tn,rain:v.rain,sun:v.sun,wind:v.wind,gust:v.gust,dir:v.dir}))}
   });
@@ -2918,12 +2911,11 @@ async function renderNationalScan(force=false){
  if(!force&&cached?.days&&Date.now()-(cached.savedAt||0)<3*3600e3){renderNationalScanData(cached.days,cached.models||[],true);return}
  const got=[];
  const scanModels=[
-  ['harmonie','HARMONIE NL'],['harmonie_eu','HARMONIE EU'],['dmi_harmonie','DMI HARMONIE'],
-  ['icon_d2','ICON-D2'],['arome','AROME'],['icon','ICON-EU'],['arpege','ARPEGE'],
-  ['ecmwf','ECMWF'],['ukmo','UKMO'],['gfs','GFS'],['aifs','AIFS']
+  ['harmonie','HARMONIE NL'],['icon_d2','ICON-D2'],['arome','AROME'],['icon','ICON-EU'],['arpege','ARPEGE'],
+  ['ecmwf','ECMWF'],['gfs','GFS'],['aifs','AIFS']
  ];
  for(const [key,name] of scanModels){
-  try{const data=await nsFetchModel(MODELS[key].code);if(data.length)got.push({key,name,group:['harmonie','harmonie_eu','dmi_harmonie','icon_d2','arome'].includes(key)?'fine':'long',data})}
+  try{const data=await nsFetchModel(MODELS[key].code);if(data.length)got.push({key,name,group:['harmonie','icon_d2','arome'].includes(key)?'fine':'long',data})}
   catch(e){console.warn('Landelijke scan',name,e.message)}
  }
  if(!got.length){if(cached?.days){renderNationalScanData(cached.days,cached.models||[],true);$('nationalScanStatus').textContent+=' · ophalen mislukt'}else $('nationalScanStatus').textContent='landelijke scan tijdelijk niet beschikbaar';return}
