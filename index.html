@@ -2209,10 +2209,12 @@ $('modelmixPng')?.addEventListener('click',()=>drawModelmixCardsPng().catch(e=>s
 
 function randstadPngWeatherType(rain,sun){
  const mm=Number(rain?.mix),su=Number(sun);
- // In de Randstad-PNG blijft de verwachte zon zichtbaar, ook op natte dagen.
- // Zo krijgt een dag met bijvoorbeeld 6-10 uur zon en enkele mm neerslag geen kaal regenicoon.
- if(Number.isFinite(mm)&&mm>=3)return Number.isFinite(su)&&su>=4?'sunshowers':'rain';
- if(Number.isFinite(mm)&&mm>=.25)return Number.isFinite(su)&&su>=3?'sunshowers':'showers';
+ const hasSun=Number.isFinite(su)&&su>=4;
+ const someSun=Number.isFinite(su)&&su>=2;
+ const wet=Number.isFinite(mm)&&mm>=0.25;
+ if(wet&&hasSun)return 'sunshowers';
+ if(wet&&someSun&&mm<3)return 'sunshowers';
+ if(wet)return mm>=3?'rain':'showers';
  if(Number.isFinite(su)&&su>=7)return 'sun';
  if(Number.isFinite(su)&&su>=3)return 'partly';
  return 'cloud';
