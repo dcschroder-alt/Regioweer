@@ -637,7 +637,7 @@ function modelAgreementDetail(vals){
   const type=types.length?Math.round(Math.max(...Object.values(counts))/types.length*100):null;
   const suns=vals.map(v=>v.sun).filter(Number.isFinite);let sun=null;if(suns.length>=2){const sp=Math.max(...suns)-Math.min(...suns);sun=sp<=2?100:sp<=4?90:sp<=6?75:sp<=8?60:45}
   if(vals.length<3)return {total:null,temp,precip,type,sun};
-  const parts=[[type,42],[precip,25],[temp,20],[sun,13]].filter(([v])=>Number.isFinite(v)),w=parts.reduce((a,x)=>a+x[1],0);
+  const parts=[[temp,40],[type,25],[precip,20],[sun,15]].filter(([v])=>Number.isFinite(v)),w=parts.reduce((a,x)=>a+x[1],0);
   let total=w?Math.round(parts.reduce((a,x)=>a+x[0]*x[1],0)/w):null;
   if(type>=85&&precip>=85&&temp>=75)total=Math.max(total,82);
   if(type>=90&&precip>=90&&temp>=80)total=Math.max(total,86);
@@ -649,6 +649,9 @@ function modelAgreementDetail(vals){
   if(txsp<=2.5&&Number.isFinite(meanSun)&&meanSun>=4&&pravg<2.5)total=Math.max(total,76);
   // Een kleine neerslagsom met veel droge/zonuren is meestal timingonzekerheid, geen onzeker hoofdweerbeeld.
   if(txsp<=2.5&&Number.isFinite(meanSun)&&meanSun>=6&&pravg<1.5)total=Math.max(total,78);
+  // Een TX-spreiding van circa 3 graden is op dag 4+ geen lage overeenkomst op zichzelf.
+  // Kleine verschillen tussen droog/licht-buiig worden als timingonzekerheid gezien.
+  if(txsp<=3.5&&temp>=90&&type>=50)total=Math.max(total,60);
   return {total:Number.isFinite(total)?Math.max(0,Math.min(100,total)):null,temp,precip,type,sun};
 }
 function modelAgreement(vals){return modelAgreementDetail(vals).total}
@@ -1611,7 +1614,7 @@ function buildDayNarrative(date,dayMix,rows,arrays,wind,dir,gust,dew){
    else if(wetp(nPart)&&wetp(oPart)&&dryp(mPart))bits.push(`In de nacht en ochtend kan neerslag vallen; in de middag wordt het droog${Number(dayMix.sun)>=4?' en zonniger':''}.`);
    else if(dryp(oPart)&&dryp(mPart)&&wetp(aPart))bits.push(`Ochtend en middag verlopen overwegend droog; in de avond neemt de kans op regen of buien toe.`);
    else if(dryp(oPart)&&wetp(mPart)&&wetp(aPart))bits.push(`De ochtend verloopt overwegend droog, vanaf de middag neemt de kans op regen of buien toe.`);
-   else if(wetp(oPart)&&wetp(mPart)&&wetp(aPart))bits.push(`Zowel in de ochtend, middag als avond is er een duidelijk neerslagsignaal.`);
+   else if(wetp(oPart)&&wetp(mPart)&&wetp(aPart)&&daytimePrecip(dayMix)>=.1)bits.push(`In de ochtend, middag en avond is er kans op buien.`);
  }
  if(isMix&&Number.isFinite(lo)&&Number.isFinite(hi)&&lead<3){
    const spread=hi-lo;
@@ -1619,11 +1622,11 @@ function buildDayNarrative(date,dayMix,rows,arrays,wind,dir,gust,dew){
    else if(n===2)bits.push(`Er zijn twee modellen met volledige dekking. De centrale waarde ligt rond <strong>${Math.round(dayMix.max)}°</strong>, met een range van <strong>${lo}–${hi}°</strong>.`);
    else bits.push(`Voor deze termijn is slechts één model met volledige dekking beschikbaar: maximum rond <strong>${Math.round(dayMix.max)}°</strong>.`);
  }
- if(isMix&&lead>=3){const win=assistantDayWindowSentence(date);if(win)bits.push(win);}
+ if(isMix&&lead>=3&&Number.isFinite(lo)&&Number.isFinite(hi)){const spread=hi-lo;if(n>=2)bits.push(spread<=2?`De centrale maximumtemperatuur ligt rond <strong>${Math.round(dayMix.max)}°</strong>; de modellen liggen met <strong>${lo}–${hi}°</strong> dicht bij elkaar.`:`De centrale maximumtemperatuur ligt rond <strong>${Math.round(dayMix.max)}°</strong>, met een modelrange van <strong>${lo}–${hi}°</strong>.`);}
  if(isMix&&Number.isFinite(sc)&&sc<70){
    const why=[];
    if(n<3)why.push(`voor deze termijn slechts <strong>${n} modellen</strong> met volledige dekking beschikbaar zijn`);
-   if(Number.isFinite(lo)&&Number.isFinite(hi)&&hi-lo>=3)why.push(`de maxima uiteenlopen van <strong>${lo} tot ${hi}°</strong>`);
+   if(Number.isFinite(lo)&&Number.isFinite(hi)&&hi-lo>=5)why.push(`de maxima vrij sterk uiteenlopen van <strong>${lo} tot ${hi}°</strong>`);
    if(Number.isFinite(dayMix.precipAgreementScore)&&dayMix.precipAgreementScore<65)why.push('de modellen verschillen over de aanwezigheid of hoeveelheid van neerslag');
    if(Number.isFinite(dayMix.typeAgreement)&&dayMix.typeAgreement<65)why.push('het verwachte weerbeeld niet bij alle modellen hetzelfde is');
    if(lead>=7&&n<=3&&!why.some(x=>x.includes('volledige dekking')))why.push('op deze langere termijn minder modellen volledige dekking hebben');
