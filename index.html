@@ -12,6 +12,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
 <link rel="apple-touch-icon" sizes="192x192" href="./icon-192.png">
 <link rel="manifest" href="./manifest.webmanifest">
+<!-- LH5-FIX-2026-10-03 -->
 <title>Weer app van Rico · v1.0</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#162033;background:#eef3f9}
@@ -2335,30 +2336,63 @@ async function climateMergeRecent(rows,today){
  out._recentFallbackDates=added;
  return out;
 }
-async function loadClimateSun5(end){
- const cacheKey='rw-climate-sun5-v1016';
- try{const o=JSON.parse(localStorage.getItem(cacheKey)||'null');if(o?.map&&Date.now()-(o.time||0)<6*3600e3)return o.map}catch(e){}
+async function loadClimateSun5(end,force=false){
+ const cacheKey='rw-climate-sun5-v1017-lh5';
+ const stations=[235,280,260,310,380]; // LH5: De Kooy, Eelde, De Bilt, Vlissingen, Maastricht
+ const stationNames={235:'De Kooy',280:'Eelde',260:'De Bilt',310:'Vlissingen',380:'Maastricht'};
  const url='https://www.daggegevens.knmi.nl/klimatologie/daggegevens';
- const stations=[235,280,260,310,380]; // Den Helder/De Kooy, Eelde, De Bilt, Vlissingen, Maastricht
- const form=new URLSearchParams({stns:stations.join(':'),vars:'SQ',start:'19510101',end});
- try{
-  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:form.toString(),cache:'no-store'});
-  if(!res.ok)throw new Error(`KNMI zon 5 stations HTTP ${res.status}`);
-  const txt=await res.text(),byDate={};
-  for(const line of txt.split(/\r?\n/)){
-   if(!/^\s*(235|280|260|310|380)\s*,/.test(line))continue;
-   const a=line.split(',').map(x=>x.trim()),stn=Number(a[0]),d=a[1],sq=Number(a[2]);
-   if(!stations.includes(stn)||!/^\d{8}$/.test(d)||!Number.isFinite(sq))continue;
-   (byDate[d]||(byDate[d]=[])).push(Math.max(0,sq/10));
+ let cached=null;
+ try{cached=JSON.parse(localStorage.getItem(cacheKey)||'null');if(!force&&cached?.map&&Date.now()-(cached.time||0)<6*3600e3){window.__climateSun5Meta=cached.meta||null;return cached.map}}catch(e){}
+ const parse=(txt,expectedStations)=>{
+  const lines=String(txt||'').split(/\r?\n/),byDate={},seen=new Set(),headerLine=lines.find(x=>x.trim().startsWith('#')&&x.toUpperCase().includes('YYYYMMDD')&&x.toUpperCase().includes('SQ'))||'';
+  const header=headerLine.replace(/^\s*#+\s*/,'').split(',').map(x=>x.trim().toUpperCase());
+  const iStn=header.indexOf('STN'),iDate=header.indexOf('YYYYMMDD'),iSq=header.indexOf('SQ');
+  for(const line of lines){
+   if(!/^\s*\d+\s*,/.test(line))continue;
+   const a=line.split(',').map(x=>x.trim());
+   const stn=Number(a[iStn>=0?iStn:0]),d=String(a[iDate>=0?iDate:1]||'').trim(),raw=String(a[iSq>=0?iSq:2]??'').trim();
+   const sq=Number(raw);
+   if(!expectedStations.includes(stn)||!/^\d{8}$/.test(d)||raw===''||!Number.isFinite(sq))continue;
+   seen.add(stn);(byDate[d]||(byDate[d]={}))[stn]=sq<0?0:sq/10;
   }
-  const map={};for(const [d,v] of Object.entries(byDate))if(v.length===5)map[`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`]=v.reduce((a,b)=>a+b,0)/5;
-  if(!Object.keys(map).length)throw new Error('Geen complete 5-stations zonreeks herkend');
-  try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),map}))}catch(e){}
+  return {byDate,seen:[...seen]};
+ };
+ const fetchStations=async(stns)=>{
+  const form=new URLSearchParams({stns:stns.join(':'),vars:'SQ',start:'19510101',end});
+  const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:form.toString(),cache:'no-store'});
+  if(!res.ok)throw new Error(`KNMI LH5 HTTP ${res.status}`);
+  return parse(await res.text(),stns);
+ };
+ try{
+  let byDate={},method='1 gecombineerde KNMI-aanvraag';
+  try{
+   const pack=await fetchStations(stations);byDate=pack.byDate;
+   if(pack.seen.length!==5)throw new Error(`slechts ${pack.seen.length}/5 LH5-stations herkend`);
+  }catch(firstErr){
+   // Sommige browsers/proxy's verwerken een gecombineerde stationsaanvraag niet betrouwbaar.
+   // Val dan terug op vijf kleine aanvragen en combineer pas daarna.
+   method='5 afzonderlijke KNMI-aanvragen';byDate={};
+   const packs=await Promise.all(stations.map(stn=>fetchStations([stn])));
+   packs.forEach(pack=>{for(const [d,obj] of Object.entries(pack.byDate)){byDate[d]=Object.assign(byDate[d]||{},obj)}});
+  }
+  const map={},coverageByYear={};
+  for(const [d,obj] of Object.entries(byDate)){
+   if(stations.every(stn=>Number.isFinite(obj[stn]))){
+    const iso=`${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;
+    map[iso]=stations.reduce((sum,stn)=>sum+obj[stn],0)/5;
+    const y=d.slice(0,4);coverageByYear[y]=(coverageByYear[y]||0)+1;
+   }
+  }
+  const dates=Object.keys(map).sort();
+  if(!dates.length)throw new Error('Geen complete LH5-dagen herkend');
+  const meta={stations:stations.map(stn=>({stn,name:stationNames[stn]})),lastComplete:dates.at(-1),firstComplete:dates[0],coverageByYear,method};
+  window.__climateSun5Meta=meta;
+  try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),map,meta}))}catch(e){}
   return map;
  }catch(e){
-  console.warn('Zon 5 hoofdstations niet beschikbaar',e);
-  try{const o=JSON.parse(localStorage.getItem(cacheKey)||'null');if(o?.map)return o.map}catch(_){}
-  return null;
+  console.warn('LH5-zonneschijnduur niet beschikbaar',e);
+  if(cached?.map){window.__climateSun5Meta=cached.meta||null;return cached.map}
+  window.__climateSun5Meta=null;return null;
  }
 }
 async function loadClimateDaily(force=false){
@@ -2374,10 +2408,10 @@ async function loadClimateDaily(force=false){
    }
   }catch(e){}
  }
- if(climateDailyCache&&!force){climateDailyCache=await climateMergeRecent(climateDailyCache,today);const sm=await loadClimateSun5(end);if(sm)for(const r of climateDailyCache){r.sunDeBilt=r.sunDeBilt??r.sun;r.sun=Number.isFinite(sm[r.date])?sm[r.date]:null;r.sunSource=Number.isFinite(r.sun)?'5 hoofdstations':null}return climateDailyCache;}
+ if(climateDailyCache&&!force){climateDailyCache=await climateMergeRecent(climateDailyCache,today);const sm=await loadClimateSun5(end);for(const r of climateDailyCache){r.sunDeBilt=r.sunDeBilt??(r.sunSource==='5 hoofdstations'?null:r.sun);if(sm&&Number.isFinite(sm[r.date])){r.sun=sm[r.date];r.sunSource='5 hoofdstations'}else{r.sun=null;r.sunSource=null}}return climateDailyCache;}
  const age=Date.now()-savedTime,expectedMin=climateShiftDate(today,-1),hasProv=savedRows.some(r=>r.provisional),upToDate=savedLatest>=expectedMin;
  const ttl=hasProv?15*60e3:(upToDate?6*3600e3:5*60e3);
- if(!force&&savedRows.length&&age<ttl){climateDailyCache=await climateMergeRecent(savedRows,today);const sm=await loadClimateSun5(end);if(sm)for(const r of climateDailyCache){r.sunDeBilt=r.sunDeBilt??r.sun;r.sun=Number.isFinite(sm[r.date])?sm[r.date]:null;r.sunSource=Number.isFinite(r.sun)?'5 hoofdstations':null}climateDailyCache._fromCache=true;climateDailyCache._latestSource=climateDailyCache.at(-1)?.date||savedLatest;return climateDailyCache}
+ if(!force&&savedRows.length&&age<ttl){climateDailyCache=await climateMergeRecent(savedRows,today);const sm=await loadClimateSun5(end);for(const r of climateDailyCache){r.sunDeBilt=r.sunDeBilt??(r.sunSource==='5 hoofdstations'?null:r.sun);if(sm&&Number.isFinite(sm[r.date])){r.sun=sm[r.date];r.sunSource='5 hoofdstations'}else{r.sun=null;r.sunSource=null}}climateDailyCache._fromCache=true;climateDailyCache._latestSource=climateDailyCache.at(-1)?.date||savedLatest;return climateDailyCache}
  const url='https://www.daggegevens.knmi.nl/klimatologie/daggegevens';
  const form=new URLSearchParams({stns:'260',vars:'TG:TN:TX:SQ:RH',start:'19510101',end});
  let fresh=[],header=null,rawLatest='',knmiErr=null;
@@ -2407,7 +2441,7 @@ async function loadClimateDaily(force=false){
  // Zonneschijnduur in de klimaatmonitor is het gemiddelde van 5 hoofdstations:
  // Den Helder, Eelde, De Bilt, Vlissingen en Maastricht. Nooit mengen met De Bilt-zon.
  const sun5=await loadClimateSun5(end);
- if(sun5){for(const r of rows){r.sunDeBilt=r.sun; r.sun=Number.isFinite(sun5[r.date])?sun5[r.date]:null; r.sunSource=Number.isFinite(r.sun)?'5 hoofdstations':null}}
+ if(sun5){for(const r of rows){r.sunDeBilt=r.sunSource==='5 hoofdstations'?r.sunDeBilt:r.sun; r.sun=Number.isFinite(sun5[r.date])?sun5[r.date]:null; r.sunSource=Number.isFinite(r.sun)?'5 hoofdstations':null}}else{for(const r of rows){r.sunDeBilt=r.sunSource==='5 hoofdstations'?r.sunDeBilt:r.sun;r.sun=null;r.sunSource=null}}
  const freshLatest=fresh.at(-1)?.date||'',mergedLatest=rows.at(-1)?.date||'',lastOfficial=rows.filter(isOfficialClimateRow).at(-1)?.date||'';
  rows._fromCache=!fresh.length;rows._cacheError=knmiErr?.message||'';rows._freshLatest=freshLatest;rows._latestSource=mergedLatest;rows._lastOfficial=lastOfficial;
  try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),rows,header,rawLatest,freshLatest,lastOfficial,mergedLatest}))}catch(e){}
@@ -2479,11 +2513,17 @@ async function renderEditorialDesk(stories=window.__climateStories||[]){const p=
 
 
 function annualSunNormal(rows,a=1996,b=2025){
- const totals=[];for(let y=a;y<=b;y++){const rr=rows.filter(r=>r.year===y&&isOfficialClimateRow(r)&&Number.isFinite(r.sun));if(rr.length>=360)totals.push(climateSum(rr,'sun'))}
+ const totals=[];
+ for(let y=a;y<=b;y++){
+  const expected=((y%4===0&&y%100!==0)||y%400===0)?366:365;
+  const rr=rows.filter(r=>r.year===y&&isOfficialClimateRow(r)&&r.sunSource==='5 hoofdstations'&&Number.isFinite(r.sun));
+  // Geen gedeeltelijke jaarsommen als 'normaal' accepteren: dat was de oorzaak van de te lage waarde.
+  if(rr.length===expected)totals.push(climateSum(rr,'sun'));
+ }
  return totals.length>=25?totals.reduce((x,y)=>x+y,0)/totals.length:null;
 }
 function annualSunCrossing(rows,year,target){
- let sum=0;for(const r of rows.filter(r=>r.year===year&&isOfficialClimateRow(r)).sort((a,b)=>a.date.localeCompare(b.date))){if(Number.isFinite(r.sun))sum+=r.sun;if(sum>=target)return{date:r.date,sum,kind:'observed'}}return null;
+ let sum=0;for(const r of rows.filter(r=>r.year===year&&isOfficialClimateRow(r)&&r.sunSource==='5 hoofdstations'&&Number.isFinite(r.sun)).sort((a,b)=>a.date.localeCompare(b.date))){sum+=r.sun;if(sum>=target)return{date:r.date,sum,kind:'observed'}}return null;
 }
 function projectedSunCrossing(rows,year,target,today){
  let sum=climateSum(rows.filter(r=>r.year===year&&r.date<=today),'sun');if(sum>=target)return null;
@@ -2491,7 +2531,7 @@ function projectedSunCrossing(rows,year,target,today){
 }
 function annualSunStory(rows,year,today){
  const normal=annualSunNormal(rows,1996,2025);
- const currentRows=rows.filter(r=>r.year===year&&r.date<=today&&isOfficialClimateRow(r));
+ const currentRows=rows.filter(r=>r.year===year&&r.date<=today&&isOfficialClimateRow(r)&&r.sunSource==='5 hoofdstations'&&Number.isFinite(r.sun));
  const cur=climateSum(currentRows,'sun'),diff=Number.isFinite(normal)?cur-normal:null,cross=Number.isFinite(normal)?annualSunCrossing(rows,year,normal):null;
  const lastOfficial=currentRows.length?currentRows.map(r=>r.date).sort().at(-1):null;
  let out=`<div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(120,140,160,.25)">☀️ <b>Zonuren ${year} · 5 hoofdstations:</b> <b>${climateFmt(cur)} uur</b>${lastOfficial?` · definitief t/m <b>${new Date(lastOfficial+'T12:00:00').toLocaleDateString('nl-NL',{day:'numeric',month:'long'})}</b>`:''}. `;
@@ -2548,11 +2588,35 @@ async function renderClimateLive(rows){
  box.innerHTML=`<div class="climateLiveHead"><b>🌡️ De Bilt · TX/TN</b><span>${label}</span></div><div class="climateLiveGrid">${climateCard('Vandaag',a,true)}${climateCard('Gisteren',b,false)}</div>${verify}${mixVerificationStory(rows)}`;box.classList.remove('hidden');
 }
 
-async function renderClimate(force=false){const status=$('climateStatus'),body=$('climateBody');if(!status||!body)return;status.textContent='KNMI De Bilt wordt bijgewerkt…';try{const rows=await loadClimateDaily(force);try{renderV95Insights(rows)}catch(err){console.warn('Klimaat-extra v95 overgeslagen',err)}try{renderV97ClimateExtras(rows)}catch(err){console.warn('Klimaat-extra v97 overgeslagen',err)}const today=climateNlDate(),Y=+today.slice(0,4),M=+today.slice(5,7),D=+today.slice(8,10),refA=Y-30,refB=Y-1;let obs=rows.filter(r=>r.year===Y&&r.month===M&&r.date<=today),lastObs=obs.at(-1);const dayLimit=lastObs?.day||Math.max(1,D-1),normalTo=climateNormal(rows,M,dayLimit,refA,refB),fullNorm=climateNormal(rows,M,31,refA,refB);const tg=climateAvg(obs,'tg'),sun=climateSum(obs,'sun'),rain=climateSum(obs,'rain'),proj=forecastMonthProjection(obs,M,Y);document.querySelector('.wsRecent')?.remove();$('climateSubtitle').textContent=`${new Date(Y,M-1,1).toLocaleDateString('nl-NL',{month:'long',year:'numeric'})} · normaal ${refA}–${refB}`;$('climateGrid').innerHTML=`<div class="climateMetric"><b>${climateFmt(tg)} °C</b><span>gemiddeld t/m ${dayLimit} ${new Date(Y,M-1,1).toLocaleDateString('nl-NL',{month:'short'})}</span><span class="climateDelta">${climateDeltaText(tg,normalTo.tg,'°C','warmer')}</span></div><div class="climateMetric"><b>${climateFmt(sun)} uur</b><span>zon tot nu toe · gemiddelde 5 hoofdstations</span><span class="climateDelta">${climateDeltaText(sun,normalTo.sun,'uur','zonniger')}</span></div><div class="climateMetric"><b>${climateFmt(rain)} mm</b><span>neerslag tot nu toe</span><span class="climateDelta">${climateDeltaText(rain,normalTo.rain,'mm','natter')}</span></div><div class="climateMetric"><b>${lastObs?`${climateFmt(lastObs.tx)}° / ${climateFmt(lastObs.tn)}°`:'—'}</b><span>${lastObs?.provisional?'laatste voorlopige TX / TN':'laatste definitieve TX / TN'}</span><span>${lastObs?.date||'—'}</span></div>`;
- const currentRank=climateRank(rows,M,tg,dayLimit,Y),projectedRank=proj?climateRank(rows,M,proj.tg,null,Y):null,nextPreview=nextMonthPreview(rows,Y,M);const monthName=new Date(Y,M-1,1).toLocaleDateString('nl-NL',{month:'long'});let climateStory='';if(currentRank)climateStory+=`<div style="margin-bottom:7px"><b>📊 Stand tot nu toe:</b> met ${climateFmt(tg)} °C is ${monthName} ${Math.abs(tg-normalTo.tg).toFixed(1).replace('.',',')} graden ${tg>=normalTo.tg?'warmer':'kouder'} dan het lopende gemiddelde · ${climateRankAccent(currentRank.rank,currentRank,tg,true)}.</div>`;if(proj){const complete=proj.last===`${Y}-${String(M).padStart(2,'0')}-${String(new Date(Y,M,0).getDate()).padStart(2,'0')}`;climateStory+=`<div style="margin-bottom:7px">🔮 <b>${complete?'Mogelijke eindstand':'Doorgerekend t/m '+proj.last}:</b> circa <b>${climateFmt(proj.tg)} °C</b>${projectedRank?` · ${climateRankAccent(projectedRank.rank,projectedRank,proj.tg,true)}`:''} · zon circa <b>${Math.round(proj.sun)} uur</b> · neerslag circa <b>${Math.round(proj.rain)} mm</b>. ${complete?'Waarnemingen zijn aangevuld met de huidige modelmix tot het einde van de maand.':'De modelmix reikt nog niet tot het einde van de maand; dit is dus nog geen volledige eindprognose.'}</div>`;const sig=climateEditorialSignal(proj.tg,fullNorm.tg,projectedRank?.rank,proj);if(sig)climateStory+=`<div style="margin-bottom:7px">${sig}</div>`}else climateStory+='🔮 Haal de modelmix op om de lopende maand door te rekenen met de verwachting.';if(nextPreview){const nm=new Date(nextPreview.year,nextPreview.month-1,1).toLocaleDateString('nl-NL',{month:'long'}),dd=Number.isFinite(nextPreview.normal)?nextPreview.avg-nextPreview.normal:null;climateStory+=`<div style="margin-top:10px;padding-top:9px;border-top:1px solid rgba(120,140,160,.25)">🍂 <b>Vooruitblik ${nm}:</b> de eerste <b>${nextPreview.days.length} ${nextPreview.days.length===1?'dag':'dagen'}</b> ${nextPreview.days.length===1?'is':'zijn'} in de modelmix. Gemiddeld circa <b>${climateFmt(nextPreview.avg)} °C</b>${Number.isFinite(dd)?` · ${Math.abs(dd).toFixed(1).replace('.',',')} graden ${dd>=0?'zachter':'kouder'} dan normaal voor deze eerste dagen`:''}. Beschikbaar t/m ${nextPreview.last}.</div>`}climateStory+=annualSunStory(rows,Y,today);$('climateForecast').innerHTML=climateStory;
- const ytd=rows.filter(r=>r.year===Y&&r.date<=today),normYears=Array.from({length:30},(_,i)=>refA+i),defs=[['Mild ≥10°',10],['Zacht ≥15°',15],['Warm ≥20°',20],['Zomers ≥25°',25],['Tropisch ≥30°',30]];$('climateDays').innerHTML=defs.map(([lab,t])=>{const cur=ytd.filter(r=>r.tx>=t).length;const av=normYears.reduce((s,y)=>s+rows.filter(r=>r.year===y&&r.date.slice(5)<=today.slice(5)&&r.tx>=t).length,0)/30;return `<div class="climateDay"><b>${cur}</b><span>${lab}</span><small>${cur-av>=0?'+':''}${climateFmt(cur-av,1)} vs normaal</small></div>`}).join('');$('climateDaysNote').textContent=`Vergelijking 1 januari t/m ${D} ${new Date(Y,M-1,1).toLocaleDateString('nl-NL',{month:'long'})} met gemiddeld ${refA}–${refB}.`;
- const periods=[[1951,1980],[1961,1990],[1971,2000],[1981,2010],[1991,2020],[refA,refB]];const dec=periods.map(([a,b],i)=>{const rr=rows.filter(r=>r.year>=a&&r.year<=b&&r.month===M),v=climateAvg(rr,'tg'),current=i===periods.length-1;return `<div class="climateDecade${current?' current':''}"><b>${a}–${b}</b><br>${climateFmt(v)} °C${current?'<small>lopend normaal</small>':''}</div>`});$('climateDecades').innerHTML=dec.join('');const lastDef=rows.filter(isOfficialClimateRow).at(-1)?.date||'—',lastAvail=rows.at(-1)?.date||lastDef;status.textContent=`Klimaatbron · temperatuur De Bilt · zon gemiddelde 5 hoofdstations · definitief t/m ${lastDef}${lastAvail>lastDef?` · aanvullende recente dagwaarde t/m ${lastAvail}`:''}${rows._fromCache?' · officiële bron tijdelijk niet bereikbaar':''}`;body.classList.remove('hidden');renderClimateLive(rows).catch(console.warn);renderClimateStories(rows).catch(console.warn);if(!$('climateDate').value)$('climateDate').value=lastObs?.date||today;}catch(e){console.warn(e);const hasVisible=!!($('climateGrid')?.textContent||'').trim();if(hasVisible){status.textContent='Laatst beschikbare KNMI-gegevens blijven zichtbaar · verversen lukte niet';body.classList.remove('hidden')}else{status.textContent='Klimaatgegevens konden niet worden geladen. Controleer de verbinding en probeer opnieuw.'}}}
-async function climateLookup(){try{const rows=await loadClimateDaily(),d=$('climateDate').value,r=rows.find(x=>x.date===d),box=$('climateArchiveResult');if(!r){box.textContent='Voor deze datum is nog geen definitieve dagwaarde beschikbaar.';return}const Y=r.year,refA=Y-30,refB=Y-1,same=rows.filter(x=>x.year>=refA&&x.year<=refB&&x.month===r.month&&x.day===r.day),n={tg:climateAvg(same,'tg'),tx:climateAvg(same,'tx'),tn:climateAvg(same,'tn'),sun:climateAvg(same,'sun'),rain:climateAvg(same,'rain')};box.innerHTML=`<b>${new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}${r.provisional?' · voorlopig':''}</b><br>🌡️ Gemiddeld ${climateFmt(r.tg)} °C · TX ${climateFmt(r.tx)} °C · TN ${climateFmt(r.tn)} °C<br>☀️ ${climateFmt(r.sun)} uur zon (5 hoofdstations) · 💧 ${climateFmt(r.rain)} mm<br><span class="climateDelta">${climateDeltaText(r.tg,n.tg,'°C','warmer')} · ${climateDeltaText(r.sun,n.sun,'uur','zonniger')} · ${climateDeltaText(r.rain,n.rain,'mm','natter')}</span><br><small>Dagvergelijking met ${refA}–${refB}.</small>`}catch(e){$('climateArchiveResult').textContent='Dagarchief kon niet worden geladen.'}}
+async function renderClimate(force=false){
+ const status=$('climateStatus'),body=$('climateBody');if(!status||!body)return;status.textContent='KNMI De Bilt + LH5-zon wordt bijgewerkt…';
+ try{
+  const rows=await loadClimateDaily(force);
+  try{renderV95Insights(rows)}catch(err){console.warn('Klimaat-extra v95 overgeslagen',err)}
+  try{renderV97ClimateExtras(rows)}catch(err){console.warn('Klimaat-extra v97 overgeslagen',err)}
+  const today=climateNlDate(),Y=+today.slice(0,4),M=+today.slice(5,7),D=+today.slice(8,10),refA=Y-30,refB=Y-1;
+  const obs=rows.filter(r=>r.year===Y&&r.month===M&&r.date<=today),lastObs=obs.at(-1),dayLimit=lastObs?.day||Math.max(1,D-1);
+  const normalTo=climateNormal(rows,M,dayLimit,refA,refB),fullNorm=climateNormal(rows,M,31,refA,refB);
+  const sunObs=rows.filter(r=>r.year===Y&&r.month===M&&r.date<=today&&r.sunSource==='5 hoofdstations'&&Number.isFinite(r.sun));
+  const sunLast=sunObs.at(-1),sunDayLimit=sunLast?.day||null;
+  const sunNormalTo=sunDayLimit?climateNormal(rows,M,sunDayLimit,refA,refB):{sun:null};
+  const tg=climateAvg(obs,'tg'),sun=climateSum(sunObs,'sun'),rain=climateSum(obs,'rain'),proj=forecastMonthProjection(obs,M,Y);
+  document.querySelector('.wsRecent')?.remove();
+  $('climateSubtitle').textContent=`${new Date(Y,M-1,1).toLocaleDateString('nl-NL',{month:'long',year:'numeric'})} · normaal ${refA}–${refB}`;
+  const sunUntil=sunLast?` t/m ${sunDayLimit} ${new Date(Y,M-1,1).toLocaleDateString('nl-NL',{month:'short'})}`:'';
+  $('climateGrid').innerHTML=`<div class="climateMetric"><b>${climateFmt(tg)} °C</b><span>gemiddeld t/m ${dayLimit} ${new Date(Y,M-1,1).toLocaleDateString('nl-NL',{month:'short'})}</span><span class="climateDelta">${climateDeltaText(tg,normalTo.tg,'°C','warmer')}</span></div><div class="climateMetric"><b>${sunLast?climateFmt(sun):'—'} uur</b><span>LH5-zon${sunUntil} · 5 hoofdstations</span><span class="climateDelta">${sunLast?climateDeltaText(sun,sunNormalTo.sun,'uur','zonniger'):'LH5 tijdelijk niet beschikbaar'}</span></div><div class="climateMetric"><b>${climateFmt(rain)} mm</b><span>neerslag tot nu toe</span><span class="climateDelta">${climateDeltaText(rain,normalTo.rain,'mm','natter')}</span></div><div class="climateMetric"><b>${lastObs?`${climateFmt(lastObs.tx)}° / ${climateFmt(lastObs.tn)}°`:'—'}</b><span>${lastObs?.provisional?'laatste voorlopige TX / TN':'laatste definitieve TX / TN'}</span><span>${lastObs?.date||'—'}</span></div>`;
+  const rank=climateRank(rows,M,tg,dayLimit,Y),rankText=rank?climateRankAccent(rank.rank,rank,tg,true):'';
+  let summary=`<div class="climateSummary"><b>📊 Stand tot nu toe:</b> met ${climateFmt(tg)} °C is ${new Date(Y,M-1,1).toLocaleDateString('nl-NL',{month:'long'})} ${Math.abs(tg-normalTo.tg).toFixed(1).replace('.',',')} graden ${tg>=normalTo.tg?'warmer':'kouder'} dan het lopende gemiddelde${rankText?` · ${rankText}`:''}.`;
+  if(proj?.tg){const pr=climateRank(rows,M,proj.tg,31,Y);summary+=`<br><br><b>🔮 Mogelijke eindstand:</b> circa <b>${climateFmt(proj.tg)} °C</b>${pr?` · ${climateRankAccent(pr.rank,pr,proj.tg,true).replace('voorlopig ','')}`:''} · zon circa <b>${climateFmt(proj.sun)} uur</b> · neerslag circa <b>${climateFmt(proj.rain)} mm</b>. Waarnemingen zijn aangevuld met de huidige modelmix tot het einde van de maand.`}
+  summary+=annualSunStory(rows,Y,today)+'</div>';
+  $('climateSummary').innerHTML=summary;
+  const periods=[[1951,1980],[1961,1990],[1971,2000],[1981,2010],[1991,2020],[refA,refB]];const dec=periods.map(([a,b],i)=>{const rr=rows.filter(r=>r.year>=a&&r.year<=b&&r.month===M),v=climateAvg(rr,'tg'),current=i===periods.length-1;return `<div class="climateDecade${current?' current':''}"><b>${a}–${b}</b><br>${climateFmt(v)} °C${current?'<small>lopend normaal</small>':''}</div>`});$('climateDecades').innerHTML=dec.join('');
+  const lastDef=rows.filter(isOfficialClimateRow).at(-1)?.date||'—',lastAvail=rows.at(-1)?.date||lastDef,l5Last=window.__climateSun5Meta?.lastComplete||sunLast?.date||null;
+  status.textContent=`Klimaatbron · temperatuur De Bilt · zon LH5 (De Kooy, Eelde, De Bilt, Vlissingen, Maastricht)${l5Last?` t/m ${l5Last}`:' tijdelijk niet beschikbaar'} · temperatuur definitief t/m ${lastDef}${lastAvail>lastDef?` · aanvullende recente dagwaarde t/m ${lastAvail}`:''}${rows._fromCache?' · officiële bron tijdelijk niet bereikbaar':''}`;
+  body.classList.remove('hidden');renderClimateLive(rows).catch(console.warn);renderClimateStories(rows).catch(console.warn);if(!$('climateDate').value)$('climateDate').value=lastObs?.date||today;
+ }catch(e){console.warn(e);const hasVisible=!!($('climateGrid')?.textContent||'').trim();if(hasVisible){status.textContent='Laatst beschikbare KNMI-gegevens blijven zichtbaar · verversen lukte niet';body.classList.remove('hidden')}else{status.textContent='Klimaatgegevens konden niet worden geladen. Controleer de verbinding en probeer opnieuw.'}}
+}
+async function climateLookup(){try{const rows=await loadClimateDaily(),d=$('climateDate').value,r=rows.find(x=>x.date===d),box=$('climateArchiveResult');if(!r){box.textContent='Voor deze datum is nog geen definitieve dagwaarde beschikbaar.';return}const Y=r.year,refA=Y-30,refB=Y-1,same=rows.filter(x=>x.year>=refA&&x.year<=refB&&x.month===r.month&&x.day===r.day),n={tg:climateAvg(same,'tg'),tx:climateAvg(same,'tx'),tn:climateAvg(same,'tn'),sun:climateAvg(same,'sun'),rain:climateAvg(same,'rain')};box.innerHTML=`<b>${new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}${r.provisional?' · voorlopig':''}</b><br>🌡️ Gemiddeld ${climateFmt(r.tg)} °C · TX ${climateFmt(r.tx)} °C · TN ${climateFmt(r.tn)} °C<br>☀️ ${Number.isFinite(r.sun)?climateFmt(r.sun):'—'} uur zon (LH5 · 5 hoofdstations) · 💧 ${climateFmt(r.rain)} mm<br><span class="climateDelta">${climateDeltaText(r.tg,n.tg,'°C','warmer')} · ${climateDeltaText(r.sun,n.sun,'uur','zonniger')} · ${climateDeltaText(r.rain,n.rain,'mm','natter')}</span><br><small>Dagvergelijking met ${refA}–${refB}.</small>`}catch(e){$('climateArchiveResult').textContent='Dagarchief kon niet worden geladen.'}}
 $('refreshAll').onclick=()=>{$('load').click();if(autoTimer)setTimeout(()=>refreshAllEnsembleViews(),1200);else if(lastPlumeCanvas||!$('plumePanel').classList.contains('hidden'))setTimeout(()=>loadPlume({allowNetwork:true}),900)};
 $('climateRefresh').onclick=()=>{climateDailyCache=null;renderClimate(true)};
 $('climateLookup').onclick=climateLookup;
