@@ -12,7 +12,7 @@
 <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
 <link rel="apple-touch-icon" sizes="192x192" href="./icon-192.png">
 <link rel="manifest" href="./manifest.webmanifest">
-<!-- LH5-FIX-2026-10-03 -->
+<!-- CLIMATE-INDEPENDENT-REFRESH-FIX-2026-10-03 -->
 <title>Weer app van Rico · v1.0</title>
 <style>
 :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#162033;background:#eef3f9}
@@ -2589,14 +2589,26 @@ async function renderClimateLive(rows){
 }
 
 async function renderClimate(force=false){
- const status=$('climateStatus'),body=$('climateBody');if(!status||!body)return;status.textContent='KNMI De Bilt + LH5-zon wordt bijgewerkt…';
+ const status=$('climateStatus'),body=$('climateBody');if(!status||!body)return;status.textContent='Temperatuur, verificatie en LH5-zon worden onafhankelijk bijgewerkt…';
+ let rows;
  try{
-  const rows=await loadClimateDaily(force);
-  try{renderV95Insights(rows)}catch(err){console.warn('Klimaat-extra v95 overgeslagen',err)}
-  try{renderV97ClimateExtras(rows)}catch(err){console.warn('Klimaat-extra v97 overgeslagen',err)}
+  rows=await loadClimateDaily(force);
+ }catch(e){
+  console.warn('Klimaatbasis kon niet worden geladen',e);
+  const hasVisible=!!($('climateGrid')?.textContent||'').trim();
+  if(hasVisible){status.textContent='Laatst beschikbare klimaatgegevens blijven zichtbaar · nieuwe brondata niet bereikbaar';body.classList.remove('hidden')}else{status.textContent='Klimaatgegevens konden niet worden geladen. Controleer de verbinding en probeer opnieuw.'}
+  return;
+ }
+ // Belangrijk: actuele Weerstatistieken-TX/TN en de ochtendmix-verificatie worden
+ // direct gerenderd. Een fout in LH5, ranglijsten of klimaatverhalen mag dit nooit blokkeren.
+ body.classList.remove('hidden');
+ try{await renderClimateLive(rows)}catch(err){console.warn('Actuele TX/TN of verificatie overgeslagen',err)}
+ try{renderV95Insights(rows)}catch(err){console.warn('Klimaat-extra v95 overgeslagen',err)}
+ try{renderV97ClimateExtras(rows)}catch(err){console.warn('Klimaat-extra v97 overgeslagen',err)}
+ try{
   const today=climateNlDate(),Y=+today.slice(0,4),M=+today.slice(5,7),D=+today.slice(8,10),refA=Y-30,refB=Y-1;
   const obs=rows.filter(r=>r.year===Y&&r.month===M&&r.date<=today),lastObs=obs.at(-1),dayLimit=lastObs?.day||Math.max(1,D-1);
-  const normalTo=climateNormal(rows,M,dayLimit,refA,refB),fullNorm=climateNormal(rows,M,31,refA,refB);
+  const normalTo=climateNormal(rows,M,dayLimit,refA,refB);
   const sunObs=rows.filter(r=>r.year===Y&&r.month===M&&r.date<=today&&r.sunSource==='5 hoofdstations'&&Number.isFinite(r.sun));
   const sunLast=sunObs.at(-1),sunDayLimit=sunLast?.day||null;
   const sunNormalTo=sunDayLimit?climateNormal(rows,M,sunDayLimit,refA,refB):{sun:null};
@@ -2608,13 +2620,19 @@ async function renderClimate(force=false){
   const rank=climateRank(rows,M,tg,dayLimit,Y),rankText=rank?climateRankAccent(rank.rank,rank,tg,true):'';
   let summary=`<div class="climateSummary"><b>📊 Stand tot nu toe:</b> met ${climateFmt(tg)} °C is ${new Date(Y,M-1,1).toLocaleDateString('nl-NL',{month:'long'})} ${Math.abs(tg-normalTo.tg).toFixed(1).replace('.',',')} graden ${tg>=normalTo.tg?'warmer':'kouder'} dan het lopende gemiddelde${rankText?` · ${rankText}`:''}.`;
   if(proj?.tg){const pr=climateRank(rows,M,proj.tg,31,Y);summary+=`<br><br><b>🔮 Mogelijke eindstand:</b> circa <b>${climateFmt(proj.tg)} °C</b>${pr?` · ${climateRankAccent(pr.rank,pr,proj.tg,true).replace('voorlopig ','')}`:''} · zon circa <b>${climateFmt(proj.sun)} uur</b> · neerslag circa <b>${climateFmt(proj.rain)} mm</b>. Waarnemingen zijn aangevuld met de huidige modelmix tot het einde van de maand.`}
-  summary+=annualSunStory(rows,Y,today)+'</div>';
-  $('climateSummary').innerHTML=summary;
+  try{summary+=annualSunStory(rows,Y,today)}catch(err){console.warn('LH5-jaarverhaal overgeslagen',err);summary+='<div style="margin-top:10px">☀️ LH5-jaartotaal tijdelijk niet beschikbaar.</div>'}
+  summary+='</div>';$('climateSummary').innerHTML=summary;
   const periods=[[1951,1980],[1961,1990],[1971,2000],[1981,2010],[1991,2020],[refA,refB]];const dec=periods.map(([a,b],i)=>{const rr=rows.filter(r=>r.year>=a&&r.year<=b&&r.month===M),v=climateAvg(rr,'tg'),current=i===periods.length-1;return `<div class="climateDecade${current?' current':''}"><b>${a}–${b}</b><br>${climateFmt(v)} °C${current?'<small>lopend normaal</small>':''}</div>`});$('climateDecades').innerHTML=dec.join('');
   const lastDef=rows.filter(isOfficialClimateRow).at(-1)?.date||'—',lastAvail=rows.at(-1)?.date||lastDef,l5Last=window.__climateSun5Meta?.lastComplete||sunLast?.date||null;
-  status.textContent=`Klimaatbron · temperatuur De Bilt · zon LH5 (De Kooy, Eelde, De Bilt, Vlissingen, Maastricht)${l5Last?` t/m ${l5Last}`:' tijdelijk niet beschikbaar'} · temperatuur definitief t/m ${lastDef}${lastAvail>lastDef?` · aanvullende recente dagwaarde t/m ${lastAvail}`:''}${rows._fromCache?' · officiële bron tijdelijk niet bereikbaar':''}`;
-  body.classList.remove('hidden');renderClimateLive(rows).catch(console.warn);renderClimateStories(rows).catch(console.warn);if(!$('climateDate').value)$('climateDate').value=lastObs?.date||today;
- }catch(e){console.warn(e);const hasVisible=!!($('climateGrid')?.textContent||'').trim();if(hasVisible){status.textContent='Laatst beschikbare KNMI-gegevens blijven zichtbaar · verversen lukte niet';body.classList.remove('hidden')}else{status.textContent='Klimaatgegevens konden niet worden geladen. Controleer de verbinding en probeer opnieuw.'}}
+  const wsLatest=rows.filter(r=>r.provisional&&r.source?.includes('Weerstatistieken')).at(-1)?.date||null;
+  status.textContent=`Temperatuur De Bilt${wsLatest?` · Weerstatistieken voorlopig t/m ${wsLatest}`:''} · KNMI definitief t/m ${lastDef} · LH5-zon${l5Last?` t/m ${l5Last}`:' tijdelijk niet beschikbaar'}${rows._fromCache?' · officiële KNMI-bron tijdelijk niet bereikbaar':''}`;
+  if(!$('climateDate').value)$('climateDate').value=lastObs?.date||today;
+ }catch(e){
+  console.warn('Klimaatsamenvatting gedeeltelijk overgeslagen',e);
+  status.textContent='Actuele TX/TN en verificatie zijn bijgewerkt · een deel van de klimaatmonitor kon niet worden vernieuwd';
+ }
+ // Verhalen staan los van actuele TX/TN en mogen zelfstandig mislukken.
+ try{renderClimateStories(rows).catch(console.warn)}catch(e){console.warn(e)}
 }
 async function climateLookup(){try{const rows=await loadClimateDaily(),d=$('climateDate').value,r=rows.find(x=>x.date===d),box=$('climateArchiveResult');if(!r){box.textContent='Voor deze datum is nog geen definitieve dagwaarde beschikbaar.';return}const Y=r.year,refA=Y-30,refB=Y-1,same=rows.filter(x=>x.year>=refA&&x.year<=refB&&x.month===r.month&&x.day===r.day),n={tg:climateAvg(same,'tg'),tx:climateAvg(same,'tx'),tn:climateAvg(same,'tn'),sun:climateAvg(same,'sun'),rain:climateAvg(same,'rain')};box.innerHTML=`<b>${new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}${r.provisional?' · voorlopig':''}</b><br>🌡️ Gemiddeld ${climateFmt(r.tg)} °C · TX ${climateFmt(r.tx)} °C · TN ${climateFmt(r.tn)} °C<br>☀️ ${Number.isFinite(r.sun)?climateFmt(r.sun):'—'} uur zon (LH5 · 5 hoofdstations) · 💧 ${climateFmt(r.rain)} mm<br><span class="climateDelta">${climateDeltaText(r.tg,n.tg,'°C','warmer')} · ${climateDeltaText(r.sun,n.sun,'uur','zonniger')} · ${climateDeltaText(r.rain,n.rain,'mm','natter')}</span><br><small>Dagvergelijking met ${refA}–${refB}.</small>`}catch(e){$('climateArchiveResult').textContent='Dagarchief kon niet worden geladen.'}}
 $('refreshAll').onclick=()=>{$('load').click();if(autoTimer)setTimeout(()=>refreshAllEnsembleViews(),1200);else if(lastPlumeCanvas||!$('plumePanel').classList.contains('hidden'))setTimeout(()=>loadPlume({allowNetwork:true}),900)};
