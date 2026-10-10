@@ -2256,8 +2256,9 @@ function randstadPngWeatherType(rain,sun){
  const hasSun=Number.isFinite(su)&&su>=4;
  const someSun=Number.isFinite(su)&&su>=2;
  const wet=Number.isFinite(mm)&&mm>=0.25;
+ // Zonnige dagen met enkele buien: de hoeveelheid regen alleen bepaalt niet het dagbeeld.
  if(wet&&hasSun)return 'sunshowers';
- if(wet&&someSun&&mm<3)return 'sunshowers';
+ if(wet&&someSun)return 'sunshowers';
  if(wet)return mm>=3?'rain':'showers';
  if(Number.isFinite(su)&&su>=7)return 'sun';
  if(Number.isFinite(su)&&su>=3)return 'partly';
@@ -2285,6 +2286,8 @@ async function drawRandstadCardsPng(){
   const v=prepared[i],{d,rs,rk,ro,tx,tn,sun,rain,wind,dir}=v,row=Math.floor(i/cols),col=i%cols,left=margin+col*(cardW+gap),top=header+row*(cardH+gap),mid=left+cardW/2,dt=new Date(d.date+'T12:00:00');
   const mm=Number(rain?.mix),wet=Number.isFinite(mm)&&mm>=.25;
   const prev=prepared[i-1],drop=prev&&Number.isFinite(prev.tx)&&Number.isFinite(tx)?prev.tx-tx:0;
+  const next=prepared[i+1],nextDrop=next&&Number.isFinite(next.tx)&&Number.isFinite(tx)?tx-next.tx:0;
+  const coolerWeekend=(dt.getDay()===6||dt.getDay()===0)&&((drop>=2.5)||(nextDrop>=2.5));
   box(left,top,cardW,cardH,'#fff','#cbdbea');
   x.textAlign='center';label(NL[dt.getDay()].toUpperCase(),mid,top+37,'bold 27px Arial','#183b64');
   label(dt.toLocaleDateString('nl-NL',{day:'numeric',month:'long'}),mid,top+66,'19px Arial','#5c7088');
@@ -2300,8 +2303,14 @@ async function drawRandstadCardsPng(){
   const st=sunTimes[d.date]||{};
   if(st.rise&&st.set)label(`Zon op ${st.rise}  ·  onder ${st.set}`,mid,top+424,'16px Arial','#657b90');
   const vals=rs.map(q=>q?.tx).filter(Number.isFinite),spread=vals.length?Math.max(...vals)-Math.min(...vals):null;
-  label(`${d.models?.length||0} modellen${spread!=null?'  ·  TX-spreiding '+nsFmt(spread,1)+'°':''}`,mid,top+452,'16px Arial','#61778d');
-  if(drop>=3){x.fillStyle='#dcecff';x.fillRect(left+2,top+2,cardW-4,8);label('KOELER',mid,top+90,'bold 15px Arial','#1458a7')}
+  const modelCount=d.models?.length||0;
+  // Dit is regionale temperatuurvariatie, geen spreiding tussen afzonderlijke modellen.
+  const basis=modelCount<4?'beperkte modelbasis':(spread!=null?'regioverschil TX '+nsFmt(spread,1)+'°':'regionale mix');
+  label(`${modelCount} modellen  ·  ${basis}`,mid,top+452,'16px Arial','#61778d');
+  const regional=[['Kust',rk],['Binnenland',rw],['Utrecht/Flevoland',ro]].filter(q=>Number.isFinite(q[1]?.tx));
+  if(regional.length>=2){label(regional.map(([name,v])=>`${name} ${Math.round(v.tx)}°`).join('  ·  '),mid,top+299,'15px Arial','#526b82');}
+  if(coolerWeekend){x.fillStyle='#dcecff';x.fillRect(left+2,top+2,cardW-4,8);label('KOELER WEEKEND',mid,top+90,'bold 15px Arial','#1458a7')}
+  else if(drop>=3){x.fillStyle='#dcecff';x.fillRect(left+2,top+2,cardW-4,8);label('KOELER',mid,top+90,'bold 15px Arial','#1458a7')}
   else if(drop<=-3){x.fillStyle='#ffead6';x.fillRect(left+2,top+2,cardW-4,8);label('WARMER',mid,top+90,'bold 15px Arial','#ad5a13')}
  }
  x.textAlign='left';x.fillStyle='#4e637b';x.font='17px Arial';x.fillText('Temperaturen: maxima rood, minima blauw · Verwachting uit de regionale modelmix',margin,H-20);
