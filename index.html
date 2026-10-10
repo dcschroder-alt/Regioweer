@@ -232,7 +232,9 @@ body{min-width:0}
 .actionPrimary{gap:9px!important;margin-top:13px!important}.actionPrimary button{min-height:48px!important;border-radius:15px!important}.actionPrimary .primary{box-shadow:0 5px 12px rgba(12,94,190,.15)}
 .quickplaces{gap:7px!important}.placechip{border-radius:999px!important}
 @media(max-width:620px){.hero{padding:17px 16px!important}.hero h1{font-size:clamp(24px,6vw,33px)!important}.heroToolsMain button{font-size:12px!important;padding:9px 11px!important}.hero>p{font-size:13px!important}.healthpill{font-size:11px!important}.actionPrimary{grid-template-columns:minmax(0,1fr) auto!important}.actionPrimary .primary{min-width:0}}
-</style>
+<style>
+.rwMeteoBox{margin:14px 0;padding:14px;border:1px solid #d4e2f0;border-radius:18px;background:#f5faff;color:#173451}.rwMeteoBox summary{font-weight:850;cursor:pointer;font-size:18px}.rwMeteoTools{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.rwMeteoTools button{padding:9px 13px;border-radius:10px;background:#135bb3;color:white;border:0;font-weight:750}.rwMeteoGraph{display:block;width:100%;height:auto;border-radius:12px;background:#fff}.rwMeteoNote{font-size:12px;color:#536a83;margin-top:8px}
+</style></style>
 
 <style>
 /* v1.0 · definitieve cockpitbasis */
@@ -315,6 +317,7 @@ body{min-width:0}
 <section class="panel hidden" id="modelStatusPanel"><details id="modelStatusDetails"><summary id="modelStatusSummary" style="font-weight:850;font-size:17px;cursor:pointer">▶ Modelstatus</summary><div class="note">Beschikbaarheid van de modellen in deze berekening.</div><div id="modelStatusGrid" class="modelStatusGrid"></div></details></section>
 <section class="panel" id="favMiniPanel"><div class="favDashHead"><div><div style="font-weight:850;font-size:17px">Favorieten-dashboard</div><div class="note">Morgen in één oogopslag voor je opgeslagen plaatsen.</div></div><button class="ghost" id="refreshFavDash" type="button">↻ Ververs</button></div><div id="favMiniGrid" class="favMiniGrid"></div><div class="note" id="favDashStatus">Gebruik Ververs om de dynamische modelmix voor morgen op te halen.</div></section>
 <section class="panel hidden" id="comparePanel"><div style="font-weight:850;font-size:17px">Plaatsen vergelijken</div><div class="note">Snelle 5-daagse vergelijking met ECMWF IFS.</div><div class="compareGrid"><div class="field"><label>Andere plaats</label><input id="comparePlace" value="De Bilt" placeholder="Bijv. De Bilt"></div><div class="field" style="justify-content:end"><button class="primary" id="compareLoad" type="button">Vergelijk</button></div></div><div id="compareStatus" class="status"></div><div id="compareRows" class="compareRows"></div></section>
+<details class="rwMeteoBox" id="rwMeteoBox"><summary>📈 Meteogrammen Houten · 48 uur & 10 dagen</summary><div class="rwMeteoTools"><button type="button" id="rwMeteo48Btn">⬇ PNG 48 uur</button><button type="button" id="rwMeteo10Btn">⬇ PNG 10 dagen</button><button type="button" id="rwMeteoRefreshBtn">↻ Grafieken uit cache</button></div><canvas id="rwMeteo48" class="rwMeteoGraph" width="1200" height="400"></canvas><p class="rwMeteoNote" id="rwMeteo48Note">Uurgegevens worden alleen uit bestaande cache gelezen.</p><canvas id="rwMeteo10" class="rwMeteoGraph" width="1200" height="400"></canvas><p class="rwMeteoNote" id="rwMeteo10Note">Daggegevens uit de opgeslagen modelmix; geen extra API-verzoeken.</p></details>
 <section class="panel hidden" id="fivePreviewPanel"><div class="previewHead modelmixPreviewHead"><div><div style="font-weight:900;font-size:19px">🌦️ Modelmix · dagkaarten</div><div class="note">Vanaf morgen · centrale waarde, bandbreedte, verandering en modelzekerheid per dag.</div></div><div class="smallstatus" id="previewUpdated"></div></div><div class="forecastRangeButtons" id="forecastRangeButtons" aria-label="Aantal dagen"><button type="button" data-forecast-days="5">5 dagen</button><button type="button" data-forecast-days="6">6 dagen</button><button type="button" data-forecast-days="7">7 dagen</button><button type="button" data-forecast-days="10">10 dagen</button><button type="button" data-forecast-days="15">15 dagen</button></div><div class="modelmixExportRow"><button type="button" id="modelmixPng">⬇ PNG Houten</button><button type="button" id="randstadPng">⬇ PNG Randstad</button></div><select id="forecastDays" class="forecastSelect forecastSelectHidden" aria-hidden="true" tabindex="-1"><option value="5">5 dagen</option><option value="6">6 dagen</option><option value="7" selected>7 dagen</option><option value="10">10 dagen</option><option value="15">15 dagen</option></select><div id="fivePreview" class="previewGrid modelmixDayGrid"></div><div class="note previewModelsNote" id="previewModels"></div></section>
 <section class="panel hidden" id="smartOutlookPanel"><div style="font-weight:850;font-size:17px">Handige vooruitblik</div><div class="note">Alleen aanvullende vooruitblik die nog niet duidelijk uit het weerbericht of de dagkaarten blijkt.</div><div id="smartOutlookGrid" class="smartGrid"></div></section>
 
@@ -3360,4 +3363,32 @@ try{$('longRangeRefresh')?.addEventListener('click',()=>renderLongRange(true))}c
   if(close&&!close.dataset.boundLate){close.dataset.boundLate='1';close.addEventListener('click',()=>{try{nsCloseRandstad()}catch(e){const m=document.getElementById('randstadModal');if(m)m.classList.add('hidden')}});}
 })();
 </script>
-</body></html>
+<script>
+(function(){
+'use strict';
+const $m=id=>document.getElementById(id);
+const nl=v=>Number(v).toFixed(1).replace('.',',');
+function dataHourly(){
+ if(typeof smartHourlyCache!=='undefined' && smartHourlyCache?.hourly?.time?.length)return smartHourlyCache;
+ try{const o=JSON.parse(localStorage.getItem('rw-smart-hourly-cache-v1')||'null');if(o?.data?.hourly?.time)return o.data}catch(e){}
+ try{for(let i=0;i<localStorage.length;i++){let k=localStorage.key(i);if(!k||!k.includes('hourly'))continue;let o=JSON.parse(localStorage.getItem(k));if(o?.data?.hourly?.time?.length)return o.data}}catch(e){}
+ return null;
+}
+function start(ctx,W,H,title,sub){ctx.clearRect(0,0,W,H);ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);ctx.fillStyle='#145bb4';ctx.fillRect(0,0,W,70);ctx.fillStyle='#fff';ctx.font='bold 27px Arial';ctx.fillText(title,24,37);ctx.font='16px Arial';ctx.fillText(sub,25,59)}
+function render(canvas,rows,kind){let ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height;
+ start(ctx,W,H,kind==='hour'?'Regioweer · Houten · 48 uur':'Regioweer · Houten · 10 dagen',kind==='hour'?'Uurdata uit bestaande cache':'Dagelijkse modelmix · geen extra API-verzoeken');
+ if(rows.length<2){ctx.fillStyle='#4b647d';ctx.font='22px Arial';ctx.fillText(kind==='hour'?'Nog geen opgeslagen uurdata beschikbaar':'Nog geen modelmix voor 10 dagen beschikbaar',36,200);return false}
+ const L=75,R=W-30,T=114,B=H-72, min=Math.floor(Math.min(...rows.map(r=>r.t))-2),max=Math.ceil(Math.max(...rows.map(r=>r.t))+2),dy=Math.max(1,max-min),xx=i=>L+(R-L)*i/(rows.length-1),yy=v=>B-(v-min)/dy*(B-T);
+ ctx.strokeStyle='#e4ebf4';ctx.fillStyle='#526984';ctx.font='15px Arial';for(let i=0;i<=4;i++){let t=min+(max-min)*i/4,y=yy(t);ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(R,y);ctx.stroke();ctx.fillText(Math.round(t)+'°',23,y+5)}
+ let maxRain=Math.max(1,...rows.map(r=>r.rain||0));for(let i=0;i<rows.length;i++){let r=rows[i],x=xx(i),h=Math.max(0,(r.rain||0)/maxRain*72);if(h){ctx.fillStyle='#5fb4dc';ctx.fillRect(x-4,B-h,8,h)}}
+ ctx.beginPath();rows.forEach((r,i)=>{let x=xx(i),y=yy(r.t);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.lineWidth=4;ctx.strokeStyle='#dc433e';ctx.stroke();ctx.lineWidth=1;
+ let step=kind==='hour'?6:1;rows.forEach((r,i)=>{if(i%step!==0&&i!==rows.length-1)return;let x=xx(i);ctx.textAlign='center';ctx.fillStyle='#455e79';ctx.font='14px Arial';ctx.fillText(r.label,x,B+26);if(kind==='day'){ctx.font='21px Arial';ctx.fillText(r.symbol||'☀️',x,101)}});ctx.textAlign='left';ctx.fillStyle='#b23d38';ctx.font='bold 16px Arial';ctx.fillText('— temperatuur (°C)',L,H-14);ctx.fillStyle='#2686bb';ctx.fillText('▮ neerslag (mm)',L+230,H-14);return true
+}
+function dayRows(){let d=(typeof forecastStartDate==='function'?forecastStartDate():new Date(Date.now()+86400000).toISOString().slice(0,10));let a=(typeof lastRows!=='undefined'&&Array.isArray(lastRows)?lastRows:[]).filter(r=>r.date>=d).slice(0,10);return a.filter(r=>Number.isFinite(+r.max)&&Number.isFinite(+r.min)).flatMap(r=>[{t:+r.min,rain:0,label:r.date.slice(5),symbol:'',date:r.date},{t:+r.max,rain:Math.max(0,+r.precip||0),label:r.date.slice(5),symbol:'',date:r.date}])}
+function hourRows(){let j=dataHourly(),h=j?.hourly;if(!h?.time)return[];let now=new Date();let current=now.toLocaleString('sv-SE',{timeZone:'Europe/Amsterdam'}).replace(' ','T').slice(0,13);let a=[];for(let i=0;i<h.time.length;i++){let t=h.time[i];if(t.slice(0,13)<current)continue;let temp=Number(h.temperature_2m?.[i]);if(!Number.isFinite(temp))continue;a.push({t:temp,rain:Number(h.precipitation?.[i])||0,label:t.slice(11,13)+'u',time:t});if(a.length>=48)break}return a}
+function update(){let h=hourRows(),d=dayRows();render($m('rwMeteo48'),h,'hour');render($m('rwMeteo10'),d,'day');$m('rwMeteo48Note').textContent=h.length?'Opgeslagen uurdata · '+h.length+' uur · regen als blauwe balken.':'Uurdata ontbreekt in de cache. Geen nieuwe API-aanvraag gedaan.';$m('rwMeteo10Note').textContent=d.length?'Modelmix · '+Math.floor(d.length/2)+' dagen · minima en maxima verbonden (schematisch tussen dagwaarden).':'Modelmix nog niet lokaal beschikbaar.'}
+function save(id,name){let c=$m(id);if(!c)return;c.toBlob(b=>{if(!b)return;if(typeof download==='function')download(b,name);else{let a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}},'image/png')}
+function init(){if(!$m('rwMeteoBox'))return;$m('rwMeteo48Btn').onclick=()=>{update();save('rwMeteo48','regioweer-houten-meteogram-48uur.png')};$m('rwMeteo10Btn').onclick=()=>{update();save('rwMeteo10','regioweer-houten-meteogram-10dagen.png')};$m('rwMeteoRefreshBtn').onclick=update;update();$m('rwMeteoBox').addEventListener('toggle',()=>{if($m('rwMeteoBox').open)update()})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script></body></html>
