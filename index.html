@@ -424,10 +424,10 @@ async function refreshAllEnsembleViews(){
   lastEnsembleAutoRefresh=Date.now();
  }finally{ps.value=p0;rs.value=r0;ensembleAutoBusy=false}
 }
-const AUTO_REFRESH_MS=3*60*60*1000;
+const AUTO_REFRESH_MS=12*60*60*1000;
 let autoTimer=null,nextAuto=0;function updateAutoPill(){const p=$('nextRefreshPill');if(!autoTimer){p.textContent='Handmatig verversen';p.className='healthpill';return}const m=Math.max(0,Math.ceil((nextAuto-Date.now())/60000));if(m>=120){const h=Math.floor(m/60),mm=m%60;p.textContent=`Auto ververs over ${h}u${mm?` ${mm}m`:''}`}else p.textContent=`Auto ververs over ${m} min`;p.className='healthpill ok'}
-function setAutoRefresh(on){if(autoTimer){clearInterval(autoTimer);autoTimer=null}localStorage.setItem('rw-auto-refresh',on?'1':'0');$('autoRefreshToggle').textContent=on?'⏱ Nieuwe runs automatisch':'⏱ Automatisch uit';if(on){const last=Number(localStorage.getItem('rw-last-success')||0);nextAuto=Math.max(Date.now()+60000,last?last+AUTO_REFRESH_MS:Date.now()+AUTO_REFRESH_MS);autoTimer=setInterval(()=>{if(Date.now()>=nextAuto){nextAuto=Date.now()+AUTO_REFRESH_MS;if(document.visibilityState==='visible'&&navigator.onLine&&!forecastRateLimitedToday()){$('load').click();setTimeout(()=>refreshAllEnsembleViews(),5000)}}updateAutoPill()},60000)}updateAutoPill()}
-$('autoRefreshToggle').onclick=()=>setAutoRefresh(!autoTimer);setAutoRefresh(localStorage.getItem('rw-auto-refresh')==='1');
+function setAutoRefresh(on){if(autoTimer){clearInterval(autoTimer);autoTimer=null}localStorage.setItem('rw-auto-refresh',on?'1':'0');$('autoRefreshToggle').textContent=on?'⏱ Nieuwe runs automatisch':'⏱ Automatisch uit';if(on){const last=Number(localStorage.getItem('rw-last-success')||0);nextAuto=Math.max(Date.now()+60000,last?last+AUTO_REFRESH_MS:Date.now()+AUTO_REFRESH_MS);autoTimer=setInterval(()=>{if(Date.now()>=nextAuto){nextAuto=Date.now()+AUTO_REFRESH_MS;if(document.visibilityState==='visible'&&navigator.onLine&&!forecastRateLimitedToday()){$('load').click();/* ensembles alleen op aanvraag */}}updateAutoPill()},60000)}updateAutoPill()}
+$('autoRefreshToggle').onclick=()=>setAutoRefresh(!autoTimer);setAutoRefresh(false); // Veilig starten: automatische verversing alleen na expliciet inschakelen
 let foregroundCheckBusy=false;function showStoredMixImmediately(){
  if($('model').value!=='mix'||lastRows?.length)return;
  const stored=getFullMixCache(7*86400000);
@@ -437,11 +437,11 @@ let foregroundCheckBusy=false;function showStoredMixImmediately(){
   safeUi(renderModelStatus,lastMixData);show(lastRows);
   renderTodayGlance();safeUi(renderWeatherText);safeUi(renderMixSignals);
   const age=Math.round((Date.now()-stored.savedAt)/60000);
-  setStatus(`Opgeslagen modelmix · ${age<60?age+' minuten':(age/60).toFixed(1)+' uur'} oud · nieuwe runs worden gecontroleerd`,100);
+  setStatus(`Opgeslagen modelmix · ${age<60?age+' minuten':(age/60).toFixed(1)+' uur'} oud · API-spaarstand: handmatig verversen`,100);
  }catch(e){console.warn('Opgeslagen modelmix tonen',e)}
 }
 window.addEventListener('load',()=>setTimeout(showStoredMixImmediately,100));
-function maybeRefreshOnOpen(){if(foregroundCheckBusy||!navigator.onLine||forecastRateLimitedToday()||$('model').value!=='mix')return;const last=Number(localStorage.getItem('rw-last-success')||0);if(last&&Date.now()-last<60*60*1000)return;foregroundCheckBusy=true;setTimeout(()=>{try{$('load').click()}finally{setTimeout(()=>foregroundCheckBusy=false,15000)}},500)}document.addEventListener('visibilitychange',()=>{if(!document.hidden)maybeRefreshOnOpen()});window.addEventListener('focus',maybeRefreshOnOpen);window.addEventListener('load',()=>setTimeout(maybeRefreshOnOpen,900));
+function maybeRefreshOnOpen(){if(!autoTimer)return; if(foregroundCheckBusy||!navigator.onLine||forecastRateLimitedToday()||$('model').value!=='mix')return;const last=Number(localStorage.getItem('rw-last-success')||0);if(last&&Date.now()-last<12*60*60*1000)return;foregroundCheckBusy=true;setTimeout(()=>{try{$('load').click()}finally{setTimeout(()=>foregroundCheckBusy=false,15000)}},500)}document.addEventListener('visibilitychange',()=>{if(!document.hidden)maybeRefreshOnOpen()});window.addEventListener('focus',maybeRefreshOnOpen);window.addEventListener('load',()=>setTimeout(maybeRefreshOnOpen,900));
 $('jumpGfs').onclick=()=>$('gfsPanel').scrollIntoView({behavior:'smooth',block:'start'});
 $('appRefresh').onclick=async()=>{try{const reg=await navigator.serviceWorker?.getRegistration();if(reg)await reg.update();if('caches'in window){for(const k of await caches.keys())if(k.startsWith('regioweer-'))await caches.delete(k)}location.reload(true)}catch(e){location.reload(true)}};
 function forecastHorizon(){return Math.max(5,Math.min(15,Number($('forecastDays')?.value||7)))}
@@ -1436,7 +1436,7 @@ function dayHourlyCachePut(key,date,rows){if(!rows?.length)return;try{const c=da
 function dayHourlyCacheGet(key,date){try{return dayHourlyCacheRead()[dayHourlyCacheId(key,date)]||null}catch(e){return null}}
 async function fetchDayHourly(key,date){
   const cached=dayHourlyCacheGet(key,date);if(forecastRateLimitedToday()&&cached?.rows?.length){const rows=cached.rows.map(x=>({...x}));rows._cachedAt=cached.savedAt;return rows}
-  const m=MODELS[key];if(!m)return cached?.rows||[];const codes=[m.code,...(m.aliases||[])];
+  if(forecastRateLimitedToday())return cached?.rows||[];const m=MODELS[key];if(!m)return cached?.rows||[];const codes=[m.code,...(m.aliases||[])];
   for(const code of codes){
     try{const mm={...m,code};const r=await fetch(dayDetailUrl(mm,date),{cache:'no-store'}),j=await r.json();if(!r.ok||j.error){const msg=j.reason||`HTTP ${r.status}`;if(isForecastRateLimit(msg)){markForecastRateLimited();break}continue}if(!j.hourly?.time)continue;
       const out=[];for(let i=0;i<j.hourly.time.length;i++){if(j.hourly.time[i].slice(0,10)!==date)continue;out.push({time:j.hourly.time[i],temp:+j.hourly.temperature_2m?.[i],feel:+j.hourly.apparent_temperature?.[i],dew:+j.hourly.dew_point_2m?.[i],precip:+j.hourly.precipitation?.[i]||0,sun:(+j.hourly.sunshine_duration?.[i]||0)/3600,code:+j.hourly.weather_code?.[i],cloud:+j.hourly.cloud_cover?.[i],wind:+j.hourly.wind_speed_10m?.[i],dir:+j.hourly.wind_direction_10m?.[i],gust:+j.hourly.wind_gusts_10m?.[i],pressure:+j.hourly.pressure_msl?.[i],visibility:+j.hourly.visibility?.[i],humidity:+j.hourly.relative_humidity_2m?.[i],apparent:+j.hourly.apparent_temperature?.[i],cape:+j.hourly.cape?.[i]});}if(out.length){dayHourlyCachePut(key,date,out);return out}
@@ -1905,7 +1905,7 @@ $('load').onclick=async()=>{
       lastRows=applyUvFallback(buildMix(data),uvFallback);saveFullMixCache(data,lastRows);show(lastRows);safeUi(renderV95Insights);safeUi(renderV97Cockpit);renderSmartCockpit().catch(console.warn);renderV97Atmos().catch(console.warn);renderTodayGlance();renderNowPanel().catch(console.warn);renderGlanceRecords().catch(console.warn);renderFivePreview().catch(console.warn);safeUi(renderWeatherText);renderTodayTomorrow(data,null);renderPracticalTips();renderClimate().catch(console.warn);renderNationalScan().catch(console.warn);renderLongRange().catch(console.warn);renderOverview(available,missing);safeUi(renderMixSignals);safeUi(renderSignal10);scanEnsembleAlerts();
       $('fivepng').disabled=lastRows.filter(r=>r.date>$('date').value).length<5;
       safeUi(renderChanges,prevSnapshot);safeUi(saveSnapshot);safeUi(saveFavoriteMini);$('shareFive').disabled=$('sitePack').disabled=$('shareModeOpen').disabled=false;const cachedCount=order.filter(k=>data[k]?._fromCache).length;setStatus(cachedCount?`Klaar – ${lastRows.length} dagen · mix van ${available.length} modellen · ${cachedCount} uit lokale opslag${forecastRateLimitedToday()?' (API-daglimiet bereikt)':''}.`:`Klaar – ${lastRows.length} dagen · mix van ${available.length} beschikbare modellen${Object.keys(lastEnsembleTempAnchors||{}).length?' + ensemble-P50 temperatuurankers':''}.`,100);
-      setTimeout(()=>loadGfsRunTable().catch(e=>{console.warn('GFS 00/12 na mix',e);if($('gfsStatus'))$('gfsStatus').textContent='GFS 00/12 nog niet beschikbaar; tik later op Ververs alles.'}),1200);
+      /* GFS 00/12 alleen via eigen verversknop; lokale cache blijft zichtbaar */
     }else{
       const key=$('model').value;fineNightSummary=null;$('fineSignalsPanel')?.classList.add('hidden');
       const rows=await withTimeout(fetchModel(key,true),15000,MODELS[key].name);
@@ -1914,7 +1914,7 @@ $('load').onclick=async()=>{
       let enriched=rows;try{enriched=await withTimeout(fetchExtras(rows._modelUsed||MODELS[key],rows),9000,'extra data')}catch(e){console.warn('Extra data',e)}
       const uvFallback=await fetchUvFallback();applyUvFallback(enriched,uvFallback);forecastCachePut(key,enriched);lastRows=applyUvFallback(pickSingle(enriched,key),uvFallback);show(lastRows);$('assistantPanel')?.classList.add('hidden');$('climateStoriesPanel')?.classList.add('hidden');$('v97Cockpit')?.classList.add('hidden');$('v95InsightPanel')?.classList.add('hidden');renderTodayGlance();renderNowPanel().catch(console.warn);renderGlanceRecords().catch(console.warn);safeUi(renderWeatherText);renderTodayTomorrow({[key]:enriched},key);renderPracticalTips();renderClimate().catch(console.warn);renderOverview([MODELS[key].name],[]);renderMixSignals();
       renderModelStatus({[key]:rows});safeUi(renderChanges,prevSnapshot);safeUi(saveSnapshot);safeUi(saveFavoriteMini);$('shareFive').disabled=$('sitePack').disabled=$('shareModeOpen').disabled=false;setStatus(rows._fromCache?`Klaar – ${lastRows.length} dagen · laatst opgeslagen ${MODELS[key].name}${forecastRateLimitedToday()?' (API-daglimiet bereikt)':''}.`:`Klaar – ${lastRows.length} dagen.`,100);
-      setTimeout(()=>loadGfsRunTable().catch(e=>{console.warn('GFS 00/12 na model',e);if($('gfsStatus'))$('gfsStatus').textContent='GFS 00/12 nog niet beschikbaar; tik later op Ververs alles.'}),1200);
+      /* GFS 00/12 alleen via eigen verversknop */
     }
   }catch(e){
     if($('model').value==='mix'&&!lastRows.length){
