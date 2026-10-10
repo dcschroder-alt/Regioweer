@@ -2268,20 +2268,35 @@ async function getRandstadSunTimes(rows){
  try{const start=rows[0]?.date,end=rows[rows.length-1]?.date;if(!start||!end)return {};const u=`https://api.open-meteo.com/v1/forecast?latitude=52.10&longitude=4.70&daily=sunrise,sunset&timezone=Europe%2FAmsterdam&start_date=${start}&end_date=${end}`;const r=await fetch(u,{cache:'no-store'}),j=await r.json();if(!r.ok||!j?.daily?.time)return {};const out={};for(let i=0;i<j.daily.time.length;i++)out[j.daily.time[i]]={rise:(j.daily.sunrise?.[i]||'').slice(11,16),set:(j.daily.sunset?.[i]||'').slice(11,16)};return out}catch(e){return {}}
 }
 async function drawRandstadCardsPng(){
- let days=(nationalScanLastPack?.days||[]).filter(d=>d?.date>$('date').value);
- if(!days.length){await renderNationalScan(false);days=(nationalScanLastPack?.days||[]).filter(d=>d?.date>$('date').value)}
+ // De landelijke scan wordt onafhankelijk geladen. Gebruik direct de beschikbare
+ // modelmix als de regionale scan nog niet gereed is, zonder extra API-verzoeken.
+ let days=(nationalScanLastPack?.days||[]).filter(d=>d?.date>=forecastStartDate());
+ if(!days.length){
+  try{const cached=JSON.parse(localStorage.getItem(NATIONAL_SCAN_CACHE)||'null');days=(cached?.days||[]).filter(d=>d?.date>=forecastStartDate())}catch(e){}
+ }
+ const fallback=!days.length;
+ if(fallback){
+  days=(lastRows||[]).filter(r=>r?.date>=forecastStartDate()&&Number.isFinite(r.max)).map(r=>({
+   date:r.date,models:Array.from({length:Math.max(0,r.count||0)},(_,i)=>'model '+(i+1)),
+   _mixFallback:r,pts:[]
+  }));
+ }
  const rows=days.slice(0,Math.min(forecastHorizon(),10));
- if(!rows.length)throw new Error('Randstad-scan is nog niet beschikbaar');
+ if(!rows.length)throw new Error('Er zijn nog geen modelmixgegevens geladen. Kies Modelmix en vernieuw de verwachting.');
  // De bestaande daggegevens worden hergebruikt; geen extra model-API-verzoeken.
  const sunTimes=await getRandstadSunTimes(rows),cols=Math.min(5,rows.length),cardW=376,cardH=480,gap=18,margin=34,header=118;
  const nRows=Math.ceil(rows.length/cols),W=margin*2+cols*cardW+(cols-1)*gap,H=header+margin+nRows*cardH+(nRows-1)*gap+50;
  const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
  x.fillStyle='#eaf2fa';x.fillRect(0,0,W,H);x.fillStyle='#1159bd';x.fillRect(0,0,W,94);
  x.textAlign='left';x.fillStyle='#fff';x.font='bold 38px Arial';x.fillText(`Regioweer · Randstad · ${rows.length} dagen`,margin,51);
- x.font='20px Arial';x.fillText('Regionale modelmix  |  kust · westelijk binnenland · Utrecht/Flevoland',margin,80);
+ x.font='20px Arial';x.fillText(fallback?'Modelmix · regionale scan nog niet geladen':'Regionale modelmix  |  kust · westelijk binnenland · Utrecht/Flevoland',margin,80);
  function label(t,px,py,font='22px Arial',color='#263f5b'){x.font=font;x.fillStyle=color;x.fillText(t,px,py)}
  function box(l,t,w,h,fill,stroke){x.fillStyle=fill;x.strokeStyle=stroke;x.lineWidth=2;x.beginPath();if(x.roundRect)x.roundRect(l,t,w,h,18);else x.rect(l,t,w,h);x.fill();x.stroke()}
- const prepared=rows.map(d=>{const rk=nsRegion(d,['Randstad-kust']),rw=nsRegion(d,['Randstad-west']),ro=nsRegion(d,['Randstad-oost']),rs=[rk,rw,ro].filter(Boolean);return {d,rs,rk,rw,ro,tx:nsMedian(rs.map(v=>v?.tx)),tn:nsMedian(rs.map(v=>v?.tn)),sun:nsMedian(rs.map(v=>v?.sun)),rain:nsRainScope(d,['Randstad-kust','Randstad-west','Randstad-oost']),wind:nsMedian(rs.map(v=>v?.wind)),dir:nsCircularMean(rs.map(v=>v?.dir))}});
+ const prepared=rows.map(d=>{
+  if(d._mixFallback){const r=d._mixFallback;return {d,rs:[],rk:null,rw:null,ro:null,tx:r.max,tn:r.min,sun:r.sun,rain:{mix:r.precip},wind:r.wind,dir:r.windDir}}
+  const rk=nsRegion(d,['Randstad-kust']),rw=nsRegion(d,['Randstad-west']),ro=nsRegion(d,['Randstad-oost']),rs=[rk,rw,ro].filter(q=>q.n>0);
+  return {d,rs,rk,rw,ro,tx:nsMedian(rs.map(v=>v?.tx)),tn:nsMedian(rs.map(v=>v?.tn)),sun:nsMedian(rs.map(v=>v?.sun)),rain:nsRainScope(d,['Randstad-kust','Randstad-west','Randstad-oost']),wind:nsMedian(rs.map(v=>v?.wind)),dir:nsCircularMean(rs.map(v=>v?.dir))}
+ });
  for(let i=0;i<prepared.length;i++){
   const v=prepared[i],{d,rs,rk,rw,ro,tx,tn,sun,rain,wind,dir}=v,row=Math.floor(i/cols),col=i%cols,left=margin+col*(cardW+gap),top=header+row*(cardH+gap),mid=left+cardW/2,dt=new Date(d.date+'T12:00:00');
   const mm=Number(rain?.mix),wet=Number.isFinite(mm)&&mm>=.25;
@@ -2295,7 +2310,7 @@ async function drawRandstadCardsPng(){
   label(Number.isFinite(tx)?`${Math.round(tx)}°`:'—',mid-57,top+250,'bold 44px Arial','#d63736');
   label(Number.isFinite(tn)?`${Math.round(tn)}°`:'—',mid+63,top+250,'bold 37px Arial','#1468b8');
   const txs=rs.map(q=>q?.tx).filter(Number.isFinite),tns=rs.map(q=>q?.tn).filter(Number.isFinite);
-  label(txs.length?`TX ${Math.round(Math.min(...txs))}–${Math.round(Math.max(...txs))}°  ·  TN ${Math.round(Math.min(...tns))}–${Math.round(Math.max(...tns))}°`:'',mid,top+277,'17px Arial','#566a82');
+  label(txs.length&&tns.length?`TX ${Math.round(Math.min(...txs))}–${Math.round(Math.max(...txs))}°  ·  TN ${Math.round(Math.min(...tns))}–${Math.round(Math.max(...tns))}°`:'',mid,top+277,'17px Arial','#566a82');
   x.strokeStyle='#e4edf5';x.beginPath();x.moveTo(left+24,top+296);x.lineTo(left+cardW-24,top+296);x.stroke();
   label(`Zon  ${Number.isFinite(sun)?Math.round(sun)+' uur':'—'}`,mid,top+330,'bold 23px Arial','#334b65');
   label(`Neerslag  ${Number.isFinite(mm)?(mm<.05?'droog':nsFmt(mm,1)+' mm'):'—'}`,mid,top+363,'bold 23px Arial',wet?'#126caa':'#334b65');
@@ -2305,7 +2320,7 @@ async function drawRandstadCardsPng(){
   const vals=rs.map(q=>q?.tx).filter(Number.isFinite),spread=vals.length?Math.max(...vals)-Math.min(...vals):null;
   const modelCount=d.models?.length||0;
   // Dit is regionale temperatuurvariatie, geen spreiding tussen afzonderlijke modellen.
-  const basis=modelCount<4?'beperkte modelbasis':(spread!=null?'regioverschil TX '+nsFmt(spread,1)+'°':'regionale mix');
+  const basis=fallback?'regionale scan volgt':modelCount<4?'beperkte modelbasis':(spread!=null?'regioverschil TX '+nsFmt(spread,1)+'°':'regionale mix');
   label(`${modelCount} modellen  ·  ${basis}`,mid,top+452,'16px Arial','#61778d');
   const regional=[['Kust',rk],['Binnenland',rw],['Utrecht/Flevoland',ro]].filter(q=>Number.isFinite(q[1]?.tx));
   if(regional.length>=2){label(regional.map(([name,v])=>`${name} ${Math.round(v.tx)}°`).join('  ·  '),mid,top+299,'15px Arial','#526b82');}
