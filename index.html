@@ -233,7 +233,7 @@ body{min-width:0}
 .quickplaces{gap:7px!important}.placechip{border-radius:999px!important}
 @media(max-width:620px){.hero{padding:17px 16px!important}.hero h1{font-size:clamp(24px,6vw,33px)!important}.heroToolsMain button{font-size:12px!important;padding:9px 11px!important}.hero>p{font-size:13px!important}.healthpill{font-size:11px!important}.actionPrimary{grid-template-columns:minmax(0,1fr) auto!important}.actionPrimary .primary{min-width:0}}
 <style>
-.rwMeteoBox{margin:14px 0;padding:14px;border:1px solid #d4e2f0;border-radius:18px;background:#f5faff;color:#173451}.rwMeteoBox summary{font-weight:850;cursor:pointer;font-size:18px}.rwMeteoTools{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.rwMeteoTools button{padding:9px 13px;border-radius:10px;background:#135bb3;color:white;border:0;font-weight:750}.rwMeteoGraph{display:block;width:100%;height:auto;border-radius:12px;background:#fff}.rwMeteoNote{font-size:12px;color:#536a83;margin-top:8px}
+.rwMeteoBox{margin:16px 0;padding:18px;border:1px solid #d4e2f0;border-radius:22px;background:#ffffff;box-shadow:0 3px 18px rgba(24,68,110,.07);color:#173451}.rwMeteoBox summary{font-weight:850;cursor:pointer;font-size:18px}.rwMeteoTools{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.rwMeteoTools button{padding:9px 13px;border-radius:10px;background:#135bb3;color:white;border:0;font-weight:750}.rwMeteoGraph{display:block;width:100%;height:auto;border-radius:12px;background:#fff}.rwMeteoNote{font-size:12px;color:#536a83;margin-top:8px}
 </style></style>
 
 <style>
@@ -3400,9 +3400,50 @@ function render(canvas,rows,kind){let ctx=canvas.getContext('2d'),W=canvas.width
  ctx.beginPath();rows.forEach((r,i)=>{let x=xx(i),y=yy(r.t);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.lineWidth=4;ctx.strokeStyle='#dc433e';ctx.stroke();ctx.lineWidth=1;
  let step=kind==='hour'?6:1;rows.forEach((r,i)=>{if(i%step!==0&&i!==rows.length-1)return;let x=xx(i);ctx.textAlign='center';ctx.fillStyle='#455e79';ctx.font='14px Arial';ctx.fillText(r.label,x,B+26);if(kind==='day'){ctx.font='21px Arial';ctx.fillText(r.symbol||'☀️',x,101)}});ctx.textAlign='left';ctx.fillStyle='#b23d38';ctx.font='bold 16px Arial';ctx.fillText('— temperatuur (°C)',L,H-14);ctx.fillStyle='#2686bb';ctx.fillText('▮ neerslag (mm)',L+230,H-14);return true
 }
-function dayRows(){let d=(typeof forecastStartDate==='function'?forecastStartDate():new Date(Date.now()+86400000).toISOString().slice(0,10));let a=(typeof lastRows!=='undefined'&&Array.isArray(lastRows)?lastRows:[]).filter(r=>r.date>=d).slice(0,10);return a.filter(r=>Number.isFinite(+r.max)&&Number.isFinite(+r.min)).flatMap(r=>[{t:+r.min,rain:0,label:r.date.slice(5),symbol:'',date:r.date},{t:+r.max,rain:Math.max(0,+r.precip||0),label:r.date.slice(5),symbol:'',date:r.date}])}
+function dayRows(){
+ const d=(typeof forecastStartDate==='function'?forecastStartDate():new Date(Date.now()+86400000).toISOString().slice(0,10));
+ const a=(typeof lastRows!=='undefined'&&Array.isArray(lastRows)?lastRows:[]).filter(r=>r.date>=d).slice(0,10);
+ return a.filter(r=>Number.isFinite(Number(r.max))&&Number.isFinite(Number(r.min))).map(r=>({
+  date:r.date,min:Number(r.min),max:Number(r.max),rain:Math.max(0,Number(r.precip)||0),sun:Number(r.sun),
+  label:r.date.slice(8,10)+'-'+r.date.slice(5,7),type:String(r.type||'')
+ }));
+}
+function daySymbol(r){
+ const t=r.type.toLowerCase(),rain=r.rain;
+ if(/sneeuw/.test(t))return '❄️';
+ if(/onweer/.test(t))return '⛈️';
+ if(rain>=1||/regen|buien/.test(t))return r.sun>=5?'🌦️':'🌧️';
+ if(rain>=.15)return r.sun>=5?'🌦️':'🌥️';
+ if(/mist|nevel/.test(t))return '🌫️';
+ if(Number.isFinite(r.sun))return r.sun>=8?'☀️':r.sun>=4?'🌤️':'☁️';
+ return /bewolkt/.test(t)?'☁️':'🌤️';
+}
+function renderDays(canvas,days){
+ const ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height;
+ start(ctx,W,H,'Regioweer · Houten · 10 dagen','Dagelijkse modelmix · schematisch temperatuurverloop · geen extra API-verzoeken');
+ if(days.length<2){ctx.fillStyle='#4b647d';ctx.font='22px Arial';ctx.fillText('Nog geen modelmix voor 10 dagen beschikbaar',36,200);return false}
+ const L=78,R=W-30,T=125,B=H-78;
+ const low=Math.floor(Math.min(...days.map(r=>r.min))-2),high=Math.ceil(Math.max(...days.map(r=>r.max))+2),span=Math.max(1,high-low);
+ const x=t=>L+(R-L)*t/days.length,y=v=>B-(v-low)/span*(B-T);
+ ctx.strokeStyle='#e4ebf4';ctx.fillStyle='#526984';ctx.font='15px Arial';
+ for(let i=0;i<=4;i++){const v=low+span*i/4,py=y(v);ctx.beginPath();ctx.moveTo(L,py);ctx.lineTo(R,py);ctx.stroke();ctx.fillText(Math.round(v)+'°',24,py+5)}
+ const maxRain=Math.max(1,...days.map(r=>r.rain));
+ days.forEach((r,i)=>{const cx=x(i+.5),h=Math.min(80,r.rain/maxRain*78);if(h>0){ctx.fillStyle='#58b2df';ctx.fillRect(cx-13,B-h,26,h)}ctx.textAlign='center';ctx.fillStyle='#405b78';ctx.font='15px Arial';ctx.fillText(r.label,cx,B+27);ctx.font='25px Arial';ctx.fillText(daySymbol(r),cx,104)});
+ // Night-time lows around dawn and daytime highs in the afternoon; smooth, indicative only.
+ const anchors=[];
+ days.forEach((r,i)=>{anchors.push({x:x(i+.25),y:y(r.min)});anchors.push({x:x(i+.66),y:y(r.max)})});
+ ctx.beginPath();ctx.moveTo(anchors[0].x,anchors[0].y);
+ for(let i=0;i<anchors.length-1;i++){
+  const a=anchors[Math.max(0,i-1)],b=anchors[i],c=anchors[i+1],d=anchors[Math.min(anchors.length-1,i+2)];
+  const c1x=b.x+(c.x-a.x)/6,c1y=b.y+(c.y-a.y)/6,c2x=c.x-(d.x-b.x)/6,c2y=c.y-(d.y-b.y)/6;
+  ctx.bezierCurveTo(c1x,c1y,c2x,c2y,c.x,c.y);
+ }
+ ctx.lineWidth=4;ctx.strokeStyle='#df433f';ctx.stroke();ctx.lineWidth=1;
+ ctx.textAlign='left';ctx.fillStyle='#b23d38';ctx.font='bold 16px Arial';ctx.fillText('— temperatuur (°C)',L,H-14);ctx.fillStyle='#2686bb';ctx.fillText('▮ neerslag per dag (mm)',L+230,H-14);
+ return true;
+}
 function hourRows(){let j=dataHourly(),h=j?.hourly;if(!h?.time)return[];let now=new Date();let current=now.toLocaleString('sv-SE',{timeZone:'Europe/Amsterdam'}).replace(' ','T').slice(0,13);let a=[];for(let i=0;i<h.time.length;i++){let t=h.time[i];if(t.slice(0,13)<current)continue;let temp=Number(h.temperature_2m?.[i]);if(!Number.isFinite(temp))continue;a.push({t:temp,rain:Number(h.precipitation?.[i])||0,label:t.slice(11,13)+'u',time:t});if(a.length>=48)break}return a}
-function update(){let h=hourRows(),d=dayRows();render($m('rwMeteo48'),h,'hour');render($m('rwMeteo10'),d,'day');$m('rwMeteo48Note').textContent=h.length?'Opgeslagen uurdata · '+h.length+' uur · regen als blauwe balken.':'Uurdata ontbreekt in de cache. Geen nieuwe API-aanvraag gedaan.';$m('rwMeteo10Note').textContent=d.length?'Modelmix · '+Math.floor(d.length/2)+' dagen · minima en maxima verbonden (schematisch tussen dagwaarden).':'Modelmix nog niet lokaal beschikbaar.'}
+function update(){let h=hourRows(),d=dayRows();render($m('rwMeteo48'),h,'hour');renderDays($m('rwMeteo10'),d);$m('rwMeteo48Note').textContent=h.length?'Opgeslagen uurdata · '+h.length+' uur · regen als blauwe balken.':'Uurdata ontbreekt in de cache. Geen nieuwe API-aanvraag gedaan.';$m('rwMeteo10Note').textContent=d.length?'Modelmix · '+d.length+' dagen · vloeiend schematisch dag-nachtverloop, geen uurprognose.':'Modelmix nog niet lokaal beschikbaar.'}
 function save(id,name){let c=$m(id);if(!c)return;c.toBlob(b=>{if(!b)return;if(typeof download==='function')download(b,name);else{let a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}},'image/png')}
 function init(){if(!$m('rwMeteoBox'))return;$m('rwMeteo48Btn').onclick=()=>{update();save('rwMeteo48','regioweer-houten-meteogram-48uur.png')};$m('rwMeteo10Btn').onclick=()=>{update();save('rwMeteo10','regioweer-houten-meteogram-10dagen.png')};$m('rwMeteoRefreshBtn').onclick=update;update();$m('rwMeteoBox').addEventListener('toggle',()=>{if($m('rwMeteoBox').open)update()})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
