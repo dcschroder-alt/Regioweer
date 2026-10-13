@@ -320,7 +320,7 @@ body{min-width:0}
 <section class="panel hidden" id="modelStatusPanel"><details id="modelStatusDetails"><summary id="modelStatusSummary" style="font-weight:850;font-size:17px;cursor:pointer">▶ Modelstatus</summary><div class="note">Beschikbaarheid van de modellen in deze berekening.</div><div id="modelStatusGrid" class="modelStatusGrid"></div></details></section>
 <section class="panel" id="favMiniPanel"><div class="favDashHead"><div><div style="font-weight:850;font-size:17px">Favorieten-dashboard</div><div class="note">Morgen in één oogopslag voor je opgeslagen plaatsen.</div></div><button class="ghost" id="refreshFavDash" type="button">↻ Ververs</button></div><div id="favMiniGrid" class="favMiniGrid"></div><div class="note" id="favDashStatus">Gebruik Ververs om de dynamische modelmix voor morgen op te halen.</div></section>
 <section class="panel hidden" id="comparePanel"><div style="font-weight:850;font-size:17px">Plaatsen vergelijken</div><div class="note">Snelle 5-daagse vergelijking met ECMWF IFS.</div><div class="compareGrid"><div class="field"><label>Andere plaats</label><input id="comparePlace" value="De Bilt" placeholder="Bijv. De Bilt"></div><div class="field" style="justify-content:end"><button class="primary" id="compareLoad" type="button">Vergelijk</button></div></div><div id="compareStatus" class="status"></div><div id="compareRows" class="compareRows"></div></section>
-<details class="rwMeteoBox" id="rwMeteoBox"><summary>📈 Meteogrammen Houten · 48 uur & 10 dagen</summary><div class="rwMeteoTools"><button type="button" id="rwMeteo48Btn">⬇ PNG 48 uur</button><button type="button" id="rwMeteo10Btn">⬇ PNG 10 dagen</button><button type="button" id="rwMeteoRefreshBtn">↻ Grafieken uit cache</button></div><canvas id="rwMeteo48" class="rwMeteoGraph" width="1200" height="400"></canvas><p class="rwMeteoNote" id="rwMeteo48Note">Uurgegevens worden alleen uit bestaande cache gelezen.</p><canvas id="rwMeteo10" class="rwMeteoGraph" width="1200" height="400"></canvas><p class="rwMeteoNote" id="rwMeteo10Note">Daggegevens uit de opgeslagen modelmix; geen extra API-verzoeken.</p></details>
+<details class="rwMeteoBox" id="rwMeteoBox"><summary>📈 Meteogrammen · Houten & Randstad · 10 dagen</summary><div class="rwMeteoTools"><button type="button" id="rwMeteo48Btn">⬇ PNG 48 uur</button><button type="button" id="rwMeteo10Btn">⬇ PNG 10 dagen</button><button type="button" id="rwMeteoRefreshBtn">↻ Grafieken uit cache</button></div><canvas id="rwMeteo48" class="rwMeteoGraph" width="1200" height="400"></canvas><p class="rwMeteoNote" id="rwMeteo48Note">Uurgegevens worden alleen uit bestaande cache gelezen.</p><canvas id="rwMeteo10" class="rwMeteoGraph" width="1200" height="400"></canvas><p class="rwMeteoNote">🏙️ Randstad · regionaal gemiddelde van kust, westelijk binnenland en Utrecht/Flevoland</p><canvas id="rwMeteoRandstad" class="rwMeteoGraph" width="1200" height="400"></canvas><div class="rwMeteoTools"><button type="button" id="rwMeteoRandstadBtn">⬇ PNG Randstad · 10 dagen</button></div><p class="rwMeteoNote" id="rwMeteo10Note">Daggegevens uit de opgeslagen modelmix; geen extra API-verzoeken.</p></details>
 <section class="panel hidden" id="fivePreviewPanel"><div class="previewHead modelmixPreviewHead"><div><div style="font-weight:900;font-size:19px">🌦️ Modelmix · dagkaarten</div><div class="note">Vanaf morgen · centrale waarde, bandbreedte, verandering en modelzekerheid per dag.</div></div><div class="smallstatus" id="previewUpdated"></div></div><div class="forecastRangeButtons" id="forecastRangeButtons" aria-label="Aantal dagen"><button type="button" data-forecast-days="5">5 dagen</button><button type="button" data-forecast-days="6">6 dagen</button><button type="button" data-forecast-days="7">7 dagen</button><button type="button" data-forecast-days="10">10 dagen</button><button type="button" data-forecast-days="15">15 dagen</button></div><div class="modelmixExportRow"><button type="button" id="modelmixPng">⬇ PNG Houten</button><button type="button" id="randstadPng">⬇ PNG Randstad</button></div><select id="forecastDays" class="forecastSelect forecastSelectHidden" aria-hidden="true" tabindex="-1"><option value="5">5 dagen</option><option value="6">6 dagen</option><option value="7" selected>7 dagen</option><option value="10">10 dagen</option><option value="15">15 dagen</option></select><div id="fivePreview" class="previewGrid modelmixDayGrid"></div><div class="note previewModelsNote" id="previewModels"></div></section>
 <section class="panel hidden" id="smartOutlookPanel"><div style="font-weight:850;font-size:17px">Handige vooruitblik</div><div class="note">Alleen aanvullende vooruitblik die nog niet duidelijk uit het weerbericht of de dagkaarten blijkt.</div><div id="smartOutlookGrid" class="smartGrid"></div></section>
 
@@ -3460,34 +3460,46 @@ function daySymbol(r){
  if(Number.isFinite(r.sun))return r.sun>=8?'☀️':r.sun>=4?'🌤️':'☁️';
  return /bewolkt/.test(t)?'☁️':'🌤️';
 }
-function renderDays(canvas,days){
+function randstadRows(){
+ try{const days=nationalScanLastPack?.days||[];return days.filter(d=>d.date>=forecastStartDate()).slice(0,10).map(d=>{
+ const parts=[nsRegion(d,['Randstad-kust']),nsRegion(d,['Randstad-west']),nsRegion(d,['Randstad-oost'])].filter(r=>Number.isFinite(r?.tx)&&Number.isFinite(r?.tn));
+ if(!parts.length)return null;
+ const med=a=>{const v=a.filter(Number.isFinite).sort((x,y)=>x-y);return v.length?v[Math.floor(v.length/2)]:NaN};
+ return {date:d.date,min:med(parts.map(r=>r.tn)),max:med(parts.map(r=>r.tx)),rain:Math.max(0,med(parts.map(r=>r.rain))||0),sun:med(parts.map(r=>r.sun)),label:d.date.slice(8,10)+'-'+d.date.slice(5,7),type:''};
+ }).filter(Boolean)}catch(e){return[]}
+}
+function renderDays(canvas,days,place='Houten'){
  const ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height;
- start(ctx,W,H,'Regioweer · Houten · 10 dagen','Dagelijkse modelmix · schematisch temperatuurverloop · geen extra API-verzoeken');
- if(days.length<2){ctx.fillStyle='#4b647d';ctx.font='22px Arial';ctx.fillText('Nog geen modelmix voor 10 dagen beschikbaar',36,200);return false}
- const L=78,R=W-30,T=125,B=H-78;
- const low=Math.floor(Math.min(...days.map(r=>r.min))-2),high=Math.ceil(Math.max(...days.map(r=>r.max))+2),span=Math.max(1,high-low);
- const x=t=>L+(R-L)*t/days.length,y=v=>B-(v-low)/span*(B-T);
- ctx.strokeStyle='#e4ebf4';ctx.fillStyle='#526984';ctx.font='15px Arial';
- for(let i=0;i<=4;i++){const v=low+span*i/4,py=y(v);ctx.beginPath();ctx.moveTo(L,py);ctx.lineTo(R,py);ctx.stroke();ctx.fillText(Math.round(v)+'°',24,py+5)}
+ const hourly=place==='Houten'?dataHourly()?.hourly:null;
+ const usable=hourly?.time?.length&&hourly?.temperature_2m?.length;
+ const daySet=new Set(days.map(d=>d.date));
+ const points=usable?hourly.time.map((t,i)=>({date:t.slice(0,10),hour:Number(t.slice(11,13)),temp:Number(hourly.temperature_2m[i])})).filter(v=>daySet.has(v.date)&&Number.isFinite(v.temp)):[];
+ const haveHourly=points.length>=24&&new Set(points.map(p=>p.date)).size>=2;
+ start(ctx,W,H,'Regioweer · '+place+' · 10 dagen',haveHourly?'Uurlijkse temperatuur waar beschikbaar · daarna dagwaarden':'Dagelijkse modelmix · maxima/minima, geen verzonnen uurcurve');
+ if(days.length<2){ctx.fillStyle='#4b647d';ctx.font='22px Arial';ctx.fillText('Nog geen gegevens voor 10 dagen beschikbaar',36,200);return false}
+ const L=86,R=W-40,T=123,B=H-77;
+ const vals=days.flatMap(r=>[r.min,r.max]);const low=Math.min(0,5*Math.floor((Math.min(...vals)-1)/5));const high=Math.max(20,5*Math.ceil((Math.max(...vals)+1)/5));
+ const x=t=>L+(R-L)*t/days.length,y=v=>B-(v-low)/(high-low)*(B-T);
+ ctx.font='bold 16px Arial';ctx.textAlign='right';
+ for(let v=low;v<=high;v+=5){const py=y(v);ctx.strokeStyle=[0,5,10,20].includes(v)?'#aebfd3':'#e4ebf4';ctx.lineWidth=[0,5,10,20].includes(v)?2:1;ctx.beginPath();ctx.moveTo(L,py);ctx.lineTo(R,py);ctx.stroke();ctx.fillStyle='#415c7a';ctx.fillText(v+'°',L-13,py+5)}
+ days.forEach((r,i)=>{const bx=x(i);ctx.strokeStyle='#b7c9dc';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(bx,T);ctx.lineTo(bx,B);ctx.stroke()});ctx.strokeStyle='#b7c9dc';ctx.beginPath();ctx.moveTo(R,T);ctx.lineTo(R,B);ctx.stroke();
  const maxRain=Math.max(1,...days.map(r=>r.rain));
- days.forEach((r,i)=>{const cx=x(i+.5),h=Math.min(80,r.rain/maxRain*78);if(h>0){ctx.fillStyle='#58b2df';ctx.fillRect(cx-13,B-h,26,h)}ctx.textAlign='center';ctx.fillStyle='#405b78';ctx.font='15px Arial';ctx.fillText(r.label,cx,B+27);ctx.font='25px Arial';ctx.fillText(daySymbol(r),cx,104)});
- // Night-time lows around dawn and daytime highs in the afternoon; smooth, indicative only.
- const anchors=[];
- days.forEach((r,i)=>{anchors.push({x:x(i+.25),y:y(r.min)});anchors.push({x:x(i+.66),y:y(r.max)})});
- ctx.beginPath();ctx.moveTo(anchors[0].x,anchors[0].y);
- for(let i=0;i<anchors.length-1;i++){
-  const a=anchors[Math.max(0,i-1)],b=anchors[i],c=anchors[i+1],d=anchors[Math.min(anchors.length-1,i+2)];
-  const c1x=b.x+(c.x-a.x)/6,c1y=b.y+(c.y-a.y)/6,c2x=c.x-(d.x-b.x)/6,c2y=c.y-(d.y-b.y)/6;
-  ctx.bezierCurveTo(c1x,c1y,c2x,c2y,c.x,c.y);
- }
- ctx.lineWidth=4;ctx.strokeStyle='#df433f';ctx.stroke();ctx.lineWidth=1;
- ctx.textAlign='left';ctx.fillStyle='#b23d38';ctx.font='bold 16px Arial';ctx.fillText('— temperatuur (°C)',L,H-14);ctx.fillStyle='#2686bb';ctx.fillText('▮ neerslag per dag (mm)',L+230,H-14);
+ days.forEach((r,i)=>{const cx=x(i+.5),h=Math.min(67,r.rain/maxRain*64);if(h>0){ctx.fillStyle='#58b2df';ctx.fillRect(cx-12,B-h,24,h)}ctx.textAlign='center';ctx.fillStyle='#405b78';ctx.font='15px Arial';ctx.fillText(r.label,cx,B+25);ctx.font='24px Arial';ctx.fillText(daySymbol(r),cx,105)});
+ // Draw genuine hourly data only when it is actually present, and otherwise a simple min-max range.
+ const firstDay=days[0].date;
+ const groups=new Map();points.forEach(p=>{if(!groups.has(p.date))groups.set(p.date,[]);groups.get(p.date).push(p)});
+ days.forEach((r,i)=>{
+  const pts=(groups.get(r.date)||[]).sort((a,b)=>a.hour-b.hour);
+  if(place==='Houten'&&pts.length>=12){ctx.beginPath();pts.forEach((p,j)=>{const px=x(i+p.hour/24),py=y(p.temp);j?ctx.lineTo(px,py):ctx.moveTo(px,py)});ctx.strokeStyle='#d93640';ctx.lineWidth=3.5;ctx.stroke()}
+  else{const cx=x(i+.5);ctx.strokeStyle='#d93640';ctx.lineWidth=5;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(cx,y(r.min));ctx.lineTo(cx,y(r.max));ctx.stroke();ctx.lineCap='butt';ctx.fillStyle='#b52b35';ctx.font='bold 13px Arial';ctx.textAlign='center';ctx.fillText(Math.round(r.max)+'°',cx,y(r.max)-9);ctx.fillText(Math.round(r.min)+'°',cx,y(r.min)+17)}
+ });
+ ctx.lineWidth=1;ctx.textAlign='left';ctx.fillStyle='#b23d38';ctx.font='bold 15px Arial';ctx.fillText('— uurtemperatuur / dagbereik (°C)',L,H-12);ctx.fillStyle='#2686bb';ctx.fillText('▮ neerslag per dag (mm)',L+340,H-12);
  return true;
 }
 function hourRows(){let j=dataHourly(),h=j?.hourly;if(!h?.time)return[];let now=new Date();let current=now.toLocaleString('sv-SE',{timeZone:'Europe/Amsterdam'}).replace(' ','T').slice(0,13);let a=[];for(let i=0;i<h.time.length;i++){let t=h.time[i];if(t.slice(0,13)<current)continue;let temp=Number(h.temperature_2m?.[i]);if(!Number.isFinite(temp))continue;a.push({t:temp,rain:Number(h.precipitation?.[i])||0,label:t.slice(11,13)+'u',time:t});if(a.length>=48)break}return a}
-function update(){let h=hourRows(),d=dayRows();render($m('rwMeteo48'),h,'hour');renderDays($m('rwMeteo10'),d);$m('rwMeteo48Note').textContent=h.length?'Opgeslagen uurdata · '+h.length+' uur · regen als blauwe balken.':'Uurdata ontbreekt in de cache. Geen nieuwe API-aanvraag gedaan.';$m('rwMeteo10Note').textContent=d.length?'Modelmix · '+d.length+' dagen · vloeiend schematisch dag-nachtverloop, geen uurprognose.':'Modelmix nog niet lokaal beschikbaar.'}
+function update(){let h=hourRows(),d=dayRows();render($m('rwMeteo48'),h,'hour');renderDays($m('rwMeteo10'),d);renderDays($m('rwMeteoRandstad'),randstadRows(),'Randstad');$m('rwMeteo48Note').textContent=h.length?'Opgeslagen uurdata · '+h.length+' uur · regen als blauwe balken.':'Uurdata ontbreekt in de cache. Geen nieuwe API-aanvraag gedaan.';$m('rwMeteo10Note').textContent=d.length?'Modelmix · '+d.length+' dagen · echte uurtemperaturen waar beschikbaar; overige dagen tonen minimum en maximum.':'Modelmix nog niet lokaal beschikbaar.'}
 function save(id,name){let c=$m(id);if(!c)return;c.toBlob(b=>{if(!b)return;if(typeof download==='function')download(b,name);else{let a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}},'image/png')}
-function init(){if(!$m('rwMeteoBox'))return;$m('rwMeteo48Btn').onclick=()=>{update();save('rwMeteo48','regioweer-houten-meteogram-48uur.png')};$m('rwMeteo10Btn').onclick=()=>{update();save('rwMeteo10','regioweer-houten-meteogram-10dagen.png')};$m('rwMeteoRefreshBtn').onclick=update;update();$m('rwMeteoBox').addEventListener('toggle',()=>{if($m('rwMeteoBox').open)update()})}
+function init(){if(!$m('rwMeteoBox'))return;$m('rwMeteo48Btn').onclick=()=>{update();save('rwMeteo48','regioweer-houten-meteogram-48uur.png')};$m('rwMeteo10Btn').onclick=()=>{update();save('rwMeteo10','regioweer-houten-meteogram-10dagen.png')};$m('rwMeteoRandstadBtn').onclick=()=>{update();save('rwMeteoRandstad','regioweer-randstad-meteogram-10dagen.png')};$m('rwMeteoRefreshBtn').onclick=update;update();$m('rwMeteoBox').addEventListener('toggle',()=>{if($m('rwMeteoBox').open)update()})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script></body></html>
