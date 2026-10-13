@@ -3635,6 +3635,51 @@ function trendExtras(archive,chosen,dates,getRow,data,selectedModel,selected){
  const vals=modelList.map(k=>getRow(k,selected)?.max).filter(Number.isFinite);if(vals.length>=3&&Math.max(...vals)-Math.min(...vals)>=5)alerts.push(`Grote TX-spreiding: ${(Math.max(...vals)-Math.min(...vals)).toFixed(1).replace('.',',')} °C tussen ${vals.length} modellen.`);
  return `<div class="rwExplorerAnalysis" style="margin-top:16px"><h4>📈 Modeltrends en runontwikkeling</h4><div class="rwAnaNote">${escapeHtml(MODELS[selectedModel]?.name||selectedModel)} · verwachting voor ${selected.slice(8,10)}-${selected.slice(5,7)} · ${series.length} opgeslagen waarden. ${isRuns?'Runlabels beschikbaar; controleer de geldige runtijden.':'Ophaalmomenten: niet alle waarden zijn aantoonbaar afzonderlijke 00/12 UTC-runs.'}</div><div class="rwAnaControls"><label>Grafiek <select id="rwTrendMetric"><option value="max" ${metric==='max'?'selected':''}>Maximumtemperatuur</option><option value="min" ${metric==='min'?'selected':''}>Minimumtemperatuur</option><option value="precip" ${metric==='precip'?'selected':''}>Neerslag</option></select></label></div>${trendPlot(series,metric)}${Number.isFinite(delta)?`<div class="rwAnaNote">Eerste → laatste opgeslagen verwachting: ${first.toFixed(1).replace('.',',')} → ${last.toFixed(1).replace('.',',')} ${metric==='precip'?'mm':'°C'} (${delta>0?'+':''}${delta.toFixed(1).replace('.',',')}). Dit is niet noodzakelijk een 00/12-runvergelijking.</div>`:''}<h4>↔️ Modellen ten opzichte van de modelmix · TX</h4>${devHtml}<div class="rwAnaNote">Afwijking ten opzichte van de modelmix op dezelfde dag. De modelmix is geen onafhankelijke extra modelrun.</div><h4>🔔 Opvallende signalen</h4><div class="rwAnaNote">${alerts.length?alerts.map(a=>'• '+a).join('<br>'):'Geen grote veranderingen aangetoond voor deze selectie.'} Signalen zijn gebaseerd op lokaal bewaarde gegevens en zijn geen officiële waarschuwingen.</div></div>`;
 }
+function rwSmartSignals(archive,chosen,dates,getRow){
+ const keys=chosen.filter(k=>k!=='mix');
+ const fmt=v=>v.toFixed(1).replace('.',',');
+ const history=(key,date,metric)=>archive.slice().reverse().map(s=>({at:s.savedAt,run:s.models?.[key]?.run,value:s.models?.[key]?.rows?.find(r=>r.date===date)?.[metric]})).filter(x=>Number.isFinite(x.value));
+ const results=dates.map(date=>{
+  const models=keys.map(k=>({key:k,row:getRow(k,date)})).filter(x=>x.row&&x.row.complete!==false&&Number.isFinite(x.row.max));
+  const tx=models.map(x=>x.row.max),lo=tx.length?Math.min(...tx):null,hi=tx.length?Math.max(...tx):null;
+  const spread=tx.length>=2?hi-lo:null;
+  const wet=models.filter(x=>Number.isFinite(x.row.precip));
+  const wetCount=wet.filter(x=>x.row.precip>=.2).length;
+  const cold=models.filter(x=>Number.isFinite(x.row.min)&&x.row.min<=0).length;
+  const rain=models.filter(x=>Number.isFinite(x.row.precip)&&x.row.precip>=10).length;
+  const runChanges=[];
+  for(const m of models){const h=history(m.key,date,'max');if(h.length>=2){const a=h[h.length-2],b=h[h.length-1];if(a.value!==b.value)runChanges.push({key:m.key,diff:b.value-a.value,count:h.length,history:h});}}
+  const moves=runChanges.filter(x=>Math.abs(x.diff)>=2);
+  let stability='Onvoldoende historie',why='Bewaar minstens twee verschillende gegevenssets';
+  if(runChanges.length>=2){
+   const mean=runChanges.reduce((a,x)=>a+Math.abs(x.diff),0)/runChanges.length;
+   stability=mean<.8&&spread!==null&&spread<=3?'Stabiel':mean>=2?'Sterk gewijzigd':'Veranderlijk';
+   why=`Gem. TX-wijziging ${fmt(mean)} °C bij ${runChanges.length} modellen`;
+  }
+  const signals=[];
+  if(moves.length){const colder=moves.filter(x=>x.diff<=-2),warmer=moves.filter(x=>x.diff>=2);if(colder.length>=2)signals.push(`${colder.length} modellen minstens 2 °C kouder dan hun vorige opgeslagen verwachting`);else if(warmer.length>=2)signals.push(`${warmer.length} modellen minstens 2 °C warmer dan hun vorige opgeslagen verwachting`);}
+  if(spread!==null&&spread>=5)signals.push(`grote TX-spreiding (${fmt(spread)} °C)`);
+  if(models.length>=2&&cold>=2)signals.push(`${cold} modellen met minimum ≤ 0 °C`);
+  if(rain>=2)signals.push(`${rain} modellen met minstens 10 mm neerslag`);
+  const categories=[];
+  if(models.length>=2){
+   const dry=wet.filter(x=>x.row.precip<.2).length;
+   if(dry)categories.push(`${dry} droog`);
+   const showers=wet.filter(x=>x.row.precip>=.2&&x.row.precip<5).length;
+   if(showers)categories.push(`${showers} licht nat`);
+   const rainy=wet.filter(x=>x.row.precip>=5).length;
+   if(rainy)categories.push(`${rainy} nat`);
+  }
+  return {date,models,spread,wetCount,wetTotal:wet.length,stability,why,signals,categories,runChanges};
+ });
+ const important=results.flatMap(r=>r.signals.map(message=>({date:r.date,message}))).slice(0,5);
+ const overview=important.length?important.map(x=>`<div style="padding:7px 0;border-bottom:1px solid #dce6f0"><b>${escapeHtml(x.date.slice(8,10)+'-'+x.date.slice(5,7))}</b> · ${escapeHtml(x.message)}</div>`).join(''):'Geen grote veranderingen of bijzondere signalen aantoonbaar in de beschikbare gegevens.';
+ const days=results.map(r=>{
+  const badge=r.stability==='Stabiel'?'#d9f3e5':r.stability==='Sterk gewijzigd'?'#ffdfd9':r.stability==='Veranderlijk'?'#fff0cc':'#e7edf5';
+  return `<div style="padding:11px 0;border-bottom:1px solid #dce6f0"><div style="display:flex;gap:8px;align-items:center;justify-content:space-between;flex-wrap:wrap"><b>${escapeHtml(r.date.slice(8,10)+'-'+r.date.slice(5,7))}</b><span style="background:${badge};color:#233b54;border-radius:20px;padding:4px 9px;font-size:12px;font-weight:700">${escapeHtml(r.stability)}</span></div><div class="rwAnaNote">${escapeHtml(r.why)} · ${r.spread===null?'TX-spreiding onbekend':'TX-spreiding '+fmt(r.spread)+' °C'} · neerslag ≥ 0,2 mm: ${r.wetCount}/${r.wetTotal} modellen</div>${r.categories.length?`<div class="rwAnaNote">Neerslagscenario's: ${escapeHtml(r.categories.join(' · '))}</div>`:''}${r.signals.length?`<div class="rwAnaNote" style="font-weight:650">${escapeHtml(r.signals.join(' · '))}</div>`:''}</div>`;
+ }).join('');
+ return `<div class="rwExplorerAnalysis" style="margin-top:16px"><h4>🧭 Modelanalyse & signalen · 10 dagen</h4><div class="rwAnaNote">Dagelijkse analyse van beschikbare afzonderlijke modellen en lokaal bewaarde voorspellingen. De modelmix telt niet mee als extra model. Dit zijn geen officiële ensemblekansen of KNMI-waarschuwingen.</div><div style="margin-top:12px"><b>Belangrijkste veranderingen</b><div class="rwAnaNote">${overview}</div></div><details style="margin-top:12px"><summary style="cursor:pointer;font-weight:750">📅 Stabiliteit, scenario's en signalen per dag</summary><div style="margin-top:10px">${days||'<div class="rwAnaNote">Nog geen dagen beschikbaar.</div>'}</div><div class="rwAnaNote" style="margin-top:9px">‘Stabiel’ vereist minstens twee modellen met opgeslagen veranderingen én kleine modelspreiding. Ophaalmomenten zijn niet altijd afzonderlijke 00/12 UTC-runs. Sneeuw wordt hier niet uit alleen temperatuur afgeleid.</div></details></div>`;
+}
 function analysis(chosen,dates,getRow,data){
  const target=$e('rwExplorerAnalysis');if(!target)return;
  const archive=runArchive();const previous=archive.length>1?archive[1]:null;
@@ -3655,6 +3700,7 @@ function analysis(chosen,dates,getRow,data){
  const cards=candidates.map(x=>`<div class="rwAnaCard"><b>${escapeHtml(x.date.slice(8,10)+'-'+x.date.slice(5,7))}</b><span class="rwAnaDelta">${x.spread===null?'—':x.spread.toFixed(1).replace('.',',')+'°'}</span><small>TX-spreiding · ${x.n} modellen</small><small>Neerslag ≥0,2 mm: ${x.rainYes}/${x.rainN} modellen</small></div>`).join('');
  target.innerHTML=`<div class="rwExplorerAnalysis"><h4>🔄 Verschil met vorige modelrun · per dag</h4><div class="rwAnaControls"><label>Model <select id="rwAnaModel">${choices.map(k=>`<option value="${escapeHtml(k)}" ${k===selectedModel?'selected':''}>${escapeHtml(MODELS[k]?.name||k)}</option>`).join('')}</select></label><label>Dag <select id="rwAnaDate">${dates.map(d=>`<option value="${d}" ${d===selected?'selected':''}>${d.slice(8,10)}-${d.slice(5,7)}</option>`).join('')}</select></label></div>${previous?`<div class="rwAnaCards"><div class="rwAnaCard"><b>TX</b><span class="rwAnaDelta">${delta(now?.max,old?.max,'°C')}</span></div><div class="rwAnaCard"><b>TN</b><span class="rwAnaDelta">${delta(now?.min,old?.min,'°C')}</span></div><div class="rwAnaCard"><b>Neerslag</b><span class="rwAnaDelta">${delta(now?.precip,old?.precip,'mm')}</span></div></div><div class="rwAnaNote">Huidig: ${escapeHtml(thisRun)} · vergelijking met opgeslagen ${escapeHtml(prevRun)} (${previousDate}). ${distinctRun?'Runlabels verschillen.':'Let op: niet bewezen dat dit twee verschillende 00/12 UTC-runs zijn; het kunnen twee ophaalmomenten van dezelfde run zijn.'} Vergelijking alleen voor dezelfde kalenderdag.</div>`:'<div class="rwAnaNote">Nog geen vorige modelophaalronde opgeslagen. Na een volgende nieuwe set modelgegevens verschijnt hier de verandering per dag. Oude runs kunnen niet met terugwerkende kracht worden opgehaald.</div>'}<h4 style="margin-top:14px">📊 Spreiding en neerslagovereenstemming per dag</h4><div class="rwAnaCards">${cards}</div><div class="rwAnaNote">De spreiding is het verschil tussen hoogste en laagste TX van de beschikbare losse modellen. De neerslagfractie is geen officiële ensemblekans. De modelmix telt niet mee als extra onafhankelijk model.</div></div>`;
  target.insertAdjacentHTML('beforeend',trendExtras(archive,chosen,dates,getRow,data,selectedModel,selected));
+ target.insertAdjacentHTML('beforeend',rwSmartSignals(archive,chosen,dates,getRow));
  target.querySelector('#rwTrendMetric')?.addEventListener('change',e=>{window.rwTrendMetric=e.target.value;analysis(chosen,dates,getRow,data)});
  target.querySelector('#rwAnaModel')?.addEventListener('change',e=>{target.dataset.model=e.target.value;analysis(chosen,dates,getRow,data)});
  target.querySelector('#rwAnaDate')?.addEventListener('change',e=>{target.dataset.date=e.target.value;analysis(chosen,dates,getRow,data)});
