@@ -3547,10 +3547,34 @@ let mode='mix';
 const escapeHtml=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtTemp=x=>Number.isFinite(x)?`${Math.round(x)}°`:'—';
 const fmtRain=x=>Number.isFinite(x)?`${x.toFixed(1).replace('.',',')} mm`:'—';
-function stored(){try{return typeof getFullMixCache==='function'?getFullMixCache(7*86400000):null}catch(e){return null}}
+function stored(){
+ try{
+  // Use the currently displayed model data first; they need not have been persisted as a complete mix.
+  const live=(typeof lastMixData!=='undefined'&&lastMixData&&typeof lastMixData==='object')?lastMixData:{};
+  const liveKeys=Object.keys(live).filter(k=>Array.isArray(live[k])&&live[k].length);
+  if(liveKeys.length)return {data:live,mixRows:(typeof lastRows!=='undefined'&&Array.isArray(lastRows))?lastRows:[],source:'geladen modellen'};
+  const full=(typeof getFullMixCache==='function')?getFullMixCache(7*86400000):null;
+  if(full?.data&&Object.values(full.data).some(v=>Array.isArray(v)&&v.length))return full;
+  // A single-model fetch and a partial mix are also useful for comparison.
+  const data={};
+  if(typeof readForecastCache==='function'&&typeof mixLocationId==='function'){
+   const all=readForecastCache(),loc=mixLocationId()+'|';
+   for(const [id,rec] of Object.entries(all||{})){
+    if(!id.startsWith(loc)||!rec?.rows?.length)continue;
+    if(Date.now()-(rec.savedAt||0)>7*86400000)continue;
+    const key=id.slice(loc.length).split('|')[0];
+    if(typeof MODELS==='undefined'||!MODELS[key])continue;
+    if(!data[key]||rec.savedAt>(data[key]._cacheSavedAt||0)){
+     const rows=rec.rows.map(r=>({...r}));rows._runUsed=rec.runUsed||'opgeslagen run';rows._cacheSavedAt=rec.savedAt;rows._fromCache=true;data[key]=rows;
+    }
+   }
+  }
+  return {data,mixRows:full?.mixRows||[],source:'los opgeslagen modellen'};
+ }catch(e){console.warn('Modelverkenner gegevens',e);return {data:{},mixRows:[]}};
+}
 function available(){const cache=stored(),data=cache?.data||{};return {cache,data,keys:Object.keys(data).filter(k=>Array.isArray(data[k])&&data[k].length&&typeof MODELS!=='undefined'&&MODELS[k])}}
 function setup(){const {keys}=available();for(const id of ['rwExplorerA','rwExplorerB','rwExplorerC']){const el=$e(id),old=el.value;el.innerHTML=keys.map(k=>`<option value="${escapeHtml(k)}">${escapeHtml(MODELS[k]?.name||k)}</option>`).join('');if(keys.includes(old))el.value=old}if(keys.length){if(!$e('rwExplorerA').value)$e('rwExplorerA').value=keys[0];if(!$e('rwExplorerB').value||$e('rwExplorerB').value===$e('rwExplorerA').value)$e('rwExplorerB').value=keys.find(k=>k!==$e('rwExplorerA').value)||keys[0];if(!$e('rwExplorerC').value||[$e('rwExplorerA').value,$e('rwExplorerB').value].includes($e('rwExplorerC').value))$e('rwExplorerC').value=keys.find(k=>![$e('rwExplorerA').value,$e('rwExplorerB').value].includes(k))||keys[0]}}
-function draw(){const {cache,data,keys}=available();if(!keys.length){$e('rwExplorerCards').innerHTML='';$e('rwExplorerTableWrap').innerHTML='';$e('rwExplorerHint').textContent='Nog geen volledige modelmix opgeslagen voor deze plaats. Kies bovenaan ‘Mix beste modellen’ en haal de gegevens op.';return}const sels=mode==='mix'?[]:mode==='single'?[$e('rwExplorerA').value]:[$e('rwExplorerA').value,$e('rwExplorerB').value,$e('rwExplorerC').value].filter((k,i,a)=>k&&a.indexOf(k)===i);const chosen=mode==='mix'?['mix',...keys]:sels;
+function draw(){const {cache,data,keys}=available();if(!keys.length){$e('rwExplorerCards').innerHTML='';$e('rwExplorerTableWrap').innerHTML='';$e('rwExplorerHint').textContent='Geen afzonderlijke modelgegevens voor deze locatie gevonden. Haal bovenaan een modelmix of een los model op. Controleer ook of dezelfde locatie geselecteerd is.';return}const sels=mode==='mix'?[]:mode==='single'?[$e('rwExplorerA').value]:[$e('rwExplorerA').value,$e('rwExplorerB').value,$e('rwExplorerC').value].filter((k,i,a)=>k&&a.indexOf(k)===i);const chosen=mode==='mix'?[...(cache.mixRows?.length?['mix']:[]),...keys]:sels;
 $e('rwExplorerBWrap').style.display=mode==='compare'?'':'none';$e('rwExplorerCWrap').style.display=mode==='compare'?'':'none';$e('rwExplorerPick').style.display=mode==='mix'?'none':'';
 $e('rwExplorerCards').innerHTML=chosen.map(k=>{const rows=k==='mix'?cache.mixRows:data[k],meta=k==='mix'?'Samengestelde modelmix':data[k]?._runUsed||'Run onbekend';return `<div class="rwExplorerCard"><b>${escapeHtml(k==='mix'?'🌤 Modelmix':MODELS[k]?.name||k)}</b><small>${escapeHtml(meta)}</small><small>${rows?.filter(r=>r.complete!==false).length||0} dagen · ${k==='mix'?'samengesteld':data[k]?._fromCache?'opgeslagen':'modeldata'}</small></div>`}).join('');
 const dates=[...new Set(chosen.flatMap(k=>(k==='mix'?cache.mixRows:data[k]||[]).map(r=>r.date)))].filter(d=>d>=((typeof forecastStartDate==='function')?forecastStartDate():new Date().toISOString().slice(0,10))).sort().slice(0,10);
