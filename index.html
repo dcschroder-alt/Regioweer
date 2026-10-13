@@ -3592,10 +3592,23 @@ function plot(title,metric,models,dates,getRow){
  const x=i=>L+(dates.length===1?pw/2:i*pw/(dates.length-1));const y=v=>T+(high-v)*ph/(high-low);
  const grid=Array.from({length:5},(_,i)=>{const v=low+(high-low)*i/4,yy=y(v);return `<line x1="${L}" y1="${yy}" x2="${W-R}" y2="${yy}" stroke="currentColor" opacity=".12"/><text x="${L-7}" y="${yy+4}" font-size="12" text-anchor="end" fill="currentColor" opacity=".7">${metric==='precip'?v.toFixed(1):v.toFixed(0)}</text>`}).join('');
  const labels=dates.map((d,i)=>`<text x="${x(i)}" y="${H-14}" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">${d.slice(8,10)}/${d.slice(5,7)}</text>`).join('');
- const paths=models.map((k,j)=>{let pieces=[],part=[];const flush=()=>{if(part.length){pieces.push(part.length===1?`<circle cx="${part[0][0]}" cy="${part[0][1]}" r="3.5" fill="${colors[j%colors.length]}"/>`:`<polyline points="${part.map(p=>p.join(',')).join(' ')}" fill="none" stroke="${colors[j%colors.length]}" stroke-width="${j===0?3.2:2.3}" stroke-linejoin="round" stroke-linecap="round"/>`);part=[]}};
+ const paths=metric==='precip' ? (()=>{
+  // Grouped bars, one colour per model. Keep missing data distinct from 0 mm.
+  const step=dates.length>1?pw/(dates.length-1):pw;
+  const groupWidth=Math.min(step*.78,72);
+  const barWidth=Math.max(1.8,Math.min(19,groupWidth/models.length-1.2));
+  const gap=Math.max(.5,Math.min(2,(groupWidth-models.length*barWidth)/Math.max(1,models.length-1)));
+  const total=models.length*barWidth+(models.length-1)*gap;
+  return dates.map((d,i)=>models.map((k,j)=>{
+   const r=getRow(k,d);if(!r||r.complete===false||!Number.isFinite(r.precip))return '';
+   const v=Math.max(0,r.precip),xx=x(i)-total/2+j*(barWidth+gap),yy=y(v),hh=Math.max(0,y(0)-yy);
+   const name=k==='mix'?'Modelmix':MODELS[k]?.name||k;
+   return `<rect x="${xx.toFixed(1)}" y="${yy.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${hh.toFixed(1)}" rx="1.5" fill="${colors[j%colors.length]}"><title>${escapeHtml(name)} · ${escapeHtml(d)} · ${v.toFixed(1).replace('.',',')} mm</title></rect>`;
+  }).join('')).join('');
+ })() : models.map((k,j)=>{let pieces=[],part=[];const flush=()=>{if(part.length){pieces.push(part.length===1?`<circle cx="${part[0][0]}" cy="${part[0][1]}" r="3.5" fill="${colors[j%colors.length]}"/>`:`<polyline points="${part.map(p=>p.join(',')).join(' ')}" fill="none" stroke="${colors[j%colors.length]}" stroke-width="${j===0?3.2:2.3}" stroke-linejoin="round" stroke-linecap="round"/>`);part=[]}};
   dates.forEach((d,i)=>{const r=getRow(k,d);if(!r||r.complete===false||!Number.isFinite(r[metric]))flush();else part.push([x(i).toFixed(1),y(r[metric]).toFixed(1)])});flush();return pieces.join('')}).join('');
  const legend=models.map((k,j)=>`<span><i class="rwExplorerSwatch" style="background:${colors[j%colors.length]}"></i>${escapeHtml(k==='mix'?'Modelmix':MODELS[k]?.name||k)}</span>`).join('');
- return `<div class="rwExplorerPlot"><h4>${escapeHtml(title)}</h4><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(title)} per dag voor de geselecteerde modellen"><g>${grid}${labels}${paths}</g></svg><div class="rwExplorerLegend">${legend}</div><div class="rwExplorerPlotNote">Dagwaarden · ontbrekende dagen onderbreken de lijn · ${metric==='precip'?'mm per dag':'°C'}. Geen uurcurve.</div></div>`;
+ return `<div class="rwExplorerPlot"><h4>${escapeHtml(title)}</h4><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escapeHtml(title)} per dag voor de geselecteerde modellen"><g>${grid}${labels}${paths}</g></svg><div class="rwExplorerLegend">${legend}</div><div class="rwExplorerPlotNote">Dagwaarden · ontbrekende dagen blijven leeg · ${metric==='precip'?'staafjes in mm per dag':'temperatuur in °C'}.</div></div>`;
 }
 $e('rwExplorerCharts').innerHTML=dates.length?plot('Maximumtemperatuur (TX)','max',chosen,dates,getRow)+plot('Minimumtemperatuur (TN)','min',chosen,dates,getRow)+plot('Neerslag per dag','precip',chosen,dates,getRow):'';
 
