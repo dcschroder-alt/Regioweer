@@ -582,7 +582,7 @@ async function fetchModel(key,visual=true,runOverride=null){
      let r=await fetch(url,{cache:'no-store'});let j=await r.json();
      if(!r.ok||j.error){const msg=j.reason||`HTTP ${r.status}`;if(isForecastRateLimit(msg)){markForecastRateLimited();if(cached)return cached;throw new Error(msg)}throw new Error(msg)}
      if(!j.hourly?.time)throw new Error('Geen uurgegevens');
-     let rows=hourlyToDaily(j.hourly);rows._modelUsed=mm;rows._runUsed=isAutoRun()?'nieuwste beschikbare run':(runOverride||runIso());rows._loadedAt=Date.now();
+     let rows=hourlyToDaily(j.hourly);rows._modelUsed=mm;rows._runUsed=isAutoRun()?(j.model_run||j.run_time||j.initialization_time||'nieuwste beschikbare run'):(runOverride||runIso());rows._loadedAt=Date.now();
      if(key==='gfs' && visual){
        try{
          let eu=extraHourlyUrl(mm,'precipitation,sunshine_duration,weather_code');
@@ -970,7 +970,7 @@ function saveModelForecastHistory(data){
   if(Object.keys(models).length){const snapshots=Array.isArray(all[place])?all[place]:[];
    const signature=JSON.stringify(Object.fromEntries(Object.entries(models).map(([k,v])=>[k,{run:v.run,rows:v.rows}])));const previous=snapshots[0];const previousSignature=previous?JSON.stringify(Object.fromEntries(Object.entries(previous.models||{}).map(([k,v])=>[k,{run:v.run,rows:v.rows}]))):null;
    // A refresh of exactly the same model data is not a new model run.
-   if(!previous||previousSignature!==signature){const mixRows=buildMix(data).filter(r=>r?.date).map(r=>({date:r.date,max:Number.isFinite(r.max)?r.max:null,min:Number.isFinite(r.min)?r.min:null,precip:Number.isFinite(r.precip)?r.precip:null}));snapshots.unshift({savedAt:Date.now(),models,mixRows});all[place]=snapshots.slice(0,16);localStorage.setItem(key,JSON.stringify(all));}
+   if(!previous||previousSignature!==signature){const mixRows=buildMix(data).filter(r=>r?.date).map(r=>({date:r.date,max:Number.isFinite(r.max)?r.max:null,min:Number.isFinite(r.min)?r.min:null,precip:Number.isFinite(r.precip)?r.precip:null}));snapshots.unshift({savedAt:Date.now(),models,mixRows});all[place]=snapshots.slice(0,48);localStorage.setItem(key,JSON.stringify(all));}
   }
  }catch(e){console.warn('Modelrunhistorie opslaan',e)}
  const cutoff=isoDatePlus(issued,-45);for(const [id,x] of Object.entries(h))if((x.issued||'')<cutoff)delete h[id];try{localStorage.setItem(MODEL_HISTORY_KEY,JSON.stringify(h))}catch(e){}
@@ -3701,6 +3701,65 @@ function rwMixRunComparison(archive,dates,getRow){
  const note=sameModels?'Dezelfde beschikbare modelset op beide ophaalmomenten.':'Let op: de samenstelling van de modelmix verschilt; het verschil kan mede door beschikbare modellen ontstaan.';
  return shell(`<div class="rwAnaCards">${metric('TX','max','°C')}${metric('TN','min','°C')}${metric('Neerslag','precip','mm')}</div><div class="rwAnaNote">Huidige opslag ${dateFmt(current.savedAt)} · vorige ${dateFmt(prior.savedAt)}. ${note} ${runsDifferent?'Ten minste één modelrunlabel is veranderd.':'Een nieuwe 00/12 UTC-run is niet aantoonbaar voor alle modellen.'}</div><details style="margin-top:12px"><summary style="cursor:pointer;font-weight:750">📅 Verandering modelmix · alle vergelijkbare dagen</summary><div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th>Dag</th><th>Δ TX</th><th>Δ TN</th><th>Δ neerslag</th></tr></thead><tbody>${rows}</tbody></table></div></details><details style="margin-top:12px"><summary style="cursor:pointer;font-weight:750">📈 Trend modelmix · maximumtemperatuur</summary>${trendPlot(series,'max')}<div class="rwAnaNote">Opgeslagen modelmixen op ophaalmoment, geen gegarandeerde 00/12 UTC-runreeks.</div></details>`);
 }
+// Advanced run interpretation: snapshots are download states, not automatically model cycles.
+function rwRunIdentity(label){
+ const raw=String(label||'').trim();
+ if(!raw||/nieuwste|opgeslagen|niet gespecificeerd|onbekend|lokale modelhistorie/i.test(raw))return null;
+ // Only an explicit calendar date AND cycle hour is a verifiable run identifier.
+ let m=raw.match(/(20\d{2})[-/]?(0[1-9]|1[0-2])[-/]?([0-3]\d)[T _-]?((?:00|06|12|18))(?::?00)?(?:\s*(?:UTC|Z))?/i);
+ if(m)return `${m[1]}-${m[2]}-${m[3]} ${m[4]} UTC`;
+ return null;
+}
+function rwRunPoints(archive,key,date,metric){
+ const all=[];
+ for(const snap of [...archive].reverse()){
+  const rec=key==='mix'?{rows:snap.mixRows,run:null}:snap.models?.[key];
+  const row=rec?.rows?.find(x=>x.date===date),v=row?.[metric];
+  if(!Number.isFinite(v))continue;
+  const run=key==='mix'?null:rwRunIdentity(rec.run);
+  const identity=run||null;
+  // Retain only the newest snapshot for each verified run. Unverified states stay distinct.
+  if(identity){const ix=all.findIndex(x=>x.run===identity);if(ix>=0){all[ix]={value:v,run:identity,at:snap.savedAt,snap};continue}}
+  const previous=all.at(-1);
+  if(previous&&!identity&&!previous.run&&previous.value===v&&key==='mix')continue;
+  all.push({value:v,run:identity,at:snap.savedAt,snap});
+ }
+ return all.slice(-24);
+}
+function rwDeepRunAnalysis(archive,chosen,dates,getRow){
+ const keys=chosen.filter(k=>k!=='mix');
+ const selected=window.rwDeepDate&&dates.includes(window.rwDeepDate)?window.rwDeepDate:dates[0];
+ const metric=['max','min','precip'].includes(window.rwDeepMetric)?window.rwDeepMetric:'max';
+ const dateLabel=d=>d?d.slice(8,10)+'-'+d.slice(5,7):'—';
+ const fmt=v=>Number.isFinite(v)?v.toFixed(1).replace('.',','):'—';
+ const unit=metric==='precip'?'mm':'°C';
+ const dateChoices=dates.map(d=>`<option value="${d}" ${d===selected?'selected':''}>${dateLabel(d)}</option>`).join('');
+ const controls=`<div class="rwAnaControls"><label>Verwachtingsdatum <select id="rwDeepDate">${dateChoices}</select></label><label>Variabele <select id="rwDeepMetric"><option value="max" ${metric==='max'?'selected':''}>TX</option><option value="min" ${metric==='min'?'selected':''}>TN</option><option value="precip" ${metric==='precip'?'selected':''}>Neerslag</option></select></label></div>`;
+ if(!selected)return `<div class="rwExplorerAnalysis"><h4>🔬 Runanalyse & meteorologische duiding</h4><p>Geen vergelijkbare modeldagen beschikbaar.</p></div>`;
+ const lines=[],points=rwRunPoints(archive,'mix',selected,metric);
+ const old=points.length>=2?points.at(-2):null,last=points.at(-1);
+ if(old&&last){const d=last.value-old.value;lines.push(`De modelmix voor ${dateLabel(selected)} is ${Math.abs(d)<.15?'vrijwel onveranderd':metric==='precip'?(d>0?'natter':'droger'):(d>0?'warmer':'kouder')} geworden (${d>0?'+':''}${fmt(d)} ${unit}). Dit betreft opgeslagen modelmixen, niet noodzakelijk afzonderlijke 00/12 UTC-runs.`)}
+ else lines.push('Voor deze dag zijn nog niet twee verschillende opgeslagen modelmixen beschikbaar.');
+ const trends=[];
+ for(const key of keys){const pp=rwRunPoints(archive,key,selected,metric);if(pp.length<2)continue;const a=pp.at(-2),b=pp.at(-1),d=b.value-a.value;trends.push({key,d,verified:!!(a.run&&b.run&&a.run!==b.run),a,b});}
+ const rising=trends.filter(t=>t.d>=(metric==='precip'?1:.5)),falling=trends.filter(t=>t.d<=-(metric==='precip'?1:.5));
+ if(trends.length>=2){const main=rising.length>falling.length?'stijgende':falling.length>rising.length?'dalende':'uiteenlopende';lines.push(`Van ${trends.length} modellen met twee opgeslagen waarden tonen ${rising.length} een stijgende en ${falling.length} een dalende ${metric==='precip'?'neerslagverwachting':'temperatuurverwachting'}: ${main} tendens.`)}
+ const verified=trends.filter(t=>t.verified);
+ const runs=verified.length?`<div class="rwAnaNote">Aantoonbaar verschillende runs: ${verified.map(t=>`${escapeHtml(MODELS[t.key]?.name||t.key)} ${escapeHtml(t.a.run)} → ${escapeHtml(t.b.run)} (${t.d>0?'+':''}${fmt(t.d)} ${unit})`).join(' · ')}</div>`:'<div class="rwAnaNote">Voor deze selectie zijn geen twee afzonderlijke 00/12 UTC-runs met volledige datum én uur aantoonbaar. De vergelijking gebruikt daarom opgeslagen verwachtingen.</div>';
+ const sequence=points.slice(-5);
+ if(sequence.length>=3){const deltas=sequence.slice(1).map((p,i)=>p.value-sequence[i].value),up=deltas.every(v=>v>.15),down=deltas.every(v=>v<-.15);if(up||down)lines.push(`De laatste ${sequence.length} verschillende opgeslagen modelmixwaarden bewegen achtereenvolgens ${up?'omhoog':'omlaag'} (${sequence.map(p=>fmt(p.value)).join(' → ')} ${unit}).`)}
+ // Model spread comparison is only valid for the same set of models on both snapshots.
+ const snapPairs=archive.filter(s=>s.models&&keys.every(k=>s.models[k]?.rows?.some(r=>r.date===selected&&Number.isFinite(r[metric])))).slice(0,2);
+ let spreadText='Spreidingstrend niet berekenbaar: onvoldoende snapshots met dezelfde beschikbare modellen.';
+ if(keys.length>=2&&snapPairs.length===2){const sp=s=>{const a=keys.map(k=>s.models[k].rows.find(r=>r.date===selected)[metric]);return Math.max(...a)-Math.min(...a)};const current=sp(snapPairs[0]),prev=sp(snapPairs[1]);spreadText=`Spreiding ${fmt(prev)} → ${fmt(current)} ${unit}: ${current<prev-.2?'modellen dichter bij elkaar':current>prev+.2?'modellen verder uiteen':'nauwelijks veranderd'}. ${keys.length} dezelfde modellen vergeleken.`;}
+ const breakdown=trends.map(t=>`<tr><td>${escapeHtml(MODELS[t.key]?.name||t.key)}</td><td>${fmt(t.a.value)} → ${fmt(t.b.value)}</td><td style="font-weight:750">${t.d>0?'+':''}${fmt(t.d)} ${unit}</td><td>${t.verified?escapeHtml(t.a.run+' → '+t.b.run):'Ophaalwaarden'}</td></tr>`).join('');
+ const watchDate=selected;const watch=rwRunPoints(archive,'mix',watchDate,'max');
+ const watchRows=watch.map(p=>`<tr><td>${new Date(p.at).toLocaleString('nl-NL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</td><td>${fmt(p.value)} °C</td><td>Opgeslagen modelmix</td></tr>`).join('');
+ // Per-model hourly data are not persisted for historical runs: don't invent timing.
+ const wet=keys.map(k=>({k,r:getRow(k,selected)})).filter(x=>Number.isFinite(x.r?.precip));
+ const thresholds=[.2,1,5,10].map(t=>`${wet.filter(x=>x.r.precip>=t).length}/${wet.length} modellen ≥ ${fmt(t)} mm`).join(' · ');
+ return `<div class="rwExplorerAnalysis rwDeepRuns" style="border-left:5px solid #17807d"><h4>🔬 Runanalyse & meteorologische duiding</h4>${controls}<div class="rwAnaNote">${lines.map(escapeHtml).join('<br>')}</div><div class="rwAnaCard" style="margin-top:12px"><b>Worden modellen eensgezinder?</b><div class="rwAnaNote">${escapeHtml(spreadText)}</div></div>${runs}<details style="margin-top:12px"><summary style="cursor:pointer;font-weight:750">↕ Verandering per afzonderlijk model</summary><div style="overflow-x:auto"><table class="rwExplorerTable"><thead><tr><th>Model</th><th>Vorige → laatste</th><th>Verschil</th><th>Vergelijking</th></tr></thead><tbody>${breakdown||'<tr><td colspan="4">Nog onvoldoende historie</td></tr>'}</tbody></table></div></details><details style="margin-top:12px"><summary style="cursor:pointer;font-weight:750">📌 Volg ${dateLabel(watchDate)} · opgeslagen modelmix</summary><div style="overflow-x:auto"><table class="rwExplorerTable"><thead><tr><th>Ophaalmoment</th><th>TX</th><th>Bron</th></tr></thead><tbody>${watchRows||'<tr><td colspan="3">Nog geen historie</td></tr>'}</tbody></table></div><div class="rwAnaNote">Dit overzicht volgt dezelfde verwachtingsdatum. Zodra waarnemingen betrouwbaar beschikbaar zijn, kan verificatie worden toegevoegd.</div></details><details style="margin-top:12px"><summary style="cursor:pointer;font-weight:750">🌧 Neerslagscenario's en timing</summary><div class="rwAnaNote">${escapeHtml(thresholds||'Geen geldige neerslagwaarden.')} · Modelovereenstemming, geen officiële kans. Timing per model wordt pas getoond wanneer bijbehorende uurlijkse gegevens beschikbaar zijn; uit dagtotalen is dat niet af te leiden.</div></details><div class="rwAnaNote">Een ophaalmoment is niet automatisch een nieuwe modelrun. Alleen expliciete, gedateerde runlabels worden als afzonderlijke runs herkend. De modelmix kan bij gewijzigde samenstelling minder goed vergelijkbaar zijn.</div></div>`;
+}
 function analysis(chosen,dates,getRow,data){
  const target=$e('rwExplorerAnalysis');if(!target)return;
  const archive=runArchive();const previous=archive.length>1?archive[1]:null;
@@ -3724,6 +3783,9 @@ function analysis(chosen,dates,getRow,data){
  target.querySelector('#rwMixDiffDate')?.addEventListener('change',e=>{window.rwMixDiffDate=e.target.value;analysis(chosen,dates,getRow,data)});
  target.insertAdjacentHTML('beforeend',trendExtras(archive,chosen,dates,getRow,data,selectedModel,selected));
  target.insertAdjacentHTML('beforeend',rwSmartSignals(archive,chosen,dates,getRow));
+ target.insertAdjacentHTML('beforeend',rwDeepRunAnalysis(archive,chosen,dates,getRow));
+ target.querySelector('#rwDeepDate')?.addEventListener('change',e=>{window.rwDeepDate=e.target.value;analysis(chosen,dates,getRow,data)});
+ target.querySelector('#rwDeepMetric')?.addEventListener('change',e=>{window.rwDeepMetric=e.target.value;analysis(chosen,dates,getRow,data)});
  target.querySelector('#rwTrendMetric')?.addEventListener('change',e=>{window.rwTrendMetric=e.target.value;analysis(chosen,dates,getRow,data)});
  target.querySelector('#rwAnaModel')?.addEventListener('change',e=>{target.dataset.model=e.target.value;analysis(chosen,dates,getRow,data)});
  target.querySelector('#rwAnaDate')?.addEventListener('change',e=>{target.dataset.date=e.target.value;analysis(chosen,dates,getRow,data)});
@@ -3737,7 +3799,7 @@ const heading=k=>escapeHtml(k==='mix'?'Modelmix':MODELS[k]?.name||k);
 // Daily curves only: no interpolated hourly model temperatures.
 function plot(title,metric,models,dates,getRow){
  const W=650,H=280,L=43,R=13,T=23,B=42, pw=W-L-R,ph=H-T-B;
- const colors=['#174eaa','#dc5b3c','#169e82','#a56aca','#e29b1b','#4b819f','#9b6872','#555'];
+ const colors=['#174eaa','#dc5b3c','#169e82','#a56aca','#e29b1b','#4b819f','#9b6872','#555','#7b9251'];
  const values=models.flatMap(k=>dates.map(d=>{const r=getRow(k,d);return r&&r.complete!==false&&Number.isFinite(r[metric])?r[metric]:null}).filter(v=>v!==null));
  if(!values.length)return `<div class="rwExplorerPlot"><h4>${escapeHtml(title)}</h4><p class="rwExplorerPlotNote">Geen volledige modeldagen beschikbaar.</p></div>`;
  let low=Math.floor(Math.min(...values)/5)*5, high=Math.ceil(Math.max(...values)/5)*5;
