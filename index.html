@@ -359,6 +359,22 @@ body{min-width:0}
 (function(){
  const rawFetch=window.fetch.bind(window), KEY='ricoweer-api-diagnose-v1';
  const active=new Map(); let entries=[];
+ // Shared protective circuit breaker: 429 is a real daily block, 503 is temporary.
+ const BLOCK_KEY='ricoweer-openmeteo-breaker-v1';
+ function readBlock(){try{return JSON.parse(localStorage.getItem(BLOCK_KEY)||'null')}catch(e){return null}}
+ function blockFor(status,reason){
+   if(status!==429 && status!==503)return;
+   const now=Date.now(),old=readBlock(),day=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Amsterdam'});
+   const next={status,reason:String(reason||'').slice(0,160),day,until:status===429?now+30*60*60*1000:now+10*60*1000};
+   if(status===429){next.until=now+30*60*60*1000;}
+   // Do not replace a real 429 with a temporary 503.
+   if(old?.status===429&&old.day===day&&old.until>now)return;
+   try{localStorage.setItem(BLOCK_KEY,JSON.stringify(next))}catch(e){}
+ }
+ function blocked(){const b=readBlock();if(!b)return null;const day=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Amsterdam'});if(b.status===429&&b.day!==day)return null;return b.until>Date.now()?b:null}
+ window.ricoweerApiBlockStatus=blocked;
+ function blockedResponse(b){return new Response(JSON.stringify({error:true,reason:b.status===429?'Daily API request limit exceeded. Please try again tomorrow.':'Open-Meteo tijdelijk overbelast; probeer over 10 minuten opnieuw.'}),{status:b.status,headers:{'Content-Type':'application/json'}})}
+
  try{entries=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(entries))entries=[]}catch(e){entries=[]}
  const isWeather=u=>{try{return /(^|\.)open-meteo\.com$/i.test(new URL(u,location.href).hostname)}catch(e){return false}};
  const nameOf=u=>{try{const x=new URL(u,location.href),q=x.searchParams;return (x.hostname.split('.')[0]||'api')+'/'+x.pathname.split('/').filter(Boolean).slice(-1)[0]+' · '+(q.get('models')||q.get('model')||'algemeen').slice(0,55)}catch(e){return 'onbekend'}};
@@ -366,6 +382,7 @@ body{min-width:0}
  window.fetch=async function(input,init){
    const url=typeof input==='string'?input:input?.url;
    if(!url||!isWeather(url))return rawFetch(input,init);
+   const b=blocked();if(b)return blockedResponse(b);
    const method=(init?.method||input?.method||'GET').toUpperCase();
    const key=method==='GET'?url:null;
    if(key&&active.has(key)){
@@ -377,6 +394,7 @@ body{min-width:0}
        const response=await rawFetch(input,init);
        let reason='';
        if(!response.ok){try{const j=await response.clone().json();reason=String(j?.reason||j?.error||'').slice(0,180)}catch(e){}}
+       if(response.status===429||response.status===503)blockFor(response.status,reason);
        const limited=response.status===429||/daily api request limit exceeded|rate limit|too many requests/i.test(reason);
        log({at:Date.now(),endpoint:nameOf(url),status:response.status,reason,limited,ms:Date.now()-started});
        return response;
@@ -685,7 +703,7 @@ async function fetchModel(key,visual=true,runOverride=null){
        }catch(e){if(isForecastRateLimit(e.message))markForecastRateLimited();console.warn('GFS visuele bundel niet beschikbaar',e)}
      }
      forecastCachePut(key,rows);return rows
-   }catch(e){lastErr=e.message;console.warn('GFS/modelcode '+code+' mislukt:',e.message);if(isForecastRateLimit(e.message)){markForecastRateLimited();if(cached)return cached;break}}
+   }catch(e){lastErr=e.message;console.warn('GFS/modelcode '+code+' mislukt:',e.message);if(isForecastRateLimit(e.message)){markForecastRateLimited();if(cached)return cached;break}if(/503|service is overloaded|tijdelijk overbelast/i.test(e.message)){if(cached)return cached;break}}
  }
  if(cached)return cached;
  throw new Error(`${m.name}: ${lastErr}`)
@@ -1958,7 +1976,7 @@ function gfs0012Candidates(){
 }
 async function fetchFixedGfs0012(candidate){
   const lat='52.019260',lon='5.172830',run=candidate.toISOString().slice(0,16);const codes=['ncep_gfs_global','gfs_global'];let err=null;
-  for(const code of codes){try{const u=`https://single-runs-api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&run=${encodeURIComponent(run)}&models=${encodeURIComponent(code)}&hourly=temperature_2m&timezone=Europe%2FAmsterdam&forecast_hours=384`;const r=await fetch(u,{cache:'no-store'}),j=await r.json();if(!r.ok||j.error)throw new Error(j.reason||`HTTP ${r.status}`);if(!j.hourly?.time)throw new Error('Geen uurgegevens');const rows=hourlyToDaily(j.hourly);if(!rows.length)throw new Error('Geen dagwaarden');rows._fixedRun=run;return rows}catch(e){err=e}}
+  for(const code of codes){try{const u=`https://single-runs-api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&run=${encodeURIComponent(run)}&models=${encodeURIComponent(code)}&hourly=temperature_2m&timezone=Europe%2FAmsterdam&forecast_hours=384`;const r=await fetch(u,{cache:'no-store'}),j=await r.json();if(!r.ok||j.error)throw new Error(j.reason||`HTTP ${r.status}`);if(!j.hourly?.time)throw new Error('Geen uurgegevens');const rows=hourlyToDaily(j.hourly);if(!rows.length)throw new Error('Geen dagwaarden');rows._fixedRun=run;return rows}catch(e){err=e;if(isForecastRateLimit(e.message)||/503|service is overloaded|tijdelijk overbelast/i.test(e.message))break}}
   throw err||new Error('GFS-run niet beschikbaar');
 }
 const GFS0012_CACHE_KEY='rw-gfs0012-cache-v104';
@@ -1985,10 +2003,10 @@ function showGfs0012Cache(rec,note='opgeslagen'){if(!rec?.rows?.length)return fa
 async function loadGfsRunTable(force=false){
  const selectionKey=gfsSelectionKey(),cached=readGfs0012Cache(selectionKey);
  if(!force&&cached?.rows?.length&&Date.now()-(cached.savedAt||0)<4*60*60*1000){showGfs0012Cache(cached,'lokale cache voor deze selectie');return}
- if(forecastRateLimitedToday()){if(showGfs0012Cache(cached,'API-daglimiet bereikt; laatste goede run'))return;$('gfsStatus').textContent='API-daglimiet bereikt; nog geen GFS 00/12-run lokaal opgeslagen.';return}
+ if(forecastRateLimitedToday()||window.ricoweerApiBlockStatus?.()){if(showGfs0012Cache(cached,'API tijdelijk niet beschikbaar; laatste goede run'))return;$('gfsStatus').textContent='API-daglimiet bereikt; nog geen GFS 00/12-run lokaal opgeslagen.';return}
  let lastErr=null;$('gfsStatus').textContent=isAutoRun()?'Nieuwste beschikbare 00/12 UTC GFS zoeken…':'Gekozen periode: bijbehorende 00/12 UTC GFS zoeken…';
  for(const cand of gfs0012Candidates().slice(0,3)){
-   try{const rows=await fetchFixedGfs0012(cand);lastGfsRows=rows;saveGfs0012Cache(rows,selectionKey);renderGfs(lastGfsRows);const run=rows._fixedRun.replace('T',' ').replace(':00',' UTC');$('gfsStatus').textContent=`GFS ${run} · ${isAutoRun()?'nieuwste 00/12':'volgt gekozen run'} · vaste locatie 52.019260 / 5.172830 · ${rows.length} dagwaarden`;return}catch(e){lastErr=e;console.warn('GFS 00/12 kandidaat niet beschikbaar',cand.toISOString(),e.message);if(isForecastRateLimit(e.message)){markForecastRateLimited();break}}
+   try{const rows=await fetchFixedGfs0012(cand);lastGfsRows=rows;saveGfs0012Cache(rows,selectionKey);renderGfs(lastGfsRows);const run=rows._fixedRun.replace('T',' ').replace(':00',' UTC');$('gfsStatus').textContent=`GFS ${run} · ${isAutoRun()?'nieuwste 00/12':'volgt gekozen run'} · vaste locatie 52.019260 / 5.172830 · ${rows.length} dagwaarden`;return}catch(e){lastErr=e;console.warn('GFS 00/12 kandidaat niet beschikbaar',cand.toISOString(),e.message);if(isForecastRateLimit(e.message)){markForecastRateLimited();break}if(/503|service is overloaded|tijdelijk overbelast/i.test(e.message))break}
  }
  if(showGfs0012Cache(cached,'laatste goede run'))return;
  lastGfsRows=[];renderGfs([]);$('gfsStatus').textContent='Geen 00/12 UTC GFS-run beschikbaar; probeer later opnieuw.';console.warn(lastErr);
