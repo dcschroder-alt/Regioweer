@@ -355,6 +355,59 @@ body{min-width:0}
 <div id="shareMode" class="shareMode hidden"><div class="shareModeInner"><div class="shareTop"><div><div class="shareTitle">Ricoweer · meerdaagse</div><div class="shareSub" id="shareModeSub">Modelmix</div></div><button class="ghost" id="shareModeClose" type="button">Sluiten</button></div><div id="shareModeSignals" class="topBadges"></div><div id="shareModeGrid" class="shareForecast"></div><div class="note" style="margin-top:10px">Tik op Sluiten om terug te gaan. Deze weergave is geoptimaliseerd voor screenshotten en delen.</div></div></div>
 <div id="dayDetail" class="detailPanel hidden"><div class="detailSheet"><div class="detailHead"><div><div class="detailTitle" id="detailTitle">Dagdetail</div><div class="smallstatus" id="detailSub">Uur-tot-uur</div></div><button class="detailClose" id="detailClose" type="button">Sluiten</button></div><div id="detailHero" class="detailHero"></div><div id="detailNowcast" class="nowcastBox hidden"></div><div id="detailNarrative" class="journalBox" style="margin-top:12px"></div><div id="detailAdvice" class="detailAdvice"></div><div id="recordBox" class="recordBox hidden"></div><div id="dayParts" class="dayParts"></div><div id="rainWindow" class="rainWindow hidden"></div><div id="detailMetrics" class="detailMetrics"></div><div id="rainTimeline" class="rainTimeline"></div><div id="hourlyList" class="hourlyList"></div><details class="detailMore"><summary>Grafiek & modeldetails</summary><div id="detailStatus" class="status">Gegevens laden…</div><canvas id="detailCanvas" class="detailCanvas" width="720" height="290"></canvas></details></div></div>
 <script>
+/* Ricoweer API-diagnose: registreert uitsluitend Open-Meteo-verzoeken. */
+(function(){
+ const rawFetch=window.fetch.bind(window), KEY='ricoweer-api-diagnose-v1';
+ const active=new Map(); let entries=[];
+ try{entries=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(entries))entries=[]}catch(e){entries=[]}
+ const isWeather=u=>{try{return /(^|\.)open-meteo\.com$/i.test(new URL(u,location.href).hostname)}catch(e){return false}};
+ const nameOf=u=>{try{const x=new URL(u,location.href),q=x.searchParams;return (x.hostname.split('.')[0]||'api')+'/'+x.pathname.split('/').filter(Boolean).slice(-1)[0]+' · '+(q.get('models')||q.get('model')||'algemeen').slice(0,55)}catch(e){return 'onbekend'}};
+ function log(rec){entries.push(rec);entries=entries.slice(-300);try{localStorage.setItem(KEY,JSON.stringify(entries))}catch(e){};if(window.ricoweerApiLogRender)window.ricoweerApiLogRender()}
+ window.fetch=async function(input,init){
+   const url=typeof input==='string'?input:input?.url;
+   if(!url||!isWeather(url))return rawFetch(input,init);
+   const method=(init?.method||input?.method||'GET').toUpperCase();
+   const key=method==='GET'?url:null;
+   if(key&&active.has(key)){
+     const response=await active.get(key);return response.clone();
+   }
+   const started=Date.now();
+   const job=(async()=>{
+     try{
+       const response=await rawFetch(input,init);
+       let reason='';
+       if(!response.ok){try{const j=await response.clone().json();reason=String(j?.reason||j?.error||'').slice(0,180)}catch(e){}}
+       const limited=response.status===429||/daily api request limit exceeded|rate limit|too many requests/i.test(reason);
+       log({at:Date.now(),endpoint:nameOf(url),status:response.status,reason,limited,ms:Date.now()-started});
+       return response;
+     }catch(e){log({at:Date.now(),endpoint:nameOf(url),status:'netwerkfout',reason:String(e.message||e).slice(0,180),limited:false,ms:Date.now()-started});throw e}
+   })();
+   if(key)active.set(key,job);
+   try{const response=await job;return response.clone()}finally{if(key&&active.get(key)===job)active.delete(key)}
+ };
+ window.ricoweerApiLogRender=function(){
+   const el=document.getElementById('ricoweer-api-log-content');if(!el)return;
+   const today=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Amsterdam'});
+   const todayEntries=entries.filter(x=>new Date(x.at).toLocaleDateString('sv-SE',{timeZone:'Europe/Amsterdam'})===today);
+   const counts={};for(const x of todayEntries){counts[x.endpoint]=(counts[x.endpoint]||0)+1}
+   const lines=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${v}× ${k}`);
+   const failures=entries.filter(x=>x.limited||x.status==='netwerkfout'||(typeof x.status==='number'&&x.status>=400)).slice(-12).reverse();
+   el.textContent=`Vandaag: ${todayEntries.length} Open-Meteo-verzoeken (alleen sinds installatie van deze versie).\nGelijktijdige identieke GET-verzoeken worden gedeeld.\n\nPER ONDERDEEL\n${lines.join('\n')||'Nog geen verzoeken'}\n\nLAATSTE FOUTEN\n${failures.map(x=>`${new Date(x.at).toLocaleString('nl-NL')} · ${x.endpoint} · ${x.status}${x.reason?' · '+x.reason:''}`).join('\n')||'Geen fouten geregistreerd'}\n\nLet op: dit is een teller van HTTP-verzoeken, niet de door Open-Meteo berekende API-kosten.`;
+ };
+ document.addEventListener('DOMContentLoaded',()=>{
+   const b=document.createElement('button');b.textContent='API-log';b.type='button';b.style.cssText='position:fixed;bottom:14px;right:14px;z-index:99998;padding:9px 13px;border-radius:22px;background:#153b63;color:white;border:1px solid #fff;box-shadow:0 2px 8px #0005;font:600 13px sans-serif';
+   const panel=document.createElement('section');panel.id='ricoweer-api-panel';panel.hidden=true;panel.style.cssText='position:fixed;bottom:60px;right:10px;z-index:99999;width:min(540px,calc(100vw - 20px));max-height:65vh;overflow:auto;background:#fff;color:#132b42;border:1px solid #abc;border-radius:12px;padding:14px;box-shadow:0 5px 25px #0005';
+   panel.innerHTML='<strong>Ricoweer · API-diagnose</strong><button type="button" id="ricoweer-api-close" style="float:right">Sluiten</button><pre id="ricoweer-api-log-content" style="white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 monospace"></pre><button type="button" id="ricoweer-api-copy">Kopieer log</button> <button type="button" id="ricoweer-api-clear">Wis log</button>';
+   document.body.append(b,panel);
+   b.onclick=()=>{panel.hidden=!panel.hidden;window.ricoweerApiLogRender()};
+   panel.querySelector('#ricoweer-api-close').onclick=()=>panel.hidden=true;
+   panel.querySelector('#ricoweer-api-copy').onclick=()=>navigator.clipboard?.writeText(panel.querySelector('pre').textContent);
+   panel.querySelector('#ricoweer-api-clear').onclick=()=>{entries=[];localStorage.removeItem(KEY);window.ricoweerApiLogRender()};
+   window.ricoweerApiLogRender();
+ });
+})();
+</script>
+<script>
 const $=id=>document.getElementById(id); const NL=['zo','ma','di','wo','do','vr','za'];
 function rwSafeSet(key,value){
   try{localStorage.setItem(key,value);return true}catch(e){
