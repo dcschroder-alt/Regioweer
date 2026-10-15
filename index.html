@@ -3125,8 +3125,24 @@ async function nsFetchTimingPoints(date,points,key){
  const u=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=${vars}&timezone=Europe%2FAmsterdam&start_date=${date}&end_date=${date}&wind_speed_unit=kmh`;
  const r=await fetch(u,{cache:'default'}),j=await r.json();if(!r.ok||j?.error)throw new Error(j?.reason||'uurdata niet beschikbaar');
  const arr=Array.isArray(j)?j:[j],loc=[];
- arr.forEach((x,idx)=>{const h=x?.hourly||{},times=h.time||[];const rows=times.map((t,i)=>({hour:Number(t.slice(11,13)),temp:h.temperature_2m?.[i]==null?null:Number(h.temperature_2m[i]),rain:Number(h.precipitation?.[i]),pop:Number(h.precipitation_probability?.[i]),cloud:Number(h.cloud_cover?.[i]),wind:Number(h.wind_speed_10m?.[i]),dir:Number(h.wind_direction_10m?.[i]),gust:Number(h.wind_gusts_10m?.[i])}));loc.push({name:points[idx]?.n||`regio ${idx+1}`,rows})});
- const hours=[];for(let hour=0;hour<24;hour++){const rs=loc.map(l=>l.rows.find(x=>x.hour===hour)).filter(Boolean),rain=nsMedian(rs.map(x=>x.rain)),pop=nsMedian(rs.map(x=>x.pop)),cloud=nsMedian(rs.map(x=>x.cloud)),wind=nsMedian(rs.map(x=>x.wind)),dir=nsCircularMean(rs.map(x=>x.dir)),gust=nsMax(rs.map(x=>x.gust));const wetVotes=rs.filter(x=>(x.rain||0)>=0.1||(x.pop||0)>=45).length;hours.push({hour,temp,rain,pop,cloud,wind,dir,gust,wet:wetVotes>=Math.max(1,Math.ceil(rs.length/2))})}
+ const num=v=>v===null||v===undefined||v===''?null:(Number.isFinite(Number(v))?Number(v):null);
+ arr.forEach((x,idx)=>{
+  const h=x?.hourly||{},times=h.time||[];
+  const rows=times.filter(t=>typeof t==='string'&&t.slice(0,10)===date).map(t=>{
+   const i=times.indexOf(t);
+   return {hour:Number(t.slice(11,13)),temp:num(h.temperature_2m?.[i]),rain:num(h.precipitation?.[i]),pop:num(h.precipitation_probability?.[i]),cloud:num(h.cloud_cover?.[i]),wind:num(h.wind_speed_10m?.[i]),dir:num(h.wind_direction_10m?.[i]),gust:num(h.wind_gusts_10m?.[i])};
+  }).filter(v=>Number.isInteger(v.hour)&&v.hour>=0&&v.hour<24);
+  loc.push({name:points[idx]?.n||`regio ${idx+1}`,rows});
+ });
+ const hours=[];
+ for(let hour=0;hour<24;hour++){
+  const rs=loc.map(l=>l.rows.find(x=>x.hour===hour)).filter(Boolean);
+  if(!rs.length)continue;
+  const temp=nsMedian(rs.map(x=>x.temp)),rain=nsMedian(rs.map(x=>x.rain)),pop=nsMedian(rs.map(x=>x.pop)),cloud=nsMedian(rs.map(x=>x.cloud)),wind=nsMedian(rs.map(x=>x.wind)),dir=nsCircularMean(rs.map(x=>x.dir)),gust=nsMax(rs.map(x=>x.gust));
+  const wetVotes=rs.filter(x=>(Number.isFinite(x.rain)&&x.rain>=0.1)||(Number.isFinite(x.pop)&&x.pop>=45)).length;
+  hours.push({hour,temp,rain,pop,cloud,wind,dir,gust,wet:wetVotes>=Math.max(1,Math.ceil(rs.length/2))});
+ }
+ if(!hours.length)throw new Error('Geen bruikbare uurgegevens voor deze datum');
  const firstWet={};loc.forEach(l=>{const x=l.rows.find(x=>(x.rain||0)>=0.1||(x.pop||0)>=45);firstWet[l.name]=x?.hour??null});
  const out={hours,loc,firstWet};nsTimingMemo.set(memoKey,out);return out;
 }
