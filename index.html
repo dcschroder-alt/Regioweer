@@ -2413,28 +2413,35 @@ async function drawRandstadCardsPng(){
   // Dit is regionale temperatuurvariatie, geen spreiding tussen afzonderlijke modellen.
   const basis=fallback?'geen regionale scan · locatiegemiddelde':modelCount<4?'beperkte modelbasis':(spread!=null?'regioverschil TX '+nsFmt(spread,1)+'°':'regionale mix');
   label(`${modelCount} modellen  ·  ${basis}`,mid,top+452,'16px Arial','#61778d');
-  // Compact: show only meaningful coastal/inland contrasts, not three repeated data rows.
-  const regRows=[['Kust',rk],['Binnenland',rw],['Utrecht',ro]];
-  const validReg=regRows.filter(([,r])=>r&&r.n>0&&Number.isFinite(r.tx));
+  // One short, centered, bounded regional line per card. Never draw at the left edge
+  // with textAlign=center: that caused text to spill into adjacent day cards.
+  const validReg=[rk,rw,ro].filter(r=>r&&r.n>0&&Number.isFinite(r.tx));
+  let regionNote='Regionale vergelijking niet beschikbaar';
   if(validReg.length>=2){
-   const coast=rk?.n>0?rk:null,inland=ro?.n>0?ro:(rw?.n>0?rw:null);
-   const tempRange=Math.max(...validReg.map(([,r])=>r.tx))-Math.min(...validReg.map(([,r])=>r.tx));
-   const rains=validReg.map(([,r])=>r.rain).filter(Number.isFinite);
-   const rainRange=rains.length>=2?Math.max(...rains)-Math.min(...rains):0;
-   const sunVals=validReg.map(([,r])=>r.sun).filter(Number.isFinite);
+   const coast=rk?.n>0?rk:null;
+   const inland=ro?.n>0?ro:(rw?.n>0?rw:null);
+   const txRange=Math.max(...validReg.map(r=>r.tx))-Math.min(...validReg.map(r=>r.tx));
+   const rainVals=validReg.map(r=>r.rain).filter(Number.isFinite);
+   const rainRange=rainVals.length>=2?Math.max(...rainVals)-Math.min(...rainVals):0;
+   const sunVals=validReg.map(r=>r.sun).filter(Number.isFinite);
    const sunRange=sunVals.length>=2?Math.max(...sunVals)-Math.min(...sunVals):0;
-   if(tempRange>=1.5||rainRange>=1||sunRange>=2){
-    label('KUST ↔ BINNENLAND',left+22,top+481,'bold 16px Arial','#173a63');
-    if(coast&&inland){
-     label(`TX ${Math.round(coast.tx)}° / ${Math.round(inland.tx)}°` + (Number.isFinite(coast.tn)&&Number.isFinite(inland.tn)?`  ·  TN ${Math.round(coast.tn)}° / ${Math.round(inland.tn)}°`:''),left+22,top+507,'16px Arial','#344f6b');
-     if(Number.isFinite(coast.rain)&&Number.isFinite(inland.rain))label(`Regen ${nsFmt(coast.rain,1)} / ${nsFmt(inland.rain,1)} mm`,left+22,top+532,'16px Arial','#344f6b');
-    }else label(`TX-verschil ${nsFmt(tempRange,1)}° · regenverschil ${nsFmt(rainRange,1)} mm`,left+22,top+507,'16px Arial','#344f6b');
-   }else{
-    label('Kust en binnenland: weinig verschil',left+22,top+489,'15px Arial','#61778d');
-   }
-  }else{
-   label('Regionale vergelijking nog niet beschikbaar',left+22,top+489,'14px Arial','#61778d');
+   if(coast&&inland&&Number.isFinite(coast.rain)&&Number.isFinite(inland.rain)&&Math.abs(coast.rain-inland.rain)>=1){
+    regionNote=`${coast.rain>inland.rain?'Kust':'Binnenland'} ${nsFmt(Math.abs(coast.rain-inland.rain),1)} mm natter`;
+   }else if(coast&&inland&&Math.abs(coast.tx-inland.tx)>=1.5){
+    regionNote=`${coast.tx>inland.tx?'Kust':'Binnenland'} ${nsFmt(Math.abs(coast.tx-inland.tx),1)}° warmer`;
+   }else if(coast&&inland&&Number.isFinite(coast.sun)&&Number.isFinite(inland.sun)&&Math.abs(coast.sun-inland.sun)>=2){
+    regionNote=`${coast.sun>inland.sun?'Kust':'Binnenland'} ${Math.round(Math.abs(coast.sun-inland.sun))} uur zonniger`;
+   }else if(txRange>=1.5){regionNote=`Regionaal temperatuurverschil ${nsFmt(txRange,1)}°`}
+   else if(rainRange>=1){regionNote=`Regionaal neerslagverschil ${nsFmt(rainRange,1)} mm`}
+   else if(sunRange>=2){regionNote=`Regionaal zonverschil ${Math.round(sunRange)} uur`}
+   else regionNote='Weinig regionaal verschil';
   }
+  x.textAlign='center';
+  x.strokeStyle='#e4edf5';x.beginPath();x.moveTo(left+24,top+468);x.lineTo(left+cardW-24,top+468);x.stroke();
+  // The line is restricted to card width even for unusual source values.
+  x.save();x.beginPath();x.rect(left+16,top+470,cardW-32,36);x.clip();
+  label(regionNote,mid,top+491,'bold 16px Arial','#385978');
+  x.restore();
   x.textAlign='center';
   if(coolerWeekend){x.fillStyle='#dcecff';x.fillRect(left+2,top+2,cardW-4,8);label('KOELER WEEKEND',mid,top+90,'bold 15px Arial','#1458a7')}
   else if(drop>=3){x.fillStyle='#dcecff';x.fillRect(left+2,top+2,cardW-4,8);label('KOELER',mid,top+90,'bold 15px Arial','#1458a7')}
