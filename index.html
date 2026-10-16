@@ -4211,7 +4211,13 @@ function ricoDrawMapMarkers(){
 }
 async function ricoRenderMap(){
  const status=document.getElementById('ricomapStatus'),sel=document.getElementById('ricomapDay'),type=document.getElementById('ricomapType');if(!status||!sel)return;
- const days=nationalScanLastPack?.days||[];if(!days.length){status.textContent='Wachten op landelijke modelmix.';return}
+ let days=nationalScanLastPack?.days||[];
+ if(!days.length){
+   try{const cached=JSON.parse(localStorage.getItem(NATIONAL_SCAN_CACHE)||'null');if(cached?.days?.length){renderNationalScanData(cached.days,cached.models||[],true);return}}catch(e){console.warn('Kaartcache',e)}
+   status.textContent='Nog geen landelijke modelmix opgeslagen. Klik op Kaart vernieuwen om de landelijke scan op te halen (dit gebruikt Open-Meteo-verzoeken).';
+   try{await ricoLeafletReady();if(!ricoLeafletMap){ricoLeafletMap=L.map('ricomapCanvas',{scrollWheelZoom:false,zoomControl:true});L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:12,attribution:'© OpenStreetMap-bijdragers'}).addTo(ricoLeafletMap);ricoLeafletLayer=L.layerGroup().addTo(ricoLeafletMap);ricoLeafletMap.on('zoomend moveend',ricoDrawMapMarkers);ricoLeafletMap.fitBounds([[50.73,3.25],[53.55,7.25]],{padding:[14,14]})}setTimeout(()=>ricoLeafletMap.invalidateSize(),150)}catch(e){status.textContent+=' Kaartondergrond niet bereikbaar.'}
+   return;
+ }
  const date=sel.value||days[0].date,d=days.find(x=>x.date===date)||days[0],key=type?.value||'tx';
  const pts=(d.pts||[]).filter(x=>Number.isFinite(x[key])&&Number.isFinite(x.point?.lat)&&Number.isFinite(x.point?.lon));
  if(!pts.length){status.textContent='Geen temperatuurgegevens voor deze dag.';return}
@@ -4233,39 +4239,13 @@ async function ricoRenderMap(){
 function ricoMapSync(){const sel=document.getElementById('ricomapDay');if(!sel)return;const days=(nationalScanLastPack?.days||[]).slice(0,10);const old=sel.value;sel.innerHTML=days.map(d=>'<option value="'+d.date+'">'+dayShort(d.date)+'</option>').join('');if(days.some(d=>d.date===old))sel.value=old;ricoRenderMap().catch(console.warn)}
 document.getElementById('ricomapDay')?.addEventListener('change',ricoRenderMap);
 document.getElementById('ricomapType')?.addEventListener('change',ricoRenderMap);
-document.getElementById('ricomapRefresh')?.addEventListener('click',ricoRenderMap);
+document.getElementById('ricomapRefresh')?.addEventListener('click',async()=>{
+ const status=document.getElementById('ricomapStatus');
+ if(status)status.textContent='Landelijke scan wordt opgehaald…';
+ try{await renderNationalScan(true);if(!nationalScanLastPack?.days?.length&&status)status.textContent='Geen landelijke scangegevens beschikbaar. Controleer de API-log.';else ricoMapSync()}
+ catch(e){if(status)status.textContent='Vernieuwen mislukt: '+e.message}
+});
 const ricoOriginalNationalRender=renderNationalScanData;
 renderNationalScanData=function(...args){const result=ricoOriginalNationalRender.apply(this,args);ricoMapSync();return result};
-
-/* Ricoweer cumulatieve neerslag en stormsignalen: uitsluitend reeds geladen modelgegevens. */
-function ricoRainStormPanel(rows){
- const old=document.getElementById('ricoRainStorm');if(old)old.remove();
- const source=(rows||[]).filter(r=>r.date>=forecastStartDate()).slice(0,15);
- if(!source.length)return;
- const modelData=(typeof lastMixData==='object'&&document.getElementById('model')?.value==='mix')?lastMixData:null;
- const modelEntries=modelData?Object.entries(modelData).filter(([k,v])=>Array.isArray(v)&&v.length):[];
- const modelSeries=modelEntries.map(([name,arr])=>({name,days:new Map(arr.filter(r=>r.complete!==false).map(r=>[r.date,r]))}));
- const fmtmm=v=>Number.isFinite(v)?(Math.round(v*10)/10).toLocaleString('nl-NL',{maximumFractionDigits:1})+' mm':'—';
- const days=source.map((r,i)=>{
-   const valid=Number.isFinite(r.precip)&&r.precip>=0;
-   const available=modelSeries.map(m=>m.days.get(r.date)).filter(x=>x&&Number.isFinite(x.precip)&&x.precip>=0);
-   return {...r,valid,models:available.length};
- });
- let sum=0;const cumulative=days.map(r=>{if(r.valid)sum+=r.precip;return r.valid?sum:null});
- // Som per afzonderlijk model over exact dezelfde periode, alleen als alle dagen beschikbaar zijn.
- function totals(n){return modelSeries.map(m=>{let total=0;for(const day of days.slice(0,n)){const r=m.days.get(day.date);if(!r||!Number.isFinite(r.precip)||r.precip<0)return null;total+=r.precip}return total}).filter(Number.isFinite).sort((a,b)=>a-b)}
- function period(n){if(days.length<n||days.slice(0,n).some(r=>!r.valid))return '—';const vals=totals(n);const central=vals.length>=2?vals[Math.floor((vals.length-1)/2)]*(vals.length%2)+((vals[Math.floor(vals.length/2)]||0)+(vals[Math.floor((vals.length-1)/2)]||0))/2*(1-vals.length%2):vals[0];const main=fmtmm(vals.length?central:cumulative[n-1]);return `<strong>${main}</strong>${vals.length>=2?`<small>modellen ${fmtmm(vals[0])}–${fmtmm(vals.at(-1))} · ${vals.length} compleet</small>`:'<small>beschikbare modelmix</small>'}`}
- const points=cumulative.filter(Number.isFinite);const max=Math.max(1,...points);
- const w=640,h=155,pad=26;const xy=cumulative.map((v,i)=>Number.isFinite(v)?[pad+(i/Math.max(1,days.length-1))*(w-pad*2),h-pad-(v/max)*(h-pad*2)]:null);
- const segments=[];let segment=[];for(const pt of xy){if(pt)segment.push(pt);else if(segment.length){segments.push(segment);segment=[]}}if(segment.length)segments.push(segment);
- const chart=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Cumulatieve neerslag per dag" style="width:100%;height:auto;max-height:170px"><line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="#94a3b8"/><line x1="${pad}" y1="${pad}" x2="${w-pad}" y2="${pad}" stroke="#cbd5e1" stroke-dasharray="4 5"/><text x="2" y="${pad+4}" fill="currentColor" font-size="13">${Math.ceil(max)} mm</text>${segments.map(a=>`<polyline fill="none" stroke="#1686c7" stroke-width="3" stroke-linejoin="round" points="${a.map(p=>p.join(',')).join(' ')}"/>`).join('')}${xy.map((a,i)=>a?`<circle cx="${a[0]}" cy="${a[1]}" r="3" fill="#1686c7"><title>${days[i].date}: ${fmtmm(cumulative[i])}</title></circle>`:'').join('')}</svg>`;
- const storm=days.map(r=>{const vals=modelSeries.map(m=>m.days.get(r.date)).filter(x=>x&&Number.isFinite(x.wind));const storms=vals.filter(x=>x.wind>=75).length;const gusts=vals.filter(x=>Number.isFinite(x.gust)&&x.gust>=90).length;const maxwind=vals.length?Math.max(...vals.map(x=>x.wind)):null;const maxgust=vals.filter(x=>Number.isFinite(x.gust)).length?Math.max(...vals.filter(x=>Number.isFinite(x.gust)).map(x=>x.gust)):null;return {date:r.date,storms,gusts,n:vals.length,maxwind,maxgust}}).filter(x=>x.storms||x.gusts).slice(0,5);
- const box=document.createElement('section');box.className='panel';box.id='ricoRainStorm';box.style.margin='14px 0';
- box.innerHTML=`<div style="font-weight:900;font-size:18px">🌧️ Cumulatieve neerslag · komende dagen</div><div class="note">Oplopende neerslagsom vanaf ${dayShort(days[0].date)}. Per model wordt eerst de volledige periode opgeteld; geen extra API-aanvragen.</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0">${[3,5,7,10,15].map(n=>`<div style="padding:11px;border:1px solid var(--line,#cbd5e1);border-radius:12px"><b>${n} dagen</b><div style="font-size:19px;margin:5px 0">${period(n)}</div></div>`).join('')}</div>${chart}<div style="overflow-x:auto"><table style="width:100%;font-size:12px;border-collapse:collapse"><thead><tr><th style="text-align:left">Dag</th><th>Dag</th><th>Cumulatief</th></tr></thead><tbody>${days.map((r,i)=>`<tr><td>${dayShort(r.date)}</td><td style="text-align:center">${fmtmm(r.valid?r.precip:null)}</td><td style="text-align:center"><b>${fmtmm(cumulative[i])}</b></td></tr>`).join('')}</tbody></table></div><div class="note">Bandbreedte = kleinste en grootste som van modellen met alle dagen beschikbaar; geen kansinterval. Ontbrekende dagen worden niet als 0 mm ingevuld.</div><div style="font-weight:850;font-size:17px;margin-top:15px">💨 Storm- en windstootsignalen</div>${storm.length?storm.map(x=>`<div style="padding:7px 0;border-bottom:1px solid #cbd5e1"><b>${dayShort(x.date)}</b> · ${x.storms?`${x.storms} van ${x.n} modellen met gemiddelde wind ≥75 km/u`:''}${x.storms&&x.gusts?' · ':''}${x.gusts?`${x.gusts} modellen met windstoten ≥90 km/u`:''}<small style="display:block">Hoogste modelsignaal: ${Number.isFinite(x.maxwind)?Math.round(x.maxwind)+' km/u gemiddelde wind':'—'} · ${Number.isFinite(x.maxgust)?Math.round(x.maxgust)+' km/u windstoot':'—'}</small></div>`).join(''):'<div class="note">Geen storm- of zware-windstootsignalen in de beschikbare lokale dagwaarden.</div>'}<div class="note">Voorlopige signalering voor de gekozen locatie, niet landelijk en geen officiële stormwaarschuwing. Storm (Bft 9) vereist ≥20,8 m/s gemiddeld over 10 minuten; model-dagwaarden kunnen dit niet per heel uur bevestigen.</div>`;
- const results=document.getElementById('results');results?.insertAdjacentElement('afterend',box);
-}
-const ricoPreviousShow=show;
-show=function(rows){const result=ricoPreviousShow.apply(this,arguments);try{ricoRainStormPanel(rows)}catch(e){console.warn('Neerslag/stormpanel',e)}return result};
-
 </script>
 </body></html>
