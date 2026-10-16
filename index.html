@@ -238,7 +238,7 @@ body{min-width:0}
 /* EC46 overzichtelijke weekkaarten */
 .lrQuickMetrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.lrQuickMetrics>div{padding:10px;border-radius:10px;background:rgba(128,145,165,.10)}.lrQuickMetrics span{display:block;font-size:12px;color:var(--muted)}.lrQuickMetrics strong{font-size:19px}.lrWeekStory{margin-top:12px;padding:11px 12px;border-radius:11px;background:rgba(128,145,165,.09);line-height:1.5;font-size:13px}.lrWeekStory p{margin:5px 0 0}.rwEc46Analysis{padding:12px;border:1px solid rgba(120,140,160,.25);border-radius:12px}.rwEc46Analysis>summary{cursor:pointer;font-weight:800}.rwEc46Analysis .rwP2RegGrid{margin-top:12px}.longRangeWeek .lrPressureDetails{margin-top:10px}.longRangeWeek .lrPressureDetails>div{margin-top:7px}.longRangeWeek .lrMain{font-size:17px}
 
-.rwDayTabs{display:flex;gap:8px;flex-wrap:wrap;margin:13px 0}.rwDayTabs button{border:1px solid #cad8e9;background:#f4f8fe;border-radius:22px;padding:10px 14px;font:inherit;font-weight:750;color:#254466;cursor:pointer}.rwDayTabs button.active{background:#2555c5;color:white;border-color:#2555c5}.rwOverviewExtra{margin-top:16px;display:grid;gap:14px}.rwExtraCard{border:1px solid #d6e2ed;border-radius:17px;padding:14px;background:#f7faff}.rwExtraCard h3{margin:0 0 10px;font-size:1.04rem}.rwMiniChart{width:100%;height:auto;display:block}.rwExtraText{line-height:1.6}.rwExtraMeta{color:#5b6e80;font-size:.87em;margin-top:6px}
+.rwDayTabs{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:thin;margin:13px 0;padding-bottom:6px}.rwDayTabs button{flex:0 0 auto}.rwDayTabs button{border:1px solid #cad8e9;background:#f4f8fe;border-radius:22px;padding:10px 14px;font:inherit;font-weight:750;color:#254466;cursor:pointer}.rwDayTabs button.active{background:#2555c5;color:white;border-color:#2555c5}.rwOverviewExtra{margin-top:16px;display:grid;gap:14px}.rwExtraCard{border:1px solid #d6e2ed;border-radius:17px;padding:14px;background:#f7faff}.rwExtraCard h3{margin:0 0 10px;font-size:1.04rem}.rwMiniChart{width:100%;height:auto;display:block}.rwExtraText{line-height:1.6}.rwExtraMeta{color:#5b6e80;font-size:.87em;margin-top:6px}
 </style></style>
 
 <style>
@@ -1043,7 +1043,7 @@ let rwGlanceDayOffset=0;
 function renderTodayGlance(){
  const p=$('todayGlancePanel');if(!p||!lastRows.length){p?.classList.add('hidden');return}
  const base=forecastStartDate();
- const days=lastRows.filter(x=>x.date>=base).slice(0,3);
+ const days=lastRows.filter(x=>x.date>=base).slice(0,7);
  if(!days.length){p.classList.add('hidden');return}
  rwGlanceDayOffset=Math.min(rwGlanceDayOffset,days.length-1);
  const r=days[rwGlanceDayOffset];p.classList.remove('hidden');
