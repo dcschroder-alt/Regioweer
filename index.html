@@ -591,11 +591,23 @@ let foregroundCheckBusy=false;function showStoredMixImmediately(){
   safeUi(renderModelStatus,lastMixData);show(lastRows);
   renderTodayGlance();safeUi(renderWeatherText);safeUi(renderMixSignals);
   const age=Math.round((Date.now()-stored.savedAt)/60000);
-  setStatus(`Opgeslagen modelmix · ${age<60?age+' minuten':(age/60).toFixed(1)+' uur'} oud · API-spaarstand: handmatig verversen`,100);
+  setStatus(`Opgeslagen modelmix · ${age<60?age+' minuten':(age/60).toFixed(1)+' uur'} oud · PWA-spaarstand: geen nieuwe API-verzoeken bij openen`,100);
  }catch(e){console.warn('Opgeslagen modelmix tonen',e)}
 }
 window.addEventListener('load',()=>setTimeout(showStoredMixImmediately,100));
-function maybeRefreshOnOpen(){if(!autoTimer)return; if(foregroundCheckBusy||!navigator.onLine||forecastRateLimitedToday()||$('model').value!=='mix')return;const last=Number(localStorage.getItem('rw-last-success')||0);if(last&&Date.now()-last<12*60*60*1000)return;foregroundCheckBusy=true;setTimeout(()=>{try{$('load').click()}finally{setTimeout(()=>foregroundCheckBusy=false,15000)}},500)}document.addEventListener('visibilitychange',()=>{if(!document.hidden)maybeRefreshOnOpen()});window.addEventListener('focus',maybeRefreshOnOpen);window.addEventListener('load',()=>setTimeout(maybeRefreshOnOpen,900));
+// PWA spaarstand: landelijke kaart en scan onmiddellijk uit opslag tonen,
+// zonder netwerkverzoek bij het openen of terugkeren naar de app.
+window.addEventListener('load',()=>setTimeout(()=>{
+ try{
+  if(typeof NATIONAL_SCAN_CACHE==='undefined'||typeof renderNationalScanData!=='function')return;
+  const cached=JSON.parse(localStorage.getItem(NATIONAL_SCAN_CACHE)||'null');
+  if(cached?.days?.length && $('model')?.value==='mix'){
+   renderNationalScanData(cached.days,cached.models||[],true);
+   const label=$('nationalScanStatus');if(label)label.textContent+=' · lokaal hersteld (geen API-verzoek)';
+  }
+ }catch(e){console.warn('Landelijke scan uit cache herstellen',e)}
+},450));
+function maybeRefreshOnOpen(){if(!autoTimer)return; if(foregroundCheckBusy||!navigator.onLine||forecastRateLimitedToday()||$('model').value!=='mix')return;const last=Number(localStorage.getItem('rw-last-success')||0);if(last&&Date.now()-last<12*60*60*1000)return;if(document.visibilityState!=='visible')return;foregroundCheckBusy=true;setTimeout(()=>{try{$('load').click()}finally{setTimeout(()=>foregroundCheckBusy=false,15000)}},500)}document.addEventListener('visibilitychange',()=>{if(!document.hidden)maybeRefreshOnOpen()});window.addEventListener('focus',maybeRefreshOnOpen);window.addEventListener('load',()=>setTimeout(maybeRefreshOnOpen,900));
 $('jumpGfs').onclick=()=>$('gfsPanel').scrollIntoView({behavior:'smooth',block:'start'});
 $('appRefresh').onclick=async()=>{try{
  const regs=await navigator.serviceWorker?.getRegistrations?.()||[];
@@ -3059,7 +3071,7 @@ $('todayDetailBtn').onclick=()=>openDayDetail(forecastStartDate());
 function updateTodayButton(){if(!$('todayDetailBtn'))return;const ev=isAutoRun()&&nlHourNow()>=18;$ ('todayDetailBtn').textContent=ev?'🌤 Morgen':'☀ Vandaag';$('todayDetailBtn').title=ev?'Morgen uitgebreid bekijken':'Vandaag uitgebreid bekijken'}
 updateTodayButton();
 let lastUiCalendarDate=nlToday();
-function syncCalendarDay(){const now=nlToday();updateTodayButton();if(now===lastUiCalendarDate)return;lastUiCalendarDate=now;if(isAutoRun()){$('date').value=now;if(lastRows.length){setStatus('Nieuwe kalenderdag · verwachting wordt bijgewerkt…',5);$('load').click()}}}
+function syncCalendarDay(){const now=nlToday();updateTodayButton();if(now===lastUiCalendarDate)return;lastUiCalendarDate=now;if(isAutoRun()){$('date').value=now;if(lastRows.length){setStatus('Nieuwe kalenderdag · opgeslagen modelmix blijft zichtbaar; ververs handmatig voor nieuwe runs.',100)}}}
 setInterval(syncCalendarDay,60000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncCalendarDay()});window.addEventListener('focus',syncCalendarDay);
 function renderShareMode(){
  const rows=lastRows.filter(r=>r.date>appBaseDate()).slice(0,Math.min(7,forecastHorizon()));const box=$('shareModeGrid');if(!rows.length)return;box.innerHTML=rows.map(r=>{const d=new Date(r.date+'T12:00:00');return `<div class="previewDay"><div class="day">${NL[d.getDay()].toUpperCase()}</div><div class="date">${d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'})}</div><div class="icon">${forecastIcon(r)}</div><div class="temps"><span class="max">${Math.round(r.max)}°</span> / <span class="min">${Math.round(r.min)}°</span></div>${agreementBadge(r)}${r.count?`<div class="modelCount">${r.count} model${r.count===1?'':'len'}</div>`:''}<div class="meta">☀ ${Math.round(r.sun||0)} u · 💧 ${Math.round(r.precip||0)} mm</div></div>`}).join('');$('shareModeSignals').innerHTML=$('mixSignals')?.innerHTML||'';$('shareModeSub').textContent=`${$('place').value} · bijgewerkt ${new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'})}`;
