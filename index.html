@@ -414,7 +414,7 @@ function withSlot(work){return new Promise((resolve,reject)=>{queue.push({work,r
        const limited=/daily api request limit exceeded/i.test(reason);
        const concurrentLimit=response.status===429&&/too many concurrent requests/i.test(reason);
        log({at:Date.now(),endpoint:nameOf(url),status:response.status,reason,limited,concurrentLimit,ms:Date.now()-started});
-       if(response.ok){await store(url,response);return response}
+       if(response.ok){ricoApiRecovered();await store(url,response);return response}
        if(response.status===400&&/invalid value|invalid string value|cannot initialize multidomains/i.test(reason))invalidUntil.set(url,Date.now()+6*3600000);
        if(stored&&(response.status===429||response.status===503||response.status>=500)){
          staleHits++;return stored.response.clone();
@@ -444,6 +444,7 @@ function withSlot(work){return new Promise((resolve,reject)=>{queue.push({work,r
    panel.querySelector('#ricoweer-api-close').onclick=()=>panel.hidden=true;
    panel.querySelector('#ricoweer-api-copy').onclick=()=>navigator.clipboard?.writeText(panel.querySelector('pre').textContent);
    panel.querySelector('#ricoweer-api-clear').onclick=()=>{entries=[];localStorage.removeItem(KEY);window.ricoweerApiLogRender()};
+   const retry=document.createElement('button');retry.type='button';retry.textContent='Controleer API opnieuw';retry.style.marginLeft='8px';retry.onclick=()=>{try{localStorage.removeItem('rico-api-block-until-v2');localStorage.removeItem('rw-forecast-rate-v104-core8');localStorage.removeItem('rw-ensemble-rate-limit-date-v1')}catch(e){}panel.hidden=true;const load=document.getElementById('load');if(load)load.click()};panel.append(retry);
    window.ricoweerApiLogRender();
  });
 })();
@@ -596,7 +597,12 @@ let foregroundCheckBusy=false;function showStoredMixImmediately(){
 window.addEventListener('load',()=>setTimeout(showStoredMixImmediately,100));
 function maybeRefreshOnOpen(){if(!autoTimer)return; if(foregroundCheckBusy||!navigator.onLine||forecastRateLimitedToday()||$('model').value!=='mix')return;const last=Number(localStorage.getItem('rw-last-success')||0);if(last&&Date.now()-last<12*60*60*1000)return;foregroundCheckBusy=true;setTimeout(()=>{try{$('load').click()}finally{setTimeout(()=>foregroundCheckBusy=false,15000)}},500)}document.addEventListener('visibilitychange',()=>{if(!document.hidden)maybeRefreshOnOpen()});window.addEventListener('focus',maybeRefreshOnOpen);window.addEventListener('load',()=>setTimeout(maybeRefreshOnOpen,900));
 $('jumpGfs').onclick=()=>$('gfsPanel').scrollIntoView({behavior:'smooth',block:'start'});
-$('appRefresh').onclick=async()=>{try{const reg=await navigator.serviceWorker?.getRegistration();if(reg)await reg.update();if('caches'in window){for(const k of await caches.keys())if(k.startsWith('regioweer-'))await caches.delete(k)}location.reload(true)}catch(e){location.reload(true)}};
+$('appRefresh').onclick=async()=>{try{
+ const regs=await navigator.serviceWorker?.getRegistrations?.()||[];
+ await Promise.all(regs.map(r=>r.update().catch(()=>{})));
+ if('caches'in window){for(const k of await caches.keys())if(/^(regioweer-|rico-app-)/.test(k))await caches.delete(k)}
+ location.reload();
+}catch(e){location.reload()}};
 function forecastHorizon(){return Math.max(5,Math.min(15,Number($('forecastDays')?.value||7)))}
 function fiveSummary(){const n=forecastHorizon(),rows=lastRows.filter(r=>r.date>$('date').value).slice(0,n);if(!rows.length)return'';return `${n}-daagse ${$('place').value}\n`+rows.map(r=>`${dayShort(r.date)}: ${Math.round(r.max)}°/${Math.round(r.min)}°, ${r.type||centralWeatherType(r)}, ${Math.round(r.precip||0)} mm, ${Math.round(r.sun||0)} u zon${windSummary(r)?`, ${windSummary(r).replace('💨 ','')}`:''}${Number.isFinite(r.agreement)?`, ${agreementDisplay(r.agreement,r.count)}`:''}`).join('\n')}
 $('copySummary').onclick=async()=>{const t=fiveSummary();if(!t)return;try{await navigator.clipboard.writeText(t);setStatus('5-daagse tekst gekopieerd.',100)}catch(e){setStatus('Kopiëren lukte niet.',100)}};
@@ -630,9 +636,20 @@ function getFullMixCache(maxAge=72*60*60*1000){try{const all=JSON.parse(localSto
 function legacyMixFromModelHistory(){try{const h=JSON.parse(localStorage.getItem(MODEL_HISTORY_KEY)||'{}'),vals=Object.values(h||{}).filter(x=>x&&x.key&&x.date&&Number.isFinite(x.max)&&Number.isFinite(x.min));if(!vals.length)return null;const issued=[...new Set(vals.map(x=>x.issued).filter(Boolean))].sort().reverse();for(const issue of issued){const rows=vals.filter(x=>x.issued===issue),keys=[...new Set(rows.map(x=>x.key))];if(keys.length<2)continue;const data={};for(const k of keys){const a=rows.filter(x=>x.key===k).sort((a,b)=>a.date.localeCompare(b.date)).map(x=>{const base=/^\d{4}-\d{2}-\d{2}$/.test(issue)?issue:nlToday(),lead=Math.round((new Date(x.date+'T12:00:00Z')-new Date(base+'T12:00:00Z'))/86400000),safeDays=Math.max(0,Math.floor(((MODELS[k]?.hours||0)-12)/24));return {date:x.date,max:x.max,min:x.min,precip:Number.isFinite(x.precip)?x.precip:0,sun:Number.isFinite(x.sun)?x.sun:0,complete:lead<=safeDays,codes:[],dayCodes:[]}});a._modelUsed={...MODELS[k]};a._runUsed=`lokale modelhistorie ${issue}`;a._loadedAt=Date.now();a._fromCache=true;data[k]=a}let mixRows=buildMix(data);if(!mixRows.length)continue;const snap=getPrevSnapshot?.();const today=nlToday();if(snap?.rows?.length&&!mixRows.some(r=>r.date===today)){const tr=snap.rows.find(r=>r.date===today);if(tr)mixRows.unshift({...tr,date:today,_aggregateOnly:true,_fromLegacyHistory:true,count:tr.count||0,type:tr.type||weatherType(tr)})}return {savedAt:Date.now(),data,mixRows,source:`lokale modelhistorie van ${issue}`,legacy:true}}return null}catch(e){console.warn('Modelmix uit historie herstellen mislukt',e);return null}}
 function bestStoredMix(){return getFullMixCache()||legacyMixFromModelHistory()}
 
-function isForecastRateLimit(msg){return /daily api request limit exceeded|rate limit|too many requests/i.test(String(msg||''))}
-function forecastRateLimitedToday(){try{return localStorage.getItem(FORECAST_RATE_KEY)===amsterdamDateKey()}catch(e){return false}}
-function markForecastRateLimited(){try{localStorage.setItem(FORECAST_RATE_KEY,amsterdamDateKey())}catch(e){}}
+// Een oude datumvlag mag niet een hele dag alle nieuwe runs blokkeren.
+// Na een echte daglimiet: maximaal een controle na 30 minuten, uitsluitend op gebruikersactie.
+const RICO_BLOCK_UNTIL='rico-api-block-until-v2';
+function isForecastRateLimit(msg){return /daily api request limit exceeded/i.test(String(msg||''))}
+function forecastRateLimitedToday(){try{
+ const old=localStorage.getItem(FORECAST_RATE_KEY);
+ if(old){localStorage.removeItem(FORECAST_RATE_KEY); /* oude dagblokkering opruimen */}
+ const until=Number(localStorage.getItem(RICO_BLOCK_UNTIL)||0);
+ if(until&&until<=Date.now()){localStorage.removeItem(RICO_BLOCK_UNTIL);return false}
+ return until>Date.now();
+}catch(e){return false}}
+function markForecastRateLimited(){try{localStorage.setItem(RICO_BLOCK_UNTIL,String(Date.now()+30*60*1000))}catch(e){}}
+function ricoApiRecovered(){try{localStorage.removeItem(RICO_BLOCK_UNTIL);localStorage.removeItem(FORECAST_RATE_KEY);localStorage.removeItem(ENSEMBLE_RATE_KEY)}catch(e){}}
+
 function forecastCacheId(key){const lat=Number($('lat').value),lon=Number($('lon').value),run=isAutoRun()?'auto':runIso();return `${Number.isFinite(lat)?lat.toFixed(3):$('lat').value},${Number.isFinite(lon)?lon.toFixed(3):$('lon').value}|${key}|${run}`}
 function readForecastCache(){try{return JSON.parse(localStorage.getItem(FORECAST_CACHE_KEY)||'{}')}catch(e){return {}}}
 function forecastCacheGet(key,maxAge=36*60*60*1000){try{const rec=readForecastCache()[forecastCacheId(key)];if(!rec?.rows?.length||Date.now()-(rec.savedAt||0)>maxAge)return null;const out=rec.rows.map(r=>({...r}));out._modelUsed={...MODELS[key],code:rec.modelCode||MODELS[key].code};out._runUsed=rec.runUsed||'laatst opgeslagen run';out._loadedAt=rec.loadedAt||rec.savedAt;out._fromCache=true;out._cacheSavedAt=rec.savedAt;return out}catch(e){return null}}
@@ -2204,9 +2221,9 @@ const ENSEMBLE_RICH_VARS=['temperature_2m','wind_gusts_10m','precipitation','sno
 const ensembleMetaMemo=new Map(),ensembleInflight=new Map();
 function ensemblePlaceKey(model){const lat=Number($('lat').value||0),lon=Number($('lon').value||0);return `${lat.toFixed(3)}:${lon.toFixed(3)}:${model}`}
 function amsterdamDateKey(){try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Amsterdam',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())}catch(e){return new Date().toISOString().slice(0,10)}}
-function ensembleRateLimitedToday(){return localStorage.getItem(ENSEMBLE_RATE_KEY)===amsterdamDateKey()}
-function markEnsembleRateLimited(){try{localStorage.setItem(ENSEMBLE_RATE_KEY,amsterdamDateKey())}catch(e){}}
-function isEnsembleRateLimit(msg){return /daily api request limit exceeded|rate limit|too many requests/i.test(String(msg||''))}
+function ensembleRateLimitedToday(){return forecastRateLimitedToday()}
+function markEnsembleRateLimited(){markForecastRateLimited()}
+function isEnsembleRateLimit(msg){return isForecastRateLimit(msg)}
 function openEnsembleDb(){return new Promise((resolve,reject)=>{if(!('indexedDB'in window)){reject(new Error('IndexedDB niet beschikbaar'));return}const q=indexedDB.open(ENSEMBLE_DB,1);q.onupgradeneeded=()=>{const db=q.result;if(!db.objectStoreNames.contains(ENSEMBLE_STORE))db.createObjectStore(ENSEMBLE_STORE,{keyPath:'key'})};q.onsuccess=()=>resolve(q.result);q.onerror=()=>reject(q.error||new Error('cache niet beschikbaar'))})}
 async function ensembleCacheGet(model){try{const db=await openEnsembleDb(),key=ensemblePlaceKey(model);return await new Promise((resolve,reject)=>{const tx=db.transaction(ENSEMBLE_STORE,'readonly'),q=tx.objectStore(ENSEMBLE_STORE).get(key);q.onsuccess=()=>resolve(q.result||null);q.onerror=()=>reject(q.error)})}catch(e){return null}}
 async function ensembleCachePut(model,data){try{const db=await openEnsembleDb(),rec={...data,key:ensemblePlaceKey(model),model,savedAt:Date.now()};await new Promise((resolve,reject)=>{const tx=db.transaction(ENSEMBLE_STORE,'readwrite');tx.objectStore(ENSEMBLE_STORE).put(rec);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});return rec}catch(e){console.warn('Ensemblecache opslaan mislukt',e);return {...data,model,savedAt:Date.now()}}}
@@ -2586,7 +2603,11 @@ let deferredInstall=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;$('install').classList.remove('hidden')});
 $('install').onclick=async()=>{if(!deferredInstall)return;deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;$('install').classList.add('hidden')};
 window.addEventListener('appinstalled',()=>{$('install').classList.add('hidden');setStatus('Ricoweer is als app geïnstalleerd.',100)});
-if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js',{scope:'./'}).catch(console.error));}
+if('serviceWorker' in navigator){window.addEventListener('load',async()=>{
+ try{await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});
+ const reg=await navigator.serviceWorker.getRegistration('./');await reg?.update();
+ }catch(e){console.warn('Ricoweer offlinefunctie niet beschikbaar',e)}
+});}
 
 
 // ---- v34 dagelijkse werkplek ----

@@ -1,4 +1,11 @@
-const CACHE='regioweer-v1-ec46norm-kansen-morgen-20261009';
-self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(['./','./index.html','./icon-192.png','./icon-512.png'])).catch(()=>{}))});
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('regioweer-')&&k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
-self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;e.respondWith(fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy)).catch(()=>{});return r}).catch(()=>caches.match(e.request))) });
+/* Ricoweer serviceworker: netwerk-eerst voor appbestanden, offline fallback. */
+const VERSION='rico-app-20261016-browserfix-1';
+const FILES=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
+self.addEventListener('install',event=>{event.waitUntil((async()=>{const c=await caches.open(VERSION);await Promise.allSettled(FILES.map(f=>c.add(new Request(f,{cache:'reload'}))));await self.skipWaiting()})())});
+self.addEventListener('activate',event=>{event.waitUntil((async()=>{for(const key of await caches.keys()){if((key.startsWith('regioweer-')||key.startsWith('rico-app-'))&&key!==VERSION)await caches.delete(key)}await self.clients.claim()})())});
+self.addEventListener('fetch',event=>{
+ const req=event.request;if(req.method!=='GET')return;
+ const u=new URL(req.url);if(u.origin!==self.location.origin)return;
+ if(!FILES.some(f=>new URL(f,self.registration.scope).pathname===u.pathname))return;
+ event.respondWith((async()=>{const cache=await caches.open(VERSION);try{const response=await fetch(new Request(req,{cache:'no-store'}));if(response.ok)await cache.put(req,response.clone());return response}catch(e){const cached=await cache.match(req,{ignoreSearch:true});if(cached)return cached;throw e}})());
+});
