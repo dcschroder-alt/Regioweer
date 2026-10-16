@@ -298,6 +298,9 @@ body{min-width:0}
 @media(max-width:1000px){.ricoWeatherGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:550px){.ricoWeatherGrid{grid-template-columns:1fr}.ricoWeatherMap{height:340px}}
 
+/* Windlabels gebruiken bestaande landelijke scan; geen nieuwe API-verzoeken. */
+.ricoWeatherWind{display:flex;align-items:center;gap:4px;white-space:nowrap;color:#153b59;background:rgba(255,255,255,.88);border:1px solid rgba(35,85,112,.2);border-radius:9px;padding:3px 6px;font-size:12px;font-weight:900;box-shadow:0 1px 3px #1c405844;pointer-events:none}
+.ricoWeatherWindArrow{display:inline-block;color:#13678c;font-size:17px;line-height:1}
 /* Landelijke kaarten: Nederland beeldvullend, leesbare labels. */
 .ricoWeatherMap{height:510px}
 .ricoWeatherPin{width:70px;height:52px}
@@ -4346,7 +4349,7 @@ function updateWeatherAtlas(){
  const days=(typeof nationalScanLastPack!=='undefined'?nationalScanLastPack?.days:[])||[];
  const valid=days.filter(d=>d?.pts?.some(p=>Number.isFinite(p.tx))).slice(0,10);
  if(!valid.length){host.querySelector('.ricoWeatherGrid').innerHTML='<div class="note">Nog geen landelijke modelmix beschikbaar. De weerkaarten verschijnen na de bestaande landelijke scan.</div>';return}
- const signature=valid.map(d=>d.date+':'+d.pts.filter(p=>Number.isFinite(p.tx)).length+':'+d.pts.map(p=>[p.tx,p.tn,p.rain,p.sun,p.wind].join('/')).join(',')).join('|');
+ const signature=valid.map(d=>d.date+':'+d.pts.filter(p=>Number.isFinite(p.tx)).length+':'+d.pts.map(p=>[p.tx,p.tn,p.rain,p.sun,p.wind,p.dir].join('/')).join(',')).join('|');
  if(signature===lastAtlasSignature)return;lastAtlasSignature=signature;
  weatherMaps.forEach(m=>{try{m.remove()}catch(e){}});weatherMaps.length=0;
  host.querySelector('.ricoWeatherGrid').innerHTML=valid.map((d,i)=>{
@@ -4395,7 +4398,29 @@ function updateWeatherAtlas(){
     const sym=weatherSymbol(p),max=Math.round(p.tx),min=Number.isFinite(p.tn)?Math.round(p.tn):null;
     const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp"><span class="ricoTx">${max}°</span>${min!==null?`<span class="ricoSep">/</span><span class="ricoTn">${min}°</span>`:''}</span></div>`,iconSize:[70,52],iconAnchor:[35,26]});
     const popup=`<b>${safe(p.point.n)}</b><br>Max ${max}°${min!==null?' · min '+min+'°':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen`;
-    L.marker([p.point.lat,p.point.lon],{icon}).bindPopup(popup).addTo(map);
+    // De midden-Nederlandse temperatuur en het symbool iets oostelijker plaatsen.
+    // De bronlocatie en de popup blijven ongewijzigd.
+    const centerGroup=['Utrecht','Lelystad','Arnhem'];
+    const middlePoint=chosen.find(x=>centerGroup.includes(x.point.n));
+    const shiftMiddle=middlePoint===p;
+    L.marker([p.point.lat, p.point.lon+(shiftMiddle?0.24:0)],{icon}).bindPopup(popup).addTo(map);
+   });
+   // Windkracht op drie plekken: kust, midden en oosten. Alleen reeds opgehaalde
+   // dagelijkse windmaxima en dominante windrichting van de 25 scanpunten.
+   const windSpots=[
+    {lat:52.63,lon:3.48,names:['Den Helder','IJmuiden','Texel','Terschelling']},
+    {lat:51.70,lon:5.22,names:['Utrecht','Lelystad','Arnhem','Amersfoort']},
+    {lat:52.25,lon:6.95,names:['Enschede','Winterswijk','Emmen','Groningen']}
+   ];
+   function beaufort(kmh){const m=kmh/3.6;return [0.3,1.6,3.4,5.5,8.0,10.8,13.9,17.2,20.8,24.5,28.5,32.7].findIndex(x=>m<x)===-1?12:[0.3,1.6,3.4,5.5,8.0,10.8,13.9,17.2,20.8,24.5,28.5,32.7].findIndex(x=>m<x)}
+   windSpots.forEach(spot=>{
+    const src=spot.names.map(name=>all.find(p=>p.point.n===name&&Number.isFinite(p.wind))).find(Boolean);
+    if(!src)return;
+    const bft=beaufort(src.wind);
+    const arrow=Number.isFinite(src.dir)?`<span class="ricoWeatherWindArrow" style="transform:rotate(${(src.dir+180)%360}deg)" aria-hidden="true">↑</span>`:'';
+    const html=`<div class="ricoWeatherWind" title="Wind ${safe(src.point.n)}: ${Math.round(src.wind)} km/u, ${bft} Bft">${arrow}<span>${bft} Bft</span></div>`;
+    const windIcon=L.divIcon({className:'',html,iconSize:[77,27],iconAnchor:[38,13]});
+    L.marker([spot.lat,spot.lon],{icon:windIcon,interactive:false,keyboard:false}).addTo(map);
    });
    setTimeout(()=>map.invalidateSize(),100);
   });
@@ -4405,7 +4430,7 @@ function install(){
  const panel=document.getElementById('nationalScanPanel');if(!panel)return;
  if(!document.getElementById('ricoWeatherAtlas')){
   const section=document.createElement('section');section.id='ricoWeatherAtlas';
-  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 10 dagen</div><div class="note">Landelijke modelmix op dezelfde 25 scanpunten. 8 geografisch gespreide locaties per kaart, Nederland groter in beeld; geen extra Open-Meteo-verzoeken. Weersymbolen zijn indicaties op basis van dagneerslag en zonuren, geen dagdeelverwachtingen.</div><div class="ricoWeatherGrid"></div>';
+  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 10 dagen</div><div class="note">Landelijke modelmix op dezelfde 25 scanpunten. 8 geografisch gespreide locaties en windkracht op 3 plekken per kaart; geen extra Open-Meteo-verzoeken. Weersymbolen zijn indicaties op basis van dagneerslag en zonuren, geen dagdeelverwachtingen.</div><div class="ricoWeatherGrid"></div>';
   const map=panel.querySelector('.ricomapPanel');if(map)map.insertAdjacentElement('beforebegin',section);else panel.appendChild(section);
  }
  // Koppel aan bestaande landelijke scanweergave, inclusief cacheherstel.
