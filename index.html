@@ -308,6 +308,18 @@ body{min-width:0}
 .ricoWeatherPin .ricoWeatherSymbol{font-size:21px;line-height:24px;height:25px}
 .ricoWeatherPin .ricoWeatherTemp{font-size:14px;padding:2px 4px;gap:3px}
 @media(max-width:550px){.ricoWeatherMap{height:430px}}
+</style><style>
+/* Vier uitbreidingen, alleen reeds beschikbare landelijke scangegevens. */
+.ricoAtlasExtra{padding:9px 11px;background:#f6faff;border-top:1px solid #c5d9e7;color:#243d55;font-size:12px;line-height:1.5}
+.ricoAtlasExtra .ricoChips{display:flex;flex-wrap:wrap;gap:5px;margin:4px 0}
+.ricoAtlasExtra .ricoChip{background:#e6f0f9;border-radius:7px;padding:3px 6px;font-weight:750}
+.ricoAtlasExtra details{margin-top:5px}.ricoAtlasExtra summary{cursor:pointer;font-weight:800}
+.ricoAtlasExtra .ricoSmall{font-size:11px;color:#51677c}.ricoAtlasRain{margin:10px 0;padding:12px;border:1px solid #bfd4e5;border-radius:12px;background:#f5faff}
+.ricoAtlasRainGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:8px;margin:9px 0}
+.ricoAtlasRainGrid>div{padding:9px;background:#fff;border:1px solid #d9e6f0;border-radius:9px}
+.ricoAtlasRainGrid b{display:block;font-size:19px}.ricoAtlasRainGrid small{display:block;color:#526b80}
+.ricoAtlasRain table{width:100%;font-size:12px;border-collapse:collapse}.ricoAtlasRain th,.ricoAtlasRain td{padding:6px;border-bottom:1px solid #d7e4ef;text-align:left}
+.dark .ricoAtlasExtra,.dark .ricoAtlasRain{background:#203144;color:#e7f2ff}.dark .ricoAtlasRainGrid>div{background:#273e54}
 </style></head>
 <body><div class="wrap">
 <section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v1.0</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
@@ -4345,20 +4357,72 @@ function spreadPoints(points,max){
  return chosen;
 }
 function dayLabel(date){return new Date(date+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'short'})}
+// No additional weather fetches: only nationalScanLastPack and the existing local history.
+const atlasMedian=a=>{const v=a.filter(Number.isFinite).sort((x,y)=>x-y);return v.length?(v.length%2?v[(v.length-1)/2]:(v[v.length/2-1]+v[v.length/2])/2):null};
+const atlasFmt=(n,d=0)=>Number.isFinite(n)?n.toFixed(d).replace('.',','):'—';
+function atlasHistory(){
+ try{const arr=typeof nsHistoryRead==='function'?nsHistoryRead():[];const current=typeof nationalScanLastPack!=='undefined'?nationalScanLastPack:null;
+  return arr.find(x=>x?.days?.length&&x.days!==current?.days&&x.days.some(d=>{const now=current?.days?.find(v=>v.date===d.date);return now&&d.pts?.some(p=>{const q=now.pts?.find(v=>v.point?.n===p.point?.n);return q&&[p.tx,p.tn,p.rain,p.gust].some((v,i)=>Number.isFinite(v)&&Number.isFinite([q.tx,q.tn,q.rain,q.gust][i])&&Math.abs(v-[q.tx,q.tn,q.rain,q.gust][i])>.05)})}))||null;
+ }catch(e){return null}
+}
+function atlasDayChange(day,previous){
+ const old=previous?.days?.find(d=>d.date===day.date);if(!old)return '↔ Geen vergelijkbare vorige scan opgeslagen';
+ const pairs=day.pts.map(p=>({now:p,old:old.pts?.find(q=>q.point?.n===p.point?.n)})).filter(x=>x.old);
+ const diffs=(key)=>atlasMedian(pairs.map(x=>Number.isFinite(x.now[key])&&Number.isFinite(x.old[key])?x.now[key]-x.old[key]:null));
+ const tx=diffs('tx'),rain=diffs('rain'),gust=diffs('gust'),bits=[];
+ if(Number.isFinite(tx))bits.push(`🌡️ ${Math.abs(tx)<.5?'temperatuur vrijwel gelijk':atlasFmt(Math.abs(tx),1)+'° '+(tx>0?'warmer':'kouder')}`);
+ if(Number.isFinite(rain))bits.push(`🌧️ ${Math.abs(rain)<.5?'neerslag vrijwel gelijk':atlasFmt(Math.abs(rain),1)+' mm '+(rain>0?'natter':'droger')}`);
+ if(Number.isFinite(gust))bits.push(`💨 ${Math.abs(gust)<3?'windstoten vrijwel gelijk':atlasFmt(Math.abs(gust))+' km/u '+(gust>0?'meer':'minder')}`);
+ return bits.length?bits.join(' · '):'↔ Onvoldoende vergelijkbare gegevens';
+}
+function atlasSignals(day){
+ const pts=day.pts||[],signals=[];
+ const gust=pts.filter(p=>Number.isFinite(p.gust)&&p.gust>=75).sort((a,b)=>b.gust-a.gust);
+ if(gust.length)signals.push(`💨 Windstoten tot ${Math.round(gust[0].gust)} km/u (${safe(gust[0].point.n)})`);
+ const wind=pts.filter(p=>Number.isFinite(p.wind)&&p.wind>=75).sort((a,b)=>b.wind-a.wind);
+ if(wind.length)signals.push(`🌪️ Dagwindmaximum ${Math.round(wind[0].wind)} km/u (${safe(wind[0].point.n)}); geen bevestigde storm volgens 10-minutengemiddelde`);
+ const wet=pts.filter(p=>Number.isFinite(p.rain)&&p.rain>=15).sort((a,b)=>b.rain-a.rain);
+ if(wet.length)signals.push(`🌧️ Lokaal ${atlasFmt(wet[0].rain,1)} mm (${safe(wet[0].point.n)})`);
+ const frost=pts.filter(p=>Number.isFinite(p.tn)&&p.tn<=0).sort((a,b)=>a.tn-b.tn);
+ if(frost.length)signals.push(`❄️ Vorstsignaal ${Math.round(frost[0].tn)}° (${safe(frost[0].point.n)})`);
+ const hot=pts.filter(p=>Number.isFinite(p.tx)&&p.tx>=25).sort((a,b)=>b.tx-a.tx);
+ if(hot.length)signals.push(`☀️ ${hot[0].tx>=30?'Tropisch':'Zomers'} modelsignaal ${Math.round(hot[0].tx)}° (${safe(hot[0].point.n)})`);
+ return signals;
+}
+function atlasDayparts(day){
+ // National scan currently stores daily aggregates, not hourly/daypart values.
+ return `<div class="ricoSmall">Dagdeelverloop niet beschikbaar uit de opgeslagen landelijke scan: die bevat alleen dagwaarden. Geen uurverloop afgeleid of extra API-aanvragen gedaan.</div>`;
+}
+function atlasRainSummary(days){
+ const usable=days.slice(0,10);if(!usable.length)return '';
+ const names=[...new Set(usable.flatMap(d=>d.pts.map(p=>p.point?.n).filter(Boolean)))];
+ const totals=(count)=>names.map(name=>{const subset=usable.slice(0,count);if(subset.length<count)return null;
+  const values=subset.map(d=>d.pts.find(p=>p.point?.n===name)?.rain);
+  return values.every(Number.isFinite)?{name,total:values.reduce((a,b)=>a+b,0)}:null;
+ }).filter(Boolean);
+ const ranges=[3,5,7,10].map(n=>{const t=totals(n),median=atlasMedian(t.map(x=>x.total)),wet=t.length?t.reduce((a,b)=>a.total>b.total?a:b):null,dry=t.length?t.reduce((a,b)=>a.total<b.total?a:b):null;return {n,median,wet,dry,count:t.length}});
+ const daily=usable.map(d=>({date:d.date,median:atlasMedian(d.pts.map(p=>p.rain))}));
+ let cumulative=0;const table=daily.map(x=>{if(!Number.isFinite(x.median))return `<tr><td>${safe(dayLabel(x.date))}</td><td>—</td><td>—</td></tr>`;cumulative+=x.median;return `<tr><td>${safe(dayLabel(x.date))}</td><td>${atlasFmt(x.median,1)} mm</td><td>${atlasFmt(cumulative,1)} mm*</td></tr>`}).join('');
+ return `<section class="ricoAtlasRain"><strong>🌧️ Landelijke cumulatieve neerslag · 10 dagen</strong><div class="ricoSmall">Mediaan van de cumulatieve neerslagsommen per scanpunt; alleen locaties met complete dagwaarden. Geen extra API-verzoeken.</div><div class="ricoAtlasRainGrid">${ranges.map(r=>`<div><small>${r.n} dagen · ${r.count}/25 punten</small><b>${Number.isFinite(r.median)?atlasFmt(r.median,1)+' mm':'—'}</b><small>${r.wet?`Natst ${safe(r.wet.name)} ${atlasFmt(r.wet.total,1)} mm<br>Droogst ${safe(r.dry.name)} ${atlasFmt(r.dry.total,1)} mm`:'Onvoldoende complete gegevens'}</small></div>`).join('')}</div><details><summary>Dagelijkse opbouw bekijken</summary><table><thead><tr><th>Dag</th><th>Landelijke dagmediaan</th><th>Oplopend*</th></tr></thead><tbody>${table}</tbody></table><div class="ricoSmall">*Som van dagmedianen is een indicatieve grafiekwaarde, niet hetzelfde als de mediaan van complete locatiesommen hierboven. Dit is geen modelspreiding.</div></details></section>`;
+}
 function updateWeatherAtlas(){
  const host=document.getElementById('ricoWeatherAtlas');if(!host)return;
  const days=(typeof nationalScanLastPack!=='undefined'?nationalScanLastPack?.days:[])||[];
  const valid=days.filter(d=>d?.pts?.some(p=>Number.isFinite(p.tx))).slice(0,10);
  if(!valid.length){host.querySelector('.ricoWeatherGrid').innerHTML='<div class="note">Nog geen landelijke modelmix beschikbaar. De weerkaarten verschijnen na de bestaande landelijke scan.</div>';return}
  const signature=valid.map(d=>d.date+':'+d.pts.filter(p=>Number.isFinite(p.tx)).length+':'+d.pts.map(p=>[p.tx,p.tn,p.rain,p.sun,p.wind,p.dir].join('/')).join(',')).join('|');
- if(signature===lastAtlasSignature)return;lastAtlasSignature=signature;
+ const history=atlasHistory();const fullSignature=signature+'|'+(history?.savedAt||'')+'|'+(history?.days?.map(d=>d.date+':'+d.pts?.map(p=>p.tx+','+p.rain+','+p.gust).join(';')).join('|')||'');
+ if(fullSignature===lastAtlasSignature)return;lastAtlasSignature=fullSignature;
  weatherMaps.forEach(m=>{try{m.remove()}catch(e){}});weatherMaps.length=0;
  host.querySelector('.ricoWeatherGrid').innerHTML=valid.map((d,i)=>{
   const good=d.pts.filter(p=>Number.isFinite(p.tx));
   const rain=good.map(p=>p.rain).filter(Number.isFinite);
   const mm=rain.length?rain.sort((a,b)=>a-b)[Math.floor(rain.length/2)]:null;
-  return `<article class="ricoWeatherCard"><div class="ricoWeatherTitle"><span>${safe(dayLabel(d.date))}</span><span>${good.length}/25</span></div><div class="ricoWeatherMap" id="ricoWeatherMap${i}" aria-label="Landelijk weerbeeld ${safe(dayLabel(d.date))}"></div><div class="ricoWeatherFoot">${mm!==null?'Landelijke neerslagmediaan '+mm.toFixed(1).replace('.',',')+' mm · ':''}temperaturen: modelmix${i>=7?' · langere termijn, grotere onzekerheid':''}</div></article>`
+  const previous=atlasHistory();const signals=atlasSignals(d);const change=atlasDayChange(d,previous);
+  const extra=`<div class="ricoAtlasExtra"><div><b>Verandering sinds vorige scan:</b> ${change}</div><div class="ricoChips">${signals.length?signals.slice(0,2).map(x=>`<span class="ricoChip">${x}</span>`).join(''):'<span class="ricoSmall">Geen bijzondere signalen uit de beschikbare dagwaarden</span>'}</div><details><summary>Dagdeelverloop en signalen</summary>${atlasDayparts(d)}${signals.length?`<p>${signals.join('<br>')}</p>`:''}<div class="ricoSmall">Modelsignalen, geen officiële waarschuwingen; onzekerheid neemt op langere termijn toe.</div></details></div>`;
+  return `<article class="ricoWeatherCard"><div class="ricoWeatherTitle"><span>${safe(dayLabel(d.date))}</span><span>${good.length}/25</span></div><div class="ricoWeatherMap" id="ricoWeatherMap${i}" aria-label="Landelijk weerbeeld ${safe(dayLabel(d.date))}"></div><div class="ricoWeatherFoot">${mm!==null?'Landelijke neerslagmediaan '+mm.toFixed(1).replace('.',',')+' mm · ':''}temperaturen: modelmix${i>=7?' · langere termijn, grotere onzekerheid':''}</div>${extra}</article>`
  }).join('');
+ const rainHost=host.querySelector('.ricoAtlasRain');if(rainHost)rainHost.remove();host.querySelector('.ricoWeatherGrid').insertAdjacentHTML('afterend',atlasRainSummary(valid));
  // Alleen bestaande kaartbibliotheek en OSM-kaarttegels. Geen weer-API-calls.
  if(typeof ricoLeafletReady!=='function')return;
  ricoLeafletReady().then(()=>{
