@@ -358,7 +358,38 @@ body{min-width:0}
 /* Ricoweer API-diagnose: registreert uitsluitend Open-Meteo-verzoeken. */
 (function(){
  const rawFetch=window.fetch.bind(window), KEY='ricoweer-api-diagnose-v1';
- const active=new Map(); let entries=[]; const queue=[];let inFlight=0;const MAX_PARALLEL=2;function withSlot(work){return new Promise((resolve,reject)=>{queue.push({work,resolve,reject});pump()})}function pump(){while(inFlight<MAX_PARALLEL&&queue.length){const item=queue.shift();inFlight++;Promise.resolve().then(item.work).then(item.resolve,item.reject).finally(()=>{inFlight--;pump()})}}
+ const active=new Map(); let entries=[]; const queue=[];let inFlight=0;const MAX_PARALLEL=2;
+ // Cache Storage is shared by tabs on the same origin and persists across reloads.
+ const CACHE_NAME='ricoweer-openmeteo-v2', MAX_AGE=7*86400000;
+ const memoryCache=new Map(), invalidUntil=new Map();let cacheHits=0, staleHits=0, blocked=0;
+ const cacheTTL=(url)=>{const u=new URL(url,location.href),host=u.hostname;
+   if(u.pathname.includes('/static/meta.json'))return 30*60000;
+   if(host.startsWith('seasonal-api'))return 18*3600000;
+   if(host.startsWith('ensemble-api'))return 6*3600000;
+   if(host.startsWith('single-runs-api'))return 12*3600000;
+   if(host.startsWith('geocoding-api'))return 7*86400000;
+   return 3*3600000;
+ };
+ async function getStored(url){
+   const mem=memoryCache.get(url);if(mem)return {response:mem.response.clone(),at:mem.at};
+   if(!('caches' in window))return null;
+   try{const c=await caches.open(CACHE_NAME),r=await c.match(url);if(!r)return null;
+     const at=Number(r.headers.get('x-rico-saved-at'))||0;
+     if(Date.now()-at>MAX_AGE)return null;
+     return {response:r,at};
+   }catch(e){return null}
+ }
+ async function store(url,response){if(!response.ok)return;
+   const at=Date.now();memoryCache.set(url,{at,response:response.clone()});
+   if(memoryCache.size>35)memoryCache.delete(memoryCache.keys().next().value);
+   if(!('caches' in window))return;
+   try{const c=await caches.open(CACHE_NAME),headers=new Headers(response.headers);
+     headers.set('x-rico-saved-at',String(at));
+     const r=new Response(await response.clone().blob(),{status:response.status,statusText:response.statusText,headers});
+     await c.put(url,r);
+   }catch(e){console.warn('Ricoweer cache opslag overgeslagen',e)}
+ }
+function withSlot(work){return new Promise((resolve,reject)=>{queue.push({work,resolve,reject});pump()})}function pump(){while(inFlight<MAX_PARALLEL&&queue.length){const item=queue.shift();inFlight++;Promise.resolve().then(item.work).then(item.resolve,item.reject).finally(()=>{inFlight--;pump()})}}
  try{entries=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(entries))entries=[]}catch(e){entries=[]}
  const isWeather=u=>{try{return /(^|\.)open-meteo\.com$/i.test(new URL(u,location.href).hostname)}catch(e){return false}};
  const nameOf=u=>{try{const x=new URL(u,location.href),q=x.searchParams;return (x.hostname.split('.')[0]||'api')+'/'+x.pathname.split('/').filter(Boolean).slice(-1)[0]+' · '+(q.get('models')||q.get('model')||'algemeen').slice(0,55)}catch(e){return 'onbekend'}};
@@ -367,23 +398,33 @@ body{min-width:0}
    const url=typeof input==='string'?input:input?.url;
    if(!url||!isWeather(url))return rawFetch(input,init);
    const method=(init?.method||input?.method||'GET').toUpperCase();
-   const key=method==='GET'?url:null;
-   if(key&&active.has(key)){
-     const response=await active.get(key);return response.clone();
+   if(method!=='GET')return rawFetch(input,init);
+   const stored=await getStored(url),ttl=cacheTTL(url);
+   if(stored&&Date.now()-stored.at<ttl){cacheHits++;return stored.response.clone()}
+   if(invalidUntil.get(url)>Date.now()){blocked++;if(stored){staleHits++;return stored.response.clone()}
+     return new Response(JSON.stringify({error:true,reason:'Ongeldige modelaanvraag tijdelijk geblokkeerd'}),{status:400,headers:{'Content-Type':'application/json'}})
    }
+   if(active.has(url)){const r=await active.get(url);return r.clone()}
    const started=Date.now();
    const job=(async()=>{
      try{
        const response=await withSlot(()=>rawFetch(input,init));
        let reason='';
        if(!response.ok){try{const j=await response.clone().json();reason=String(j?.reason||j?.error||'').slice(0,180)}catch(e){}}
-       const limited=/daily api request limit exceeded/i.test(reason);const concurrentLimit=response.status===429&&/too many concurrent requests/i.test(reason);
+       const limited=/daily api request limit exceeded/i.test(reason);
+       const concurrentLimit=response.status===429&&/too many concurrent requests/i.test(reason);
        log({at:Date.now(),endpoint:nameOf(url),status:response.status,reason,limited,concurrentLimit,ms:Date.now()-started});
+       if(response.ok){await store(url,response);return response}
+       if(response.status===400&&/invalid value|invalid string value|cannot initialize multidomains/i.test(reason))invalidUntil.set(url,Date.now()+6*3600000);
+       if(stored&&(response.status===429||response.status===503||response.status>=500)){
+         staleHits++;return stored.response.clone();
+       }
        return response;
-     }catch(e){log({at:Date.now(),endpoint:nameOf(url),status:'netwerkfout',reason:String(e.message||e).slice(0,180),limited:false,ms:Date.now()-started});throw e}
+     }catch(e){log({at:Date.now(),endpoint:nameOf(url),status:'netwerkfout',reason:String(e.message||e).slice(0,180),limited:false,ms:Date.now()-started});
+       if(stored){staleHits++;return stored.response.clone()}throw e}
    })();
-   if(key)active.set(key,job);
-   try{const response=await job;return response.clone()}finally{if(key&&active.get(key)===job)active.delete(key)}
+   active.set(url,job);
+   try{const response=await job;return response.clone()}finally{if(active.get(url)===job)active.delete(url)}
  };
  window.ricoweerApiLogRender=function(){
    const el=document.getElementById('ricoweer-api-log-content');if(!el)return;
@@ -392,7 +433,7 @@ body{min-width:0}
    const counts={};for(const x of todayEntries){counts[x.endpoint]=(counts[x.endpoint]||0)+1}
    const lines=Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`${v}× ${k}`);
    const failures=entries.filter(x=>x.limited||x.status==='netwerkfout'||(typeof x.status==='number'&&x.status>=400)).slice(-12).reverse();
-   el.textContent=`Vandaag: ${todayEntries.length} Open-Meteo-verzoeken (alleen sinds installatie van deze versie).\nGelijktijdige identieke GET-verzoeken worden gedeeld.\n\nPER ONDERDEEL\n${lines.join('\n')||'Nog geen verzoeken'}\n\nLAATSTE FOUTEN\n${failures.map(x=>`${new Date(x.at).toLocaleString('nl-NL')} · ${x.endpoint} · ${x.status}${x.reason?' · '+x.reason:''}`).join('\n')||'Geen fouten geregistreerd'}\n\nLet op: dit is een teller van HTTP-verzoeken, niet de door Open-Meteo berekende API-kosten.`;
+   el.textContent=`Vandaag: ${todayEntries.length} Open-Meteo-verzoeken (alleen sinds installatie van deze versie).\nCachetreffers: ${cacheHits} · noodcache: ${staleHits} · ongeldige aanvragen geblokkeerd: ${blocked}.\nIdentieke GET-verzoeken worden gedeeld; maximaal 2 tegelijk.\n\nPER ONDERDEEL\n${lines.join('\n')||'Nog geen verzoeken'}\n\nLAATSTE FOUTEN\n${failures.map(x=>`${new Date(x.at).toLocaleString('nl-NL')} · ${x.endpoint} · ${x.status}${x.reason?' · '+x.reason:''}`).join('\n')||'Geen fouten geregistreerd'}\n\nLet op: dit is een teller van HTTP-verzoeken, niet de door Open-Meteo berekende API-kosten.`;
  };
  document.addEventListener('DOMContentLoaded',()=>{
    const b=document.createElement('button');b.textContent='API-log';b.type='button';b.style.cssText='position:fixed;bottom:14px;right:14px;z-index:99998;padding:9px 13px;border-radius:22px;background:#153b63;color:white;border:1px solid #fff;box-shadow:0 2px 8px #0005;font:600 13px sans-serif';
