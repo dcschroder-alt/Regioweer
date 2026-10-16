@@ -290,8 +290,11 @@ body{min-width:0}
 .ricoWeatherTitle{font-size:13px;font-weight:900;padding:9px 10px;background:#087e9b;color:white;display:flex;justify-content:space-between;gap:4px}
 .ricoWeatherMap{height:330px;background:#d5e8ed}.ricoWeatherMap .leaflet-tile-pane{filter:saturate(.52) contrast(.88) brightness(1.09)}
 .ricoWeatherFoot{font-size:11px;color:#31465a;padding:7px 9px;min-height:35px}
-.ricoWeatherPin{display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;font-weight:850;color:#102b45;line-height:1.15;pointer-events:auto}.ricoWeatherPin .ricoWeatherTemp{background:rgba(255,255,255,.94);border:1px solid #aac5d5;border-radius:7px;padding:3px 5px;box-shadow:0 1px 4px #1b334344}
-.ricoWeatherPin .ricoWeatherSymbol{font-size:27px;line-height:32px;filter:drop-shadow(0 1px 2px #fff)}.ricoWeatherPin .ricoWeatherTemp{font-size:13px;white-space:nowrap}
+.ricoWeatherPin{display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;font-weight:900;line-height:1.05;pointer-events:auto;width:76px;height:58px;filter:drop-shadow(0 1px 2px #fff)}
+.ricoWeatherPin .ricoWeatherSymbol{font-size:22px;line-height:26px;height:27px;filter:drop-shadow(0 1px 1px #fff)}
+.ricoWeatherPin .ricoWeatherTemp{display:flex;align-items:center;justify-content:center;gap:4px;white-space:nowrap;background:rgba(255,255,255,.90);border-radius:7px;padding:3px 5px;box-shadow:0 1px 3px #19374d44;font-size:15px}
+.ricoWeatherPin .ricoTx{color:#c72d26}.ricoWeatherPin .ricoTn{color:#1269c4}.ricoWeatherPin .ricoSep{color:#60758a;font-size:11px}
+.dark .ricoWeatherPin .ricoWeatherTemp{background:rgba(255,255,255,.95)}
 @media(max-width:1000px){.ricoWeatherGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:550px){.ricoWeatherGrid{grid-template-columns:1fr}.ricoWeatherMap{height:340px}}
 </style></head>
@@ -4354,10 +4357,22 @@ function updateWeatherAtlas(){
    weatherMaps.push(map);
    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:10}).addTo(map);
    map.fitBounds([[50.72,3.20],[53.55,7.25]],{padding:[4,4]});
-   const selected=spreadPoints(d.pts.filter(p=>Number.isFinite(p.tx)),10);
-   selected.forEach(p=>{
+   // Kies uit dezelfde 25 punten, maar plaats labels uitsluitend waar ze niet botsen.
+   // De spreidingsvolgorde bewaakt landelijke dekking; er volgen geen nieuwe weerverzoeken.
+   const candidates=spreadPoints(d.pts.filter(p=>Number.isFinite(p.tx)),25);
+   const placed=[];
+   const mapSize=map.getSize();
+   candidates.forEach(p=>{
+    if(placed.length>=10)return;
+    const xy=map.latLngToContainerPoint([p.point.lat,p.point.lon]);
+    const halfW=43,halfH=32;
+    if(xy.x<halfW||xy.y<halfH||xy.x>mapSize.x-halfW||xy.y>mapSize.y-halfH)return;
+    if(placed.some(q=>Math.abs(xy.x-q.x)<88&&Math.abs(xy.y-q.y)<66))return;
+    placed.push({x:xy.x,y:xy.y,p});
+   });
+   placed.forEach(({p})=>{
     const sym=weatherSymbol(p),max=Math.round(p.tx),min=Number.isFinite(p.tn)?Math.round(p.tn):null;
-    const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp">${max}°${min!==null?' / '+min+'°':''}</span></div>`,iconSize:[82,62],iconAnchor:[41,31]});
+    const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp"><span class="ricoTx">${max}°</span>${min!==null?`<span class="ricoSep">/</span><span class="ricoTn">${min}°</span>`:''}</span></div>`,iconSize:[76,58],iconAnchor:[38,29]});
     const popup=`<b>${safe(p.point.n)}</b><br>Max ${max}°${min!==null?' · min '+min+'°':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen`;
     L.marker([p.point.lat,p.point.lon],{icon}).bindPopup(popup).addTo(map);
    });
@@ -4369,7 +4384,7 @@ function install(){
  const panel=document.getElementById('nationalScanPanel');if(!panel)return;
  if(!document.getElementById('ricoWeatherAtlas')){
   const section=document.createElement('section');section.id='ricoWeatherAtlas';
-  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 7 dagen</div><div class="note">Landelijke modelmix op dezelfde 25 scanpunten. 10 geografisch gespreide locaties zichtbaar per kaart; geen extra Open-Meteo-verzoeken. Weersymbolen zijn indicaties op basis van dagneerslag en zonuren, geen dagdeelverwachtingen.</div><div class="ricoWeatherGrid"></div>';
+  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 7 dagen</div><div class="note">Landelijke modelmix op dezelfde 25 scanpunten. maximaal 10 geografisch gespreide locaties zichtbaar per kaart (zonder overlappende labels); geen extra Open-Meteo-verzoeken. Weersymbolen zijn indicaties op basis van dagneerslag en zonuren, geen dagdeelverwachtingen.</div><div class="ricoWeatherGrid"></div>';
   const map=panel.querySelector('.ricomapPanel');if(map)map.insertAdjacentElement('beforebegin',section);else panel.appendChild(section);
  }
  // Koppel aan bestaande landelijke scanweergave, inclusief cacheherstel.
