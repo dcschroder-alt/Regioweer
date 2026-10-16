@@ -3537,9 +3537,9 @@ async function _renderNationalScanCore(force=false){
  const now=Date.now(),hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Amsterdam',hour:'2-digit',hourCycle:'h23'}).format(new Date(now)));
  const currentSlot=ricoNationalSlot(now);
  // Alleen in het dagvenster 06:00-18:59 ophalen. Vanaf 19:00 tot 06:00 geen scan-API.
- const allowed=hour>=6&&hour<19;
+ const allowed=force||(hour>=6&&hour<19);
  const slotAlreadyDone=!!(cached?.days?.length&&cached.slot===currentSlot&&currentSlot);
- if(cached?.days?.length&&(slotAlreadyDone||!allowed)){
+ if(cached?.days?.length&&(slotAlreadyDone||(!allowed&&!force))){
    renderNationalScanData(cached.days,cached.models||[],true);
    $('nationalScanStatus').textContent+=!allowed?' · nachtstand (geen API-verzoeken)':' · tijdvakcache';return;
  }
@@ -4182,7 +4182,19 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 </script><script>
 // Ricoweer landelijke temperatuurkaart: echte OpenStreetMap-ondergrond, geen schematische landsgrens.
 let ricoLeafletMap=null,ricoLeafletLayer=null,ricoLeafletLoading=null;
-function ricoLeafletReady(){if(window.L)return Promise.resolve();if(ricoLeafletLoading)return ricoLeafletLoading;ricoLeafletLoading=new Promise((resolve,reject)=>{const sc=document.createElement('script');sc.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';sc.onload=()=>window.L?resolve():reject(new Error('Kaartbibliotheek ontbreekt'));sc.onerror=()=>{ricoLeafletLoading=null;reject(new Error('Kaartbibliotheek niet bereikbaar'))};document.head.appendChild(sc)});return ricoLeafletLoading}
+function ricoLeafletReady(){
+ if(window.L)return Promise.resolve();
+ if(ricoLeafletLoading)return ricoLeafletLoading;
+ ricoLeafletLoading=(async()=>{
+  const sources=['https://unpkg.com/leaflet@1.9.4/dist/leaflet.js','https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js'];
+  for(const src of sources){
+   try{await new Promise((resolve,reject)=>{const sc=document.createElement('script');sc.src=src;sc.onload=resolve;sc.onerror=()=>reject(new Error('CDN niet bereikbaar'));document.head.appendChild(sc)});if(window.L)return}
+   catch(e){console.warn('Leaflet',src,e)}
+  }
+  throw new Error('Kaartbibliotheek geblokkeerd; controleer internet of adblocker');
+ })().catch(e=>{ricoLeafletLoading=null;throw e});
+ return ricoLeafletLoading;
+}
 function ricoMapColor(v){if(v<0)return '#8b6fcd';if(v<5)return '#77b7e3';if(v<10)return '#a9d6d0';if(v<15)return '#a4d890';if(v<20)return '#f4d86b';if(v<25)return '#f4aa5b';return '#eb7267'}
 // Toon alle 25 locaties bij inzoomen; op nationale schaal alleen niet-overlappende labels.
 // Dit is uitsluitend presentatielogica en doet geen extra weer-API-verzoeken.
@@ -4215,7 +4227,7 @@ async function ricoRenderMap(){
  if(!days.length){
    try{const cached=JSON.parse(localStorage.getItem(NATIONAL_SCAN_CACHE)||'null');if(cached?.days?.length){renderNationalScanData(cached.days,cached.models||[],true);return}}catch(e){console.warn('Kaartcache',e)}
    status.textContent='Nog geen landelijke modelmix opgeslagen. Klik op Kaart vernieuwen om de landelijke scan op te halen (dit gebruikt Open-Meteo-verzoeken).';
-   try{await ricoLeafletReady();if(!ricoLeafletMap){ricoLeafletMap=L.map('ricomapCanvas',{scrollWheelZoom:false,zoomControl:true});L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:12,attribution:'© OpenStreetMap-bijdragers'}).addTo(ricoLeafletMap);ricoLeafletLayer=L.layerGroup().addTo(ricoLeafletMap);ricoLeafletMap.on('zoomend moveend',ricoDrawMapMarkers);ricoLeafletMap.fitBounds([[50.73,3.25],[53.55,7.25]],{padding:[14,14]})}setTimeout(()=>ricoLeafletMap.invalidateSize(),150)}catch(e){status.textContent+=' Kaartondergrond niet bereikbaar.'}
+   try{await ricoLeafletReady();if(!ricoLeafletMap){ricoLeafletMap=L.map('ricomapCanvas',{scrollWheelZoom:false,zoomControl:true});L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:12,attribution:'© OpenStreetMap-bijdragers'}).addTo(ricoLeafletMap);ricoLeafletLayer=L.layerGroup().addTo(ricoLeafletMap);ricoLeafletMap.on('zoomend moveend',ricoDrawMapMarkers);ricoLeafletMap.fitBounds([[50.73,3.25],[53.55,7.25]],{padding:[14,14]})}setTimeout(()=>ricoLeafletMap.invalidateSize(),150)}catch(e){status.textContent+=' '+e.message;console.error('Kaartinitialisatie',e)}
    return;
  }
  const date=sel.value||days[0].date,d=days.find(x=>x.date===date)||days[0],key=type?.value||'tx';
@@ -4237,6 +4249,7 @@ async function ricoRenderMap(){
  }catch(e){status.textContent='Kaartondergrond niet beschikbaar ('+e.message+'). De landelijke weerscan blijft werken.'}
 }
 function ricoMapSync(){const sel=document.getElementById('ricomapDay');if(!sel)return;const days=(nationalScanLastPack?.days||[]).slice(0,10);const old=sel.value;sel.innerHTML=days.map(d=>'<option value="'+d.date+'">'+dayShort(d.date)+'</option>').join('');if(days.some(d=>d.date===old))sel.value=old;ricoRenderMap().catch(console.warn)}
+document.addEventListener('DOMContentLoaded',()=>{ricoMapSync();});
 document.getElementById('ricomapDay')?.addEventListener('change',ricoRenderMap);
 document.getElementById('ricomapType')?.addEventListener('change',ricoRenderMap);
 document.getElementById('ricomapRefresh')?.addEventListener('click',async()=>{
