@@ -285,15 +285,15 @@ body{min-width:0}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 <style>.ricomapPanel{margin:12px 0;padding:13px;border:1px solid rgba(120,140,160,.3);border-radius:16px}.ricomapHeader{display:flex;flex-direction:column;gap:3px}.ricomapHeader strong{font-size:17px}.ricomapHeader small{color:var(--muted)}.ricomapControls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:10px 0}.ricomapControls label{font-size:13px;font-weight:750}.ricomapControls select,.ricomapControls button{padding:7px;border:1px solid #abbccc;border-radius:9px;background:var(--panel,#fff);color:var(--text);font:inherit}#ricomapCanvas{height:510px;max-height:72vh;border-radius:12px;overflow:hidden;background:#e9eff4}.ricomapTemp{display:flex;align-items:center;justify-content:center;width:36px;height:29px;border:2px solid white;border-radius:12px;color:#111;font-weight:900;font-size:13px;box-shadow:0 1px 7px #0005}.ricomapPanel .leaflet-container{font-family:inherit}@media(max-width:600px){#ricomapCanvas{height:390px}.ricomapControls{gap:7px}}</style><style>
 #ricoWeatherAtlas{margin:14px 0 20px;padding:14px;border:1px solid #cbd5e1;border-radius:16px;background:var(--panel,#fff)}
-.ricoWeatherGrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:12px}
+.ricoWeatherGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:12px}
 .ricoWeatherCard{min-width:0;border-radius:12px;overflow:hidden;border:1px solid #bdd3e3;background:#e9f2f8}
 .ricoWeatherTitle{font-size:13px;font-weight:900;padding:9px 10px;background:#087e9b;color:white;display:flex;justify-content:space-between;gap:4px}
-.ricoWeatherMap{height:230px;background:#d5e8ed}
+.ricoWeatherMap{height:330px;background:#d5e8ed}.ricoWeatherMap .leaflet-tile-pane{filter:saturate(.52) contrast(.88) brightness(1.09)}
 .ricoWeatherFoot{font-size:11px;color:#31465a;padding:7px 9px;min-height:35px}
-.ricoWeatherPin{display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;filter:drop-shadow(0 1px 2px #0009);font-weight:900;color:white;text-shadow:0 1px 3px #000,0 0 2px #000;line-height:1.05}
-.ricoWeatherPin .ricoWeatherSymbol{font-size:21px;line-height:23px}.ricoWeatherPin .ricoWeatherTemp{font-size:13px;white-space:nowrap}
+.ricoWeatherPin{display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;font-weight:850;color:#102b45;line-height:1.15;pointer-events:auto}.ricoWeatherPin .ricoWeatherTemp{background:rgba(255,255,255,.94);border:1px solid #aac5d5;border-radius:7px;padding:3px 5px;box-shadow:0 1px 4px #1b334344}
+.ricoWeatherPin .ricoWeatherSymbol{font-size:27px;line-height:32px;filter:drop-shadow(0 1px 2px #fff)}.ricoWeatherPin .ricoWeatherTemp{font-size:13px;white-space:nowrap}
 @media(max-width:1000px){.ricoWeatherGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:550px){.ricoWeatherGrid{grid-template-columns:1fr}.ricoWeatherMap{height:260px}}
+@media(max-width:550px){.ricoWeatherGrid{grid-template-columns:1fr}.ricoWeatherMap{height:340px}}
 </style></head>
 <body><div class="wrap">
 <section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v1.0</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
@@ -4354,10 +4354,10 @@ function updateWeatherAtlas(){
    weatherMaps.push(map);
    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:10}).addTo(map);
    map.fitBounds([[50.72,3.20],[53.55,7.25]],{padding:[4,4]});
-   const selected=spreadPoints(d.pts.filter(p=>Number.isFinite(p.tx)),14);
+   const selected=spreadPoints(d.pts.filter(p=>Number.isFinite(p.tx)),10);
    selected.forEach(p=>{
     const sym=weatherSymbol(p),max=Math.round(p.tx),min=Number.isFinite(p.tn)?Math.round(p.tn):null;
-    const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp">${max}°${min!==null?' / '+min+'°':''}</span></div>`,iconSize:[68,44],iconAnchor:[34,22]});
+    const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp">${max}°${min!==null?' / '+min+'°':''}</span></div>`,iconSize:[82,62],iconAnchor:[41,31]});
     const popup=`<b>${safe(p.point.n)}</b><br>Max ${max}°${min!==null?' · min '+min+'°':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen`;
     L.marker([p.point.lat,p.point.lon],{icon}).bindPopup(popup).addTo(map);
    });
@@ -4369,7 +4369,7 @@ function install(){
  const panel=document.getElementById('nationalScanPanel');if(!panel)return;
  if(!document.getElementById('ricoWeatherAtlas')){
   const section=document.createElement('section');section.id='ricoWeatherAtlas';
-  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 7 dagen</div><div class="note">Landelijke modelmix op dezelfde 25 scanpunten. 14 geografisch gespreide locaties zichtbaar per kaart; geen extra Open-Meteo-verzoeken. Weersymbolen zijn indicaties op basis van dagneerslag en zonuren, geen dagdeelverwachtingen.</div><div class="ricoWeatherGrid"></div>';
+  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 7 dagen</div><div class="note">Landelijke modelmix op dezelfde 25 scanpunten. 10 geografisch gespreide locaties zichtbaar per kaart; geen extra Open-Meteo-verzoeken. Weersymbolen zijn indicaties op basis van dagneerslag en zonuren, geen dagdeelverwachtingen.</div><div class="ricoWeatherGrid"></div>';
   const map=panel.querySelector('.ricomapPanel');if(map)map.insertAdjacentElement('beforebegin',section);else panel.appendChild(section);
  }
  // Koppel aan bestaande landelijke scanweergave, inclusief cacheherstel.
