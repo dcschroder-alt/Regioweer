@@ -835,7 +835,7 @@ async function fetchModel(key,visual=true,runOverride=null){
    const mm={...m,code};
    try{
      // GFS: kern eerst licht houden. Visuele velden komen daarna in één gebundelde call.
-     let coreVisual = key==='gfs' ? false : visual;
+     let coreVisual = (key==='gfs'||key==='gem') ? false : visual;
      let url=apiUrl(mm,coreVisual);
      if(runOverride&&!isAutoRun()) url=url.replace(encodeURIComponent(runIso()),encodeURIComponent(runOverride));
      let r=await fetch(url,{cache:'no-store'});let j=await r.json();
@@ -2243,7 +2243,7 @@ $('load').onclick=async()=>{
   try{
     setStatus('Modelgegevens parallel ophalen…',10);
     if($('model').value==='mix'){
-      const order=['gfs','ecmwf','aifs','icon','icon_d2','arome','arpege','harmonie'];
+      const order=['gfs','ecmwf','aifs','icon','icon_d2','arome','arpege','harmonie','gem'];
       const storedMix=forecastRateLimitedToday()?bestStoredMix():null;
       if(storedMix?.mixRows?.length){
         const data=storedMix.data||{};lastMixData=data;lastRows=storedMix.mixRows.map(r=>({...r}));
@@ -2827,17 +2827,23 @@ function renderModelStatus(data){
   const loaded=Number(rows._loadedAt||rows._cacheSavedAt)||0;
   const age=loaded?now-loaded:null;
   const stale=age!==null&&age>6*3600000;
-  const source=rows._fromCache?'Uit prognosecache':rows._cacheSavedAt?'Uit opgeslagen modelmix':'Opgehaald / actueel in geheugen';
+  const source=rows._fromCache?'Uit lokale cache':'Opgehaald tijdens deze sessie';
   const run=rows._runUsed||'Run niet door bron opgegeven';
+  const runLabel=run==='nieuwste beschikbare run'?'Automatisch (brontijd onbekend)':run;
+  const off=Math.max(0,Math.round((new Date(target+'T12:00:00Z')-new Date(appBaseDate()+'T12:00:00Z'))/86400000));
+  const activeKeys=keys.filter(x=>(data?.[x]||[]).some(r=>r.date===target&&r.complete!==false&&Number.isFinite(r.max)&&Number.isFinite(r.min)));
+  const activeItems=activeKeys.map(x=>({key:x,row:(data[x]||[]).find(r=>r.date===target)}));
+  const totalWeight=activeKeys.reduce((n,x)=>n+adjustedWeight(x,off,activeItems),0);
+  const weight=inMix&&totalWeight?100*adjustedWeight(k,off,activeItems)/totalWeight:0;
   const why=likelyOutsideDomain(k)?'buiten modeldomein':'run of gegevens niet beschikbaar';
   const note=!ok?why:!inMix?'geen volledige TX/TN voor morgen':`${target}: TX/TN beschikbaar`;
-  return `<div class="modelPill ${ok?'':'missing'}"><b>${MODELS[k]?.name||k}</b> ${inMix?'✓ in mix morgen':ok?'◌ geladen, niet in mix morgen':'✕ ontbreekt'}<br><span>${ok?escapeHtml(String(run)):why}</span><div class="freshMini">${ok?`${source} · ${loaded?fmtAge(age)+' oud':'leeftijd onbekend'}${stale?' · ⚠️ ouder dan 6 uur':''}`:''}</div><div class="freshMini">${note}</div></div>`;
+  return `<div class="modelPill ${ok?'':'missing'}"><b>${MODELS[k]?.name||k}</b> ${inMix?'✓ in mix morgen':ok?'◌ geladen, niet in mix morgen':'✕ ontbreekt'}<br><span>${ok?escapeHtml(String(runLabel)):why}</span><div class="freshMini">${ok?`${source} · ${loaded?fmtAge(age)+' oud':'leeftijd onbekend'}${stale?' · ⚠️ ouder dan 6 uur':''}`:''}</div><div class="freshMini">${note}${inMix?' · gewicht '+weight.toFixed(1).replace('.',',')+'%':''}</div></div>`;
  });
  const present=keys.filter(k=>(data?.[k]||[]).length).length;
  const participating=keys.filter(k=>(data?.[k]||[]).some(r=>r.date===target&&r.complete!==false&&Number.isFinite(r.max)&&Number.isFinite(r.min))).length;
  if(sum)sum.textContent=`${participating<keys.length?'⚠️':'▶'} Modelstatus · ${participating}/${keys.length} in mix morgen · ${present} geladen`;
  if(det)det.open=participating<keys.length;
- box.innerHTML=html.join('')+($('model').value==='mix'?`<div class="modelPill"><b>🌐 Modelmix voor ${target}</b>${participating}/${keys.length} kernmodellen met volledige TX/TN<br><span>Geen extra API-verzoeken voor deze controle. Runnaam alleen indien door de bron beschikbaar.</span></div>`:'');
+ box.innerHTML=html.join('')+($('model').value==='mix'?`<div class="modelPill"><b>🌐 Modelmix voor ${target}</b>${participating}/${keys.length} kernmodellen met volledige TX/TN<br><span>Geen extra API-verzoeken voor deze controle. Gewichten zijn genormaliseerd voor de beschikbare modellen; run-UTC alleen als de bron die opgeeft.</span></div>`:'');
 }
 
 
