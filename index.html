@@ -2089,20 +2089,37 @@ function renderGfs(rows){
 function cycleIsoBack(hours){
  const base=runIso()||new Date().toISOString().slice(0,13)+':00';const d=new Date(base+'Z');d.setUTCHours(d.getUTCHours()-hours);return d.toISOString().slice(0,16)
 }
+// Check vanaf 05:00/17:00 UTC: 07:00/19:00 CEST, 06:00/18:00 CET.
+// UTC is bewust gekozen zodat de overgang naar wintertijd automatisch klopt.
+const GFS_RELEASE_LEAD_HOURS=5;
+const GFS_RETRY_MS=15*60*1000;
+const GFS_MAX_ATTEMPTS=6;
+const GFS_NEGATIVE_KEY='rw-gfs0012-negative-v1';
+let gfsTableLoading=false;
 function gfs0012Candidates(){
   const auto=isAutoRun();
-  let anchor;
-  if(auto) anchor=new Date();
-  else anchor=new Date(`${$('date').value}T${$('run').value}:00:00Z`);
+  const anchor=auto?new Date():new Date(`${$('date').value}T${$('run').value}:00:00Z`);
   const out=[];
-  for(let backDay=0;backDay<6;backDay++){
-    for(const h of [12,0]){
-      const d=new Date(Date.UTC(anchor.getUTCFullYear(),anchor.getUTCMonth(),anchor.getUTCDate()-backDay,h,0,0));
-      if(d<=anchor && (!auto || anchor.getTime()-d.getTime()>=7*3600000))out.push(d);
-    }
+  for(let backDay=0;backDay<6;backDay++)for(const h of [12,0]){
+    const d=new Date(Date.UTC(anchor.getUTCFullYear(),anchor.getUTCMonth(),anchor.getUTCDate()-backDay,h));
+    if(d<=anchor&&(!auto||anchor.getTime()-d.getTime()>=GFS_RELEASE_LEAD_HOURS*3600000))out.push(d);
   }
   return out.sort((a,b)=>b-a);
 }
+function gfsNegativeRead(){try{return JSON.parse(localStorage.getItem(GFS_NEGATIVE_KEY)||'{}')}catch(e){return {}}}
+function gfsCandidateAllowed(run,force=false){
+  const rec=gfsNegativeRead()[run];
+  if(!rec)return true;
+  // Handmatig verversen omzeilt alleen de pauze, niet het maximum van 6 pogingen.
+  return rec.attempts<GFS_MAX_ATTEMPTS&&(force||Date.now()-rec.last>=GFS_RETRY_MS);
+}
+function gfsRecordUnavailable(run){
+  try{const data=gfsNegativeRead(),prev=data[run]||{attempts:0};data[run]={attempts:prev.attempts+1,last:Date.now()};
+    for(const key of Object.keys(data))if(Date.now()-(data[key]?.last||0)>48*3600000)delete data[key];
+    localStorage.setItem(GFS_NEGATIVE_KEY,JSON.stringify(data));
+  }catch(e){}
+}
+function gfsClearUnavailable(run){try{const data=gfsNegativeRead();delete data[run];localStorage.setItem(GFS_NEGATIVE_KEY,JSON.stringify(data))}catch(e){}}
 async function fetchFixedGfs0012(candidate){
   const lat='52.019260',lon='5.172830',run=candidate.toISOString().slice(0,16);const codes=['ncep_gfs_global'];let err=null;
   for(const code of codes){try{const u=`https://single-runs-api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&run=${encodeURIComponent(run)}&models=${encodeURIComponent(code)}&hourly=temperature_2m&timezone=Europe%2FAmsterdam&forecast_hours=384`;const r=await fetch(u,{cache:'no-store'}),j=await r.json();if(!r.ok||j.error)throw new Error(j.reason||`HTTP ${r.status}`);if(!j.hourly?.time)throw new Error('Geen uurgegevens');const rows=hourlyToDaily(j.hourly);if(!rows.length)throw new Error('Geen dagwaarden');rows._fixedRun=run;return rows}catch(e){err=e}}
@@ -2130,16 +2147,33 @@ function saveGfs0012Cache(rows,key=gfsSelectionKey()){
 }
 function showGfs0012Cache(rec,note='opgeslagen'){if(!rec?.rows?.length)return false;lastGfsRows=rec.rows.map(r=>({...r}));lastGfsRows._fixedRun=rec.run||'';renderGfs(lastGfsRows);const age=Math.max(0,Math.round((Date.now()-(rec.savedAt||Date.now()))/60000)),run=(rec.run||'').replace('T',' ').replace(':00',' UTC');$('gfsStatus').textContent=`GFS ${run||'laatste run'} · ${note} · ${age} min geleden opgeslagen · vaste locatie 52.019260 / 5.172830`;return true}
 async function loadGfsRunTable(force=false){
+ if(gfsTableLoading)return;
+ gfsTableLoading=true;
+ try{
  const selectionKey=gfsSelectionKey(),cached=readGfs0012Cache(selectionKey);
- if(!force&&cached?.rows?.length&&Date.now()-(cached.savedAt||0)<4*60*60*1000){showGfs0012Cache(cached,'lokale cache voor deze selectie');return}
+ const candidates=gfs0012Candidates();
+ const latestRun=candidates[0]?.toISOString().slice(0,16);
+ // Cache alleen als hij werkelijk de nieuwste kandidaat bevat; geen 4 uur wachten op nieuwe GFS.
+ if(!force&&cached?.rows?.length&&cached.run===latestRun){showGfs0012Cache(cached,'nieuwste run uit lokale cache');return}
  if(forecastRateLimitedToday()){if(showGfs0012Cache(cached,'API-daglimiet bereikt; laatste goede run'))return;$('gfsStatus').textContent='API-daglimiet bereikt; nog geen GFS 00/12-run lokaal opgeslagen.';return}
- let lastErr=null;$('gfsStatus').textContent=isAutoRun()?'Nieuwste beschikbare 00/12 UTC GFS zoeken…':'Gekozen periode: bijbehorende 00/12 UTC GFS zoeken…';
- for(const cand of gfs0012Candidates().slice(0,3)){
-   try{const rows=await fetchFixedGfs0012(cand);lastGfsRows=rows;saveGfs0012Cache(rows,selectionKey);renderGfs(lastGfsRows);const run=rows._fixedRun.replace('T',' ').replace(':00',' UTC');$('gfsStatus').textContent=`GFS ${run} · ${isAutoRun()?'nieuwste 00/12':'volgt gekozen run'} · vaste locatie 52.019260 / 5.172830 · ${rows.length} dagwaarden`;return}catch(e){lastErr=e;console.warn('GFS 00/12 kandidaat niet beschikbaar',cand.toISOString(),e.message);if(isForecastRateLimit(e.message)){markForecastRateLimited();break}}
+ let lastErr=null,skipped=0;$('gfsStatus').textContent=isAutoRun()?'Nieuwste beschikbare 00/12 UTC GFS zoeken…':'Gekozen periode: bijbehorende 00/12 UTC GFS zoeken…';
+ for(const cand of candidates.slice(0,3)){
+   const run=cand.toISOString().slice(0,16);
+   if(!gfsCandidateAllowed(run,force)){skipped++;continue}
+   try{const rows=await fetchFixedGfs0012(cand);gfsClearUnavailable(run);lastGfsRows=rows;saveGfs0012Cache(rows,selectionKey);renderGfs(lastGfsRows);const label=rows._fixedRun.replace('T',' ').replace(':00',' UTC');$('gfsStatus').textContent=`GFS ${label} · ${isAutoRun()?'nieuwste 00/12':'volgt gekozen run'} · vaste locatie 52.019260 / 5.172830 · ${rows.length} dagwaarden`;return}
+   catch(e){lastErr=e;gfsRecordUnavailable(run);console.warn('GFS 00/12 kandidaat niet beschikbaar',run,e.message);if(isForecastRateLimit(e.message)){markForecastRateLimited();break}}
  }
- if(showGfs0012Cache(cached,'laatste goede run'))return;
- lastGfsRows=[];renderGfs([]);$('gfsStatus').textContent='Geen 00/12 UTC GFS-run beschikbaar; probeer later opnieuw.';console.warn(lastErr);
+ if(showGfs0012Cache(cached,skipped?'laatste goede run · nieuwe run wordt later opnieuw geprobeerd':'laatste goede run'))return;
+ lastGfsRows=[];renderGfs([]);$('gfsStatus').textContent='Geen 00/12 UTC GFS-run beschikbaar; automatische controle volgt later.';console.warn(lastErr);
+ }finally{gfsTableLoading=false}
 }
+// Alleen op een geopend tabblad en uitsluitend rond de verwachte nieuwe runs.
+// Eén poging per 15 minuten; negatieve cache voorkomt herhaald API-verbruik.
+setInterval(()=>{
+ if(document.visibilityState!=='visible'||!isAutoRun()||gfsTableLoading)return;
+ const newest=gfs0012Candidates()[0]?.toISOString().slice(0,16);
+ if(newest&&readGfs0012Cache('auto')?.run!==newest&&gfsCandidateAllowed(newest))loadGfsRunTable(false).catch(console.warn);
+},60*1000);
 $('refreshGfsTable').onclick=()=>loadGfsRunTable(true).catch(console.warn);
 $('copyTx').onclick=()=>copyGfs('max');
 
