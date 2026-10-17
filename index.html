@@ -389,7 +389,7 @@ body{min-width:0}
 </section>
 
 
-<section class="panel" id="stationStatsPanel"><div style="font-weight:900;font-size:18px">📊 KNMI-stations · temperatuurstatistieken</div><div class="note">Excelachtig maandoverzicht met verschuivend 30-jarig normaal. Historische gegevens ingebouwd vanaf 1901 waar beschikbaar. Recente dagwaarden worden automatisch bij KNMI gecontroleerd (maximaal elke 6 uur). Geen upload nodig.</div>
+<section class="panel" id="stationStatsPanel"><div style="font-weight:900;font-size:18px">📊 KNMI-stations · temperatuurstatistieken</div><div class="note">Excelachtig maandoverzicht met verschuivend 30-jarig normaal. Historische gegevens ingebouwd vanaf 1901 waar beschikbaar. Recente KNMI-dagwaarden worden bij openen gecontroleerd (maximaal elke 6 uur). Waarden van de laatste 3 dagen krijgen het label voorlopig totdat hun definitieve status bevestigd is. Geen upload nodig.</div>
 <div class="v34toolbar"><button type="button" id="statsRefresh" class="ghost">↻ KNMI-gegevens vernieuwen</button></div><div id="statsStatus" class="note" aria-live="polite">Nog geen daggegevens geladen.</div>
 <div class="v34toolbar"><label>Weergave <select id="statsView"><option value="rank">Landelijke ranglijst</option><option value="month">Per maand per station</option></select></label><label>Jaar <select id="statsYear"></select></label><label>Periode <select id="statsMonth"><option value="0">Heel jaar</option></select></label><label>Statistiek <select id="statsMetric"><option value="tg">Gemiddelde temperatuur TG</option><option value="txavg">Gemiddelde maximumtemperatuur TX</option><option value="tnavg">Gemiddelde minimumtemperatuur TN</option><option value="txmax">Hoogste maximumtemperatuur</option><option value="tnmin">Laagste minimumtemperatuur</option><option value="warm">Warme dagen ≥20°C</option><option value="summer">Zomerse dagen ≥25°C</option><option value="tropical">Tropische dagen ≥30°C</option><option value="hot35">Zeer hete dagen ≥35°C</option><option value="frost">Vorstdagen &lt;0°C</option><option value="moderate">Matige vorst &lt;−5°C</option><option value="severe">Strenge vorst &lt;−10°C</option><option value="ice">IJsdagen (Tx &lt;0°C)</option><option value="tropicalNight">Tropische nachten ≥20°C</option><option value="rec_warm">🏆 RECORDS — meeste warme dagen</option><option value="rec_summer">🏆 RECORDS — meeste zomerse dagen</option><option value="rec_tropical">🏆 RECORDS — meeste tropische dagen</option><option value="rec_frost">🏆 RECORDS — meeste vorstdagen</option><option value="rec_ice">🏆 RECORDS — meeste ijsdagen</option><option value="rec_tg">🏆 RECORDS — warmste gemiddelde temperatuur</option><option value="rec_coldtg">🏆 RECORDS — koudste gemiddelde temperatuur</option><option value="rec_txmax">🏆 RECORDS — hoogste maximumtemperatuur</option><option value="rec_tnmin">🏆 RECORDS — laagste minimumtemperatuur</option></select></label><label id="statsStationLabel" style="display:none">Station <select id="statsStation"></select></label></div>
 <div id="statsResult" style="overflow-x:auto;margin-top:10px"></div><div id="ricoExtended" class="card" style="margin-top:16px;padding:14px;border:1px solid var(--border,#a4a4a455);border-radius:12px">
@@ -4675,7 +4675,7 @@ async function daily(force=false){
  const old=$('statsStatus').textContent;$('statsStatus').textContent='Nieuwe KNMI-dagwaarden ophalen…';
  try{
   const max=rows.reduce((a,r)=>Math.max(a,r[1]),0);
-  const start=new Date(String(max).slice(0,4)+'-'+String(max).slice(4,6)+'-'+String(max).slice(6,8)+'T12:00:00Z');start.setUTCDate(start.getUTCDate()-3);
+  const start=new Date(String(max).slice(0,4)+'-'+String(max).slice(4,6)+'-'+String(max).slice(6,8)+'T12:00:00Z');start.setUTCDate(start.getUTCDate()-7);
   const ymd=d=>d.toISOString().slice(0,10).replaceAll('-','');
   const stationIds=[...new Set(rows.map(r=>r[0]))].filter(st=>st!==392);
   // Vraag in kleinere groepen op: een verzoek voor alle stations wordt soms door KNMI geweigerd.
@@ -4702,12 +4702,17 @@ async function daily(force=false){
   if(!updates.length)throw Error('geen nieuwe dagwaarden ontvangen; controleer KNMI-toegang/CORS');
   const map=new Map(rows.map(r=>[r[0]+'_'+r[1],r]));
   // Bij overlap heeft Horst (392) voorrang op Arcen (391).
-  for(const r of updates)map.set(r[0]+'_'+r[1],r);
+  for(const r of updates){
+   const key=r[0]+'_'+r[1],prior=map.get(key);
+   // Ontbrekende waarden mogen nooit een bestaande geldige meting wissen.
+   const merged=[r[0],r[1],...[2,3,4].map(i=>Number.isFinite(r[i])?r[i]:(prior?.[i]??null))];
+   map.set(key,merged);
+  }
   rows=[...map.values()];mergeArcenHorst();rebuildIndex();
   const recent=rows.filter(r=>r[1]>=Number(ymd(start)));
   try{localStorage.setItem('ricoweer_knmi_recent_v2',JSON.stringify(recent))}catch(e){}
   const latest=rows.reduce((a,r)=>Math.max(a,r[1]),0);
-  lastUpdate='KNMI t/m '+String(latest).slice(6,8)+'-'+String(latest).slice(4,6)+'-'+String(latest).slice(0,4)+(failed?' · '+failed+' groepen niet bereikbaar':'');
+  lastUpdate='KNMI t/m '+String(latest).slice(6,8)+'-'+String(latest).slice(4,6)+'-'+String(latest).slice(0,4)+' · meest recente 3 dagen voorlopig (validatiestatus onbekend)'+(failed?' · '+failed+' groepen niet bereikbaar':'');
   refreshSelectors();
  }catch(e){lastUpdate='Update mislukt: '+e.message;$('statsStatus').textContent=old+' · '+lastUpdate}
  finally{loading=false;btn.disabled=false;try{localStorage.setItem('ricoweer_knmi_check_v2',String(Date.now()))}catch(e){}}
@@ -4754,7 +4759,7 @@ function render(){if(!ready)return;
  let low=m.endsWith('_lo')||m==='tn_lo'||m==='tg_lo'||m.startsWith('first')||m==='ground_first';
  out.sort((a,b)=>low?a.v-b.v||a.year-b.year:b.v-a.v||a.year-b.year);
  let current=out.find(x=>x.year===activeYear),shown=out.slice(0,count),rank=current?out.indexOf(current)+1:null;
- $('ricoExtStatus').textContent=out.length+' meetjaren · '+(current?'lopend jaar '+activeYear+' voorlopig op plaats '+rank+' van '+out.length:'lopend jaar nog niet beschikbaar')+' · onvolledige historische jaren uitgesloten';
+ $('ricoExtStatus').textContent=out.length+' meetjaren · '+(current?'lopend jaar '+activeYear+' voorlopig op plaats '+rank+' van '+out.length:'lopend jaar nog niet beschikbaar')+' · recente KNMI-dagwaarden kunnen nog voorlopig zijn · onvolledige historische jaren uitgesloten';
  let html='<table class="cockpitTable"><thead><tr><th>Positie</th><th>Jaar</th><th>Waarde</th><th>Datum(s)</th><th>Geldige dagen</th></tr></thead><tbody>';
  shown.forEach((r,i)=>{html+='<tr'+(r.year===activeYear?' style="background:#e5f5e9"':'')+'><td>'+(i+1)+'</td><td><b>'+r.year+'</b>'+(r.year===activeYear?' · Voorlopig':'')+'</td><td>'+fmt(r.v,m)+'</td><td>'+(r.dates.length?r.dates.map(nice).join(', '):'—')+'</td><td>'+r.n+(r.partial?' / onvolledig':'')+'</td></tr>'});
  html+='</tbody></table>';
@@ -4778,7 +4783,7 @@ function renderNational(p,m,count){
  all.sort(sort);stationBest.sort(sort);
  const data=mode==='station'?stationBest:all,shown=data.slice(0,count),names=temp.names;
  const current=all.filter(r=>r.year===activeYear),currentBest=current.length?[...current].sort(sort)[0]:null;
- $('ricoExtStatus').textContent=(mode==='station'?'Record per station · ':'Landelijke historische ranglijst · ')+data.length+' resultaten · '+stationBest.length+' stations met metingen · '+activeYear+' voorlopig';
+ $('ricoExtStatus').textContent=(mode==='station'?'Record per station · ':'Landelijke historische ranglijst · ')+data.length+' resultaten · '+stationBest.length+' stations met metingen · '+activeYear+' voorlopig · recente KNMI-dagwaarden kunnen nog wijzigen';
  let html='<table class="cockpitTable"><thead><tr><th>Positie</th><th>Station</th><th>Jaar</th><th>Waarde</th><th>Datum(s)</th><th>Geldige dagen</th></tr></thead><tbody>';
  shown.forEach((r,i)=>{
   const style=r.year===activeYear?'background:#e5f5e9':r.st===260?'background:#e3f1ff':'';
