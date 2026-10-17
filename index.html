@@ -4515,9 +4515,9 @@ function updateWeatherAtlas(){
    // Plaats de windvakjes in rustige kaartzones, niet op de weerpictogrammen.
    // anchor: coast links uitlijnen, oost rechts uitlijnen, midden centreren.
    const windSpots=[
-    {lat:52.65,lon:3.78,anchor:[0,13],names:['Den Helder','IJmuiden','Texel','Terschelling']},
-    {lat:51.60,lon:5.08,anchor:[39,13],names:['Utrecht','Lelystad','Arnhem','Amersfoort']},
-    {lat:52.78,lon:6.95,anchor:[78,13],names:['Enschede','Winterswijk','Emmen','Groningen']}
+    {lat:52.65,lon:3.35,anchor:[0,13],names:['Den Helder','IJmuiden','Texel','Terschelling']},
+    {lat:51.43,lon:5.45,anchor:[39,13],names:['Utrecht','Lelystad','Arnhem','Amersfoort']},
+    {lat:52.78,lon:7.20,anchor:[78,13],names:['Enschede','Winterswijk','Emmen','Groningen']}
    ];
    function beaufort(kmh){const m=kmh/3.6;return [0.3,1.6,3.4,5.5,8.0,10.8,13.9,17.2,20.8,24.5,28.5,32.7].findIndex(x=>m<x)===-1?12:[0.3,1.6,3.4,5.5,8.0,10.8,13.9,17.2,20.8,24.5,28.5,32.7].findIndex(x=>m<x)}
    windSpots.forEach(spot=>{
