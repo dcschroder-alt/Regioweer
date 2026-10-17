@@ -408,7 +408,7 @@ body{min-width:0}
 
 <section class="panel hidden" id="practicalPanel"><div style="font-weight:850;font-size:17px">Praktisch</div><div class="note">Alleen tips die op basis van de modelmix echt iets toevoegen.</div><div id="practicalGrid" class="practicalGrid"></div></section>
 <section class="panel hidden" id="changesPanel"><div style="font-weight:850;font-size:17px">Wat is veranderd?</div><div class="note">Vergelijking met de vorige keer dat je deze plaats en modelkeuze ophaalde.</div><div id="changesList" class="changeList"></div></section>
-<section class="panel hidden" id="modelStatusPanel"><details id="modelStatusDetails"><summary id="modelStatusSummary" style="font-weight:850;font-size:17px;cursor:pointer">Modelstatus</summary><div class="note">Run, leeftijd, cacheherkomst en deelname aan de modelmix voor morgen. Deze controle doet geen extra API-aanvragen.</div><div id="modelStatusGrid" class="modelStatusGrid"></div></details></section>
+<section class="panel hidden" id="modelStatusPanel"><details id="modelStatusDetails"><summary id="modelStatusSummary" style="font-weight:850;font-size:17px;cursor:pointer">Modelstatus</summary><div class="note">Run, leeftijd, cacheherkomst en deelname aan de modelmix voor morgen. Deze controle doet geen extra API-aanvragen.</div><div id="modelStatusGrid" class="modelStatusGrid"><div class="modelPill">Modelgegevens worden geladen. Open de modelmix of ververs de verwachting om de status te tonen.</div></div></details></section>
 <section class="panel" id="favMiniPanel"><div class="favDashHead"><div><div style="font-weight:850;font-size:17px">Favorieten-dashboard</div><div class="note">Morgen in één oogopslag voor je opgeslagen plaatsen.</div></div><button class="ghost" id="refreshFavDash" type="button">↻ Ververs</button></div><div id="favMiniGrid" class="favMiniGrid"></div><div class="note" id="favDashStatus">Gebruik Ververs om de dynamische modelmix voor morgen op te halen.</div></section>
 <section class="panel hidden" id="comparePanel"><div style="font-weight:850;font-size:17px">Plaatsen vergelijken</div><div class="note">Snelle 5-daagse vergelijking met ECMWF IFS.</div><div class="compareGrid"><div class="field"><label>Andere plaats</label><input id="comparePlace" value="De Bilt" placeholder="Bijv. De Bilt"></div><div class="field" style="justify-content:end"><button class="primary" id="compareLoad" type="button">Vergelijk</button></div></div><div id="compareStatus" class="status"></div><div id="compareRows" class="compareRows"></div></section>
 <details class="rwMeteoBox" id="rwMeteoBox"><summary>📈 Meteogrammen · Houten & Randstad · 10 dagen</summary><div class="rwMeteoTools"><button type="button" id="rwMeteo48Btn">⬇ PNG 48 uur</button><button type="button" id="rwMeteo10Btn">⬇ PNG 10 dagen</button><button type="button" id="rwMeteoRefreshBtn">↻ Grafieken uit cache</button></div><canvas id="rwMeteo48" class="rwMeteoGraph" width="1200" height="400"></canvas><p class="rwMeteoNote" id="rwMeteo48Note">Uurgegevens worden alleen uit bestaande cache gelezen.</p><canvas id="rwMeteo10" class="rwMeteoGraph" width="1200" height="400"></canvas><p class="rwMeteoNote">🏙️ Randstad · regionaal gemiddelde van kust, westelijk binnenland en Utrecht/Flevoland</p><canvas id="rwMeteoRandstad" class="rwMeteoGraph" width="1200" height="400"></canvas><div class="rwMeteoTools"><button type="button" id="rwMeteoRandstadBtn">⬇ PNG Randstad · 10 dagen</button></div><p class="rwMeteoNote" id="rwMeteo10Note">Neerslag: 3-uursbalken bij complete uurdata, anders dagsommen; rechteras in mm.</p></details>
@@ -2816,37 +2816,44 @@ function renderChanges(prev){const p=$('changesPanel'),box=$('changesList');if(!
 
 function likelyOutsideDomain(k){const lat=+$('lat').value,lon=+$('lon').value;if(k==='harmonie')return !(lat>=49&&lat<=55.8&&lon>=1.5&&lon<=8.5);if(k==='icon_d2')return !(lat>=43&&lat<=58&&lon>=-4&&lon<=20);if(k==='arome')return !(lat>=37&&lat<=55&&lon>=-12&&lon<=18);return false}
 function renderModelStatus(data){
- const p=$('modelStatusPanel'),box=$('modelStatusGrid'),sum=$('modelStatusSummary'),det=$('modelStatusDetails');
+ const p=$('modelStatusPanel'),box=$('modelStatusGrid'),sum=$('modelStatusSummary');
  if(!p||!box)return;
  p.classList.remove('hidden');
- const keys=$('model').value==='mix'?CORE_MIX_MODELS:[$('model').value];
+ const keys=$('model')?.value==='mix'?CORE_MIX_MODELS:[$('model')?.value||'gfs'];
  const target=isoDatePlus(appBaseDate(),1),now=Date.now();
+ const available=data&&typeof data==='object'?data:{};
+ const active=keys.filter(k=>Array.isArray(available[k])&&available[k].some(r=>r&&r.date===target&&r.complete!==false&&Number.isFinite(r.max)&&Number.isFinite(r.min)));
+ const present=keys.filter(k=>Array.isArray(available[k])&&available[k].length).length;
+ const off=1;
+ const activeItems=active.map(k=>({key:k,row:available[k].find(r=>r.date===target)}));
+ const weightFor=k=>{try{const w=adjustedWeight(k,off,activeItems);return Number.isFinite(w)&&w>0?w:1}catch(e){return 1}};
+ const totalWeight=active.reduce((n,k)=>n+weightFor(k),0);
  const fmtAge=ms=>{const mins=Math.max(0,Math.floor(ms/60000));return mins<60?`${mins} min`:`${Math.floor(mins/60)} u ${mins%60} min`};
  const html=keys.map(k=>{
-  const rows=data?.[k]||[],ok=rows.length>0;
-  const targetRow=rows.find(r=>r.date===target&&r.complete!==false&&Number.isFinite(r.max)&&Number.isFinite(r.min));
-  const inMix=!!targetRow;
-  const loaded=Number(rows._loadedAt||rows._cacheSavedAt)||0;
-  const age=loaded?now-loaded:null;
-  const stale=age!==null&&age>6*3600000;
-  const source=rows._fromCache?'Uit lokale cache':'Opgehaald tijdens deze sessie';
-  const run=rows._runUsed||'Run niet door bron opgegeven';
-  const runLabel=run==='nieuwste beschikbare run'?'Automatisch (brontijd onbekend)':run;
-  const off=Math.max(0,Math.round((new Date(target+'T12:00:00Z')-new Date(appBaseDate()+'T12:00:00Z'))/86400000));
-  const activeKeys=keys.filter(x=>(data?.[x]||[]).some(r=>r.date===target&&r.complete!==false&&Number.isFinite(r.max)&&Number.isFinite(r.min)));
-  const activeItems=activeKeys.map(x=>({key:x,row:(data[x]||[]).find(r=>r.date===target)}));
-  const totalWeight=activeKeys.reduce((n,x)=>n+adjustedWeight(x,off,activeItems),0);
-  const weight=inMix&&totalWeight?100*adjustedWeight(k,off,activeItems)/totalWeight:0;
-  const why=likelyOutsideDomain(k)?'buiten modeldomein':'run of gegevens niet beschikbaar';
-  const note=!ok?why:!inMix?'geen volledige TX/TN voor morgen':`${target}: TX/TN beschikbaar`;
-  return `<div class="modelPill ${ok?'':'missing'}"><b>${MODELS[k]?.name||k}</b> ${inMix?'✓ in mix morgen':ok?'◌ geladen, niet in mix morgen':'✕ ontbreekt'}<br><span>${ok?escapeHtml(String(runLabel)):why}</span><div class="freshMini">${ok?`${source} · ${loaded?fmtAge(age)+' oud':'leeftijd onbekend'}${stale?' · ⚠️ ouder dan 6 uur':''}`:''}</div><div class="freshMini">${note}${inMix?' · gewicht '+weight.toFixed(1).replace('.',',')+'%':''}</div></div>`;
+  try{
+   const rows=Array.isArray(available[k])?available[k]:[];
+   const ok=rows.length>0,inMix=active.includes(k);
+   const loaded=Number(rows._loadedAt||rows._cacheSavedAt)||0;
+   const age=loaded?now-loaded:null;
+   const source=rows._fromCache?'Uit lokale cache':'Opgehaald in deze sessie';
+   const run=rows._runUsed||'Run niet door bron opgegeven';
+   const runLabel=run==='nieuwste beschikbare run'?'Automatisch (brontijd onbekend)':run;
+   const why=likelyOutsideDomain(k)?'Buiten modeldomein':'Run of gegevens niet beschikbaar';
+   const note=!ok?why:!inMix?'Geen volledige TX/TN voor morgen':`${target}: TX/TN beschikbaar`;
+   const weight=inMix&&totalWeight?100*weightFor(k)/totalWeight:0;
+   return `<div class="modelPill ${ok?'':'missing'}"><b>${escapeHtml(String(MODELS[k]?.name||k))}</b>${inMix?'✓ in mix morgen':ok?'◌ geladen, niet in mix morgen':'✕ ontbreekt'}<br><span>${ok?escapeHtml(String(runLabel)):escapeHtml(why)}</span><div class="freshMini">${ok?`${source} · ${loaded?fmtAge(age)+' oud':'leeftijd onbekend'}${age>21600000?' · ⚠️ ouder dan 6 uur':''}`:'Geen actuele modelgegevens'}</div><div class="freshMini">${escapeHtml(note)}${inMix?' · gewicht '+weight.toFixed(1).replace('.',',')+'%':''}</div></div>`;
+  }catch(e){console.warn('Modelstatus model',k,e);return `<div class="modelPill missing"><b>${escapeHtml(String(MODELS[k]?.name||k))}</b>Status kon niet worden berekend</div>`}
  });
- const present=keys.filter(k=>(data?.[k]||[]).length).length;
- const participating=keys.filter(k=>(data?.[k]||[]).some(r=>r.date===target&&r.complete!==false&&Number.isFinite(r.max)&&Number.isFinite(r.min))).length;
- if(sum)sum.textContent=`${participating<keys.length?'⚠️ ':''}Modelstatus · ${participating}/${keys.length} in mix morgen · ${present} geladen`;
- if(det)det.open=participating<keys.length;
- box.innerHTML=html.join('')+($('model').value==='mix'?`<div class="modelPill"><b>🌐 Modelmix voor ${target}</b>${participating}/${keys.length} kernmodellen met volledige TX/TN<br><span>Geen extra API-verzoeken voor deze controle. Gewichten zijn genormaliseerd voor de beschikbare modellen; run-UTC alleen als de bron die opgeeft.</span></div>`:'');
+ if(sum)sum.textContent=`${active.length<keys.length?'⚠️ ':''}Modelstatus · ${active.length}/${keys.length} in mix morgen · ${present} geladen`;
+ box.innerHTML=html.join('')+($('model')?.value==='mix'?`<div class="modelPill"><b>🌐 Modelmix voor ${target}</b>${active.length}/${keys.length} kernmodellen met volledige TX/TN<br><span>Deze controle doet geen extra API-verzoeken.</span></div>`:'');
 }
+// Ook bij een opengeklapte status zonder eerdere render de opgeslagen data tonen.
+$('modelStatusDetails')?.addEventListener('toggle',function(){
+ if(!this.open)return;
+ const grid=$('modelStatusGrid');
+ if(!grid||grid.querySelectorAll('.modelPill').length>1)return;
+ try{renderModelStatus(lastMixData||{});}catch(e){console.warn('Modelstatus openen',e);grid.innerHTML='<div class="modelPill missing">Modelstatus kon niet worden opgebouwd. Ververs de modelmix.</div>'}
+});
 
 
 function favoriteNames(){let a=['Houten'];try{a=[...a,...JSON.parse(localStorage.getItem('regioweer-favorites')||'[]')]}catch(e){}return [...new Set(a)].slice(0,6)}
