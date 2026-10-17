@@ -1,5 +1,5 @@
 /* Ricoweer serviceworker: netwerk-eerst voor appbestanden, offline fallback. */
-const VERSION='rico-app-20261017-atlas-15d-1';
+const VERSION='rico-app-20261017-atlas-15d-10loc-1';
 const FILES=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 self.addEventListener('install',event=>{event.waitUntil((async()=>{const c=await caches.open(VERSION);await Promise.allSettled(FILES.map(f=>c.add(new Request(f,{cache:'reload'}))));await self.skipWaiting()})())});
 self.addEventListener('activate',event=>{event.waitUntil((async()=>{for(const key of await caches.keys()){if((key.startsWith('regioweer-')||key.startsWith('rico-app-'))&&key!==VERSION)await caches.delete(key)}await self.clients.claim()})())});

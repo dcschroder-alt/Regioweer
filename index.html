@@ -4404,7 +4404,7 @@ show=function(rows){const result=ricoPreviousShow.apply(this,arguments);try{rico
 
 </script>
 <script>
-/* 10 landelijke weerkaarten: uitsluitend de al bestaande 25-punts landelijke modelmix.
+/* 15 landelijke weerkaarten: uitsluitend de al bestaande 25-punts landelijke modelmix.
    Geen fetch naar Open-Meteo, geen extra scan, geen verandering aan de bestaande temperatuurkaart. */
 (function(){
 const weatherMaps=[];
@@ -4508,17 +4508,20 @@ function updateWeatherAtlas(){
    // Bij een hoge kaart vult Nederland de kaart zonder grote stroken Duitsland of Noordzee.
    // Gebruik de echte geografische uitersten; Leaflet past de zoom aan de kaartverhouding aan.
    map.fitBounds([[50.75,3.35],[53.52,7.15]],{padding:[10,10],animate:false});
-   // Acht vaste geografische regio's uit dezelfde 25 bestaande scanpunten.
-   // Geen weer-API-oproepen en geen automatische overlapfilter die hele regio's weglaat.
+   // Tien bewust gespreide weerlocaties, rechtstreeks uit de bestaande 25 scanpunten.
+   // Midden-Nederland heeft Houten en Apeldoorn, Flevoland Emmeloord.
+   // Geen aanvullende API-verzoeken; bij ontbrekende waarden geografisch aanvullen.
    const preferredGroups=[
     ['Terschelling','Texel','Den Helder'],
     ['Groningen','Leeuwarden','Emmen'],
-    ['IJmuiden','Amsterdam','Haarlem'],
+    ['IJmuiden','Den Helder','Amsterdam'],
+    ['Emmeloord','Lelystad','Almere'],
     ['Enschede','Winterswijk','Emmen'],
-    ['Rotterdam','Scheveningen','Den Haag'],
-    ['Emmeloord','Lelystad','Arnhem','Apeldoorn'],
+    ['Rotterdam','Scheveningen','Leiden'],
+    ['Houten','Gouda','Almere'],
+    ['Apeldoorn','Arnhem','Lelystad'],
     ['Vlissingen','Breda'],
-    ['Maastricht','Eindhoven','Venlo']
+    ['Maastricht','Venlo','Eindhoven']
    ];
    const all=d.pts.filter(p=>Number.isFinite(p.tx)&&Number.isFinite(p.point?.lat)&&Number.isFinite(p.point?.lon));
    const used=new Set();
@@ -4527,8 +4530,7 @@ function updateWeatherAtlas(){
      if(found)used.add(found.point.n);
      return found;
    }).filter(Boolean);
-   // Als een vaste locatie ontbreekt, vul aan met het verst verwijderde bestaande punt.
-   while(chosen.length<Math.min(8,all.length)){
+   while(chosen.length<Math.min(10,all.length)){
      const remaining=all.filter(p=>!used.has(p.point.n));if(!remaining.length)break;
      remaining.sort((a,b)=>Math.min(...chosen.map(x=>distance(b,x)))-Math.min(...chosen.map(x=>distance(a,x))));
      chosen.push(remaining[0]);used.add(remaining[0].point.n);
@@ -4537,12 +4539,10 @@ function updateWeatherAtlas(){
     const sym=weatherSymbol(p),max=Math.round(p.tx),min=Number.isFinite(p.tn)?Math.round(p.tn):null;
     const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp"><span class="ricoTx">${max}°</span>${min!==null?`<span class="ricoSep">/</span><span class="ricoTn">${min}°</span>`:''}</span></div>`,iconSize:[70,52],iconAnchor:[35,26]});
     const popup=`<b>${safe(p.point.n)}</b><br>Max ${max}°${min!==null?' · min '+min+'°':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen`;
-    // De midden-Nederlandse temperatuur en het symbool iets oostelijker plaatsen.
-    // De bronlocatie en de popup blijven ongewijzigd.
-    const centerGroup=['Emmeloord','Lelystad','Arnhem','Apeldoorn'];
-    const middlePoint=chosen.find(x=>centerGroup.includes(x.point.n));
-    const shiftMiddle=middlePoint===p;
-    L.marker([p.point.lat, p.point.lon+(shiftMiddle?0.24:0)],{icon}).bindPopup(popup).addTo(map);
+    // Kleine labelcorrecties voorkomen overlap; de echte bronlocatie blijft in de popup.
+    const offsets={Emmeloord:[0.03,0.07],Houten:[-0.09,-0.02],Apeldoorn:[0.04,0.12],IJmuiden:[0,0.02]};
+    const [dLat,dLon]=offsets[p.point.n]||[0,0];
+    L.marker([p.point.lat+dLat,p.point.lon+dLon],{icon}).bindPopup(popup).addTo(map);
    });
    // Windkracht op drie plekken: kust, midden en oosten. Alleen reeds opgehaalde
    // dagelijkse windmaxima en dominante windrichting van de 25 scanpunten.
@@ -4571,7 +4571,7 @@ function install(){
  const panel=document.getElementById('nationalScanPanel');if(!panel)return;
  if(!document.getElementById('ricoWeatherAtlas')){
   const section=document.createElement('section');section.id='ricoWeatherAtlas';
-  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 15 dagen</div><div class="note">Landelijke modelmix op dezelfde 25 scanpunten. 8 geografisch gespreide locaties en windkracht op 3 plekken per kaart; geen extra Open-Meteo-verzoeken. Weersymbolen zijn indicaties op basis van dagneerslag en zonuren, geen dagdeelverwachtingen.</div><div class="ricoWeatherGrid"></div>';
+  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 15 dagen</div><div class="note">Landelijke modelmix op dezelfde 25 scanpunten. 10 geografisch gespreide locaties en windkracht op 3 plekken per kaart; geen extra Open-Meteo-verzoeken. Weersymbolen zijn indicaties op basis van dagneerslag en zonuren, geen dagdeelverwachtingen.</div><div class="ricoWeatherGrid"></div>';
   const map=panel.querySelector('.ricomapPanel');if(map)map.insertAdjacentElement('beforebegin',section);else panel.appendChild(section);
  }
  // Koppel aan bestaande landelijke scanweergave, inclusief cacheherstel.
