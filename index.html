@@ -391,7 +391,7 @@ body{min-width:0}
 
 <section class="panel" id="stationStatsPanel"><div style="font-weight:900;font-size:18px">📊 KNMI-stations · temperatuurstatistieken</div><div class="note">Excelachtig maandoverzicht met verschuivend 30-jarig normaal. Historische gegevens ingebouwd vanaf 1901 waar beschikbaar. Recente dagwaarden worden automatisch bij KNMI gecontroleerd (maximaal elke 6 uur). Geen upload nodig.</div>
 <div class="v34toolbar"><button type="button" id="statsRefresh" class="ghost">↻ KNMI-gegevens vernieuwen</button></div><div id="statsStatus" class="note" aria-live="polite">Nog geen daggegevens geladen.</div>
-<div class="v34toolbar"><label>Weergave <select id="statsView"><option value="rank">Landelijke ranglijst</option><option value="month">Per maand per station</option></select></label><label>Jaar <select id="statsYear"></select></label><label>Maand <select id="statsMonth"><option value="0">Heel jaar</option></select></label><label>Statistiek <select id="statsMetric"><option value="tg">Gemiddelde temperatuur TG</option><option value="txavg">Gemiddelde maximumtemperatuur TX</option><option value="tnavg">Gemiddelde minimumtemperatuur TN</option><option value="txmax">Hoogste maximumtemperatuur</option><option value="tnmin">Laagste minimumtemperatuur</option><option value="warm">Warme dagen ≥20°C</option><option value="summer">Zomerse dagen ≥25°C</option><option value="tropical">Tropische dagen ≥30°C</option><option value="hot35">Zeer hete dagen ≥35°C</option><option value="frost">Vorstdagen &lt;0°C</option><option value="moderate">Matige vorst &lt;−5°C</option><option value="severe">Strenge vorst &lt;−10°C</option><option value="ice">IJsdagen (Tx &lt;0°C)</option><option value="tropicalNight">Tropische nachten ≥20°C</option><option value="rec_warm">🏆 RECORDS — meeste warme dagen</option><option value="rec_summer">🏆 RECORDS — meeste zomerse dagen</option><option value="rec_tropical">🏆 RECORDS — meeste tropische dagen</option><option value="rec_frost">🏆 RECORDS — meeste vorstdagen</option><option value="rec_ice">🏆 RECORDS — meeste ijsdagen</option><option value="rec_tg">🏆 RECORDS — warmste gemiddelde temperatuur</option><option value="rec_coldtg">🏆 RECORDS — koudste gemiddelde temperatuur</option><option value="rec_txmax">🏆 RECORDS — hoogste maximumtemperatuur</option><option value="rec_tnmin">🏆 RECORDS — laagste minimumtemperatuur</option></select></label><label id="statsStationLabel" style="display:none">Station <select id="statsStation"></select></label></div>
+<div class="v34toolbar"><label>Weergave <select id="statsView"><option value="rank">Landelijke ranglijst</option><option value="month">Per maand per station</option></select></label><label>Jaar <select id="statsYear"></select></label><label>Periode <select id="statsMonth"><option value="0">Heel jaar</option></select></label><label>Statistiek <select id="statsMetric"><option value="tg">Gemiddelde temperatuur TG</option><option value="txavg">Gemiddelde maximumtemperatuur TX</option><option value="tnavg">Gemiddelde minimumtemperatuur TN</option><option value="txmax">Hoogste maximumtemperatuur</option><option value="tnmin">Laagste minimumtemperatuur</option><option value="warm">Warme dagen ≥20°C</option><option value="summer">Zomerse dagen ≥25°C</option><option value="tropical">Tropische dagen ≥30°C</option><option value="hot35">Zeer hete dagen ≥35°C</option><option value="frost">Vorstdagen &lt;0°C</option><option value="moderate">Matige vorst &lt;−5°C</option><option value="severe">Strenge vorst &lt;−10°C</option><option value="ice">IJsdagen (Tx &lt;0°C)</option><option value="tropicalNight">Tropische nachten ≥20°C</option><option value="rec_warm">🏆 RECORDS — meeste warme dagen</option><option value="rec_summer">🏆 RECORDS — meeste zomerse dagen</option><option value="rec_tropical">🏆 RECORDS — meeste tropische dagen</option><option value="rec_frost">🏆 RECORDS — meeste vorstdagen</option><option value="rec_ice">🏆 RECORDS — meeste ijsdagen</option><option value="rec_tg">🏆 RECORDS — warmste gemiddelde temperatuur</option><option value="rec_coldtg">🏆 RECORDS — koudste gemiddelde temperatuur</option><option value="rec_txmax">🏆 RECORDS — hoogste maximumtemperatuur</option><option value="rec_tnmin">🏆 RECORDS — laagste minimumtemperatuur</option></select></label><label id="statsStationLabel" style="display:none">Station <select id="statsStation"></select></label></div>
 <div id="statsResult" style="overflow-x:auto;margin-top:10px"></div><div class="note">Normaal: voorgaande 30 kalenderjaren (2026 → 1996–2025). Bij een lopende maand wordt dezelfde periode t/m de laatste beschikbare dag vergeleken. Voor stations met een kortere meetreeks gebruiken we de beschikbare complete referentiejaren (maximaal 30). Historische records gebruiken de beschikbare meetreeks; bij een lopende maand wordt dezelfde periode vergeleken.</div></section>
 <section class="panel climateHero" id="climatePanel"><div class="climateTop"><div><div style="font-weight:900;font-size:18px">📊 Deze maand · klimaatmonitor</div><div class="note" id="climateSubtitle">Lopende maand, 30-jarig normaal en verwachting.</div></div><button class="ghost" id="climateRefresh" type="button">↻ Klimaat</button></div><div id="climateStatus" class="status">Klimaatgegevens worden geladen…</div><div id="climateBody" class="hidden"><div id="climateLive" class="climateLive hidden"></div><div class="climateGrid" id="climateGrid"></div><div class="climateForecast" id="climateForecast"></div><div id="climateSummary"></div><div style="font-weight:850;margin-top:13px">Temperatuurdagen sinds 1 januari</div><div class="climateDays" id="climateDays"></div><div class="note" id="climateDaysNote"></div><details style="margin-top:12px"><summary style="font-weight:850;cursor:pointer">📅 Dagarchief & klimaatgemiddelden</summary><div class="climateArchive"><input id="climateDate" type="date"><button class="ghost" id="climateLookup" type="button">Datum bekijken</button></div><div id="climateArchiveResult" class="climateArchiveResult">Kies een datum.</div><div style="font-weight:800;margin-top:11px">30-jarige klimaatgemiddelden</div><div class="note">Gemiddelde temperatuur van deze maand per 30-jarige referentieperiode.</div><div id="climateDecades" class="climateDecades"></div></details><div class="note">Klimaatgegevens: temperatuur, neerslag en extremen/records De Bilt (260) · zonneschijnduur gemiddelde van Den Helder, Eelde, De Bilt, Vlissingen en Maastricht. Temperatuurverificatie gebruikt voor Houten de ochtend-modelmix als vaste referentie. Recente TX/TN komen voorlopig uit Weerstatistieken; officiële KNMI-dagwaarden krijgen automatisch voorrang. Het lopende 30-jarige normaal schuift ieder jaar één jaar op.</div></div></section>
 
@@ -4596,17 +4596,27 @@ function mergeArcenHorst(){const merged=new Map();for(const r of rows){const st=
 
 const metricValue=(r,m)=>m==='tg'?r[2]:m==='txavg'||m==='txmax'?r[4]:m==='tnavg'||m==='tnmin'?r[3]:m==='warm'||m==='summer'||m==='tropical'||m==='hot35'||m==='ice'?r[4]:r[3];
 function stat(list,m){let a=list.map(r=>metricValue(r,m)).filter(v=>v!==null&&Number.isFinite(v));if(!a.length)return {v:null,days:0};if(m==='tg'||m==='txavg'||m==='tnavg')return {v:a.reduce((s,v)=>s+v,0)/a.length/10,days:a.length};if(m==='txmax')return {v:Math.max(...a)/10,days:a.length};if(m==='tnmin')return {v:Math.min(...a)/10,days:a.length};const hits={warm:v=>v>=200,summer:v=>v>=250,tropical:v=>v>=300,hot35:v=>v>=350,frost:v=>v<0,moderate:v=>v< -50,severe:v=>v< -100,ice:v=>v<0,tropicalNight:v=>v>=200};return {v:a.filter(hits[m]||(()=>false)).length,days:a.length}}
-function subset(st,y,mo,cut){return (index.get(st+'_'+y)||[]).filter(r=>(!mo||Math.floor(r[1]/100)%100===mo)&&(!cut||r[1]%10000<=cut))}
-function expectedDays(yr,mo,cut){
- if(cut){const cm=Math.floor(cut/100),cd=cut%100;
-  if(mo){if(mo>cm)return 0;if(mo<cm)return new Date(yr,mo,0).getDate();return Math.min(cd,new Date(yr,mo,0).getDate())}
-  return Math.round((Date.UTC(yr,cm-1,Math.min(cd,new Date(yr,cm,0).getDate()))-Date.UTC(yr,0,1))/86400000)+1;
- }
- return mo?new Date(yr,mo,0).getDate():365+(new Date(yr,1,29).getMonth()===1?1:0)
+const seasons={
+ lente:{label:'Lente · volledig',start:[3,1],end:[5,31]},
+ zomer:{label:'Zomer · volledig',start:[6,1],end:[8,31]},
+ herfst:{label:'Herfst · volledig',start:[9,1],end:[11,30]},
+ winter:{label:'Winter · volledig',start:[12,1],end:[2,29],cross:true},
+ lentehalf:{label:'Eerste helft lente · 1 mrt–15 apr',start:[3,1],end:[4,15]},
+ zomerhalf:{label:'Eerste helft zomer · 1 jun–16 jul',start:[6,1],end:[7,16]},
+ herfsthalf:{label:'Eerste helft herfst · 1 sep–15 okt',start:[9,1],end:[10,15]},
+ winterhalf:{label:'Eerste helft winter · 1 dec–15 jan',start:[12,1],end:[1,15],cross:true}
+};
+function bounds(y,mo){
+ if(!Number.isNaN(Number(mo))){const n=Number(mo);return n? [y*10000+n*100+1,y*10000+n*100+new Date(y,n,0).getDate()]:[y*10000+101,y*10000+1231]}
+ const q=seasons[mo];if(!q)return [0,0];const ey=y+(q.cross?1:0),last=Math.min(q.end[1],new Date(ey,q.end[0],0).getDate());return [y*10000+q.start[0]*100+q.start[1],ey*10000+q.end[0]*100+last]
 }
-function normal(st,y,mo,m,cut){let a=[];for(let yr=y-30;yr<y;yr++){let part=subset(st,yr,mo,cut),v=stat(part,m),end=expectedDays(yr,mo,cut);if(end&&v.days>=end&&v.v!==null)a.push(v.v)}return a.length?{v:a.reduce((s,v)=>s+v,0)/a.length,n:a.length}:null}
+function subset(st,y,mo,cut){const [from,to]=bounds(y,mo),stop=cut?Math.min(to,cut):to;const years=[Math.floor(from/10000),Math.floor(to/10000)];return [...new Set(years)].flatMap(yr=>index.get(st+'_'+yr)||[]).filter(r=>r[1]>=from&&r[1]<=stop)}
+function expectedDays(yr,mo,cut){const [from,to]=bounds(yr,mo),end=cut?Math.min(to,cut):to;if(end<from)return 0;const date=n=>Date.UTC(Math.floor(n/10000),Math.floor(n/100)%100-1,n%100);return Math.round((date(end)-date(from))/86400000)+1}
+function referenceCut(y,mo,latest){const [from,to]=bounds(y,mo);return latest>=from&&latest<to?latest:null}
+function mappedCut(y,yr,cut){if(!cut)return null;const mm=Math.floor(cut/100)%100,dd=cut%100;const yy=yr+(Math.floor(cut/10000)>y?1:0);return yy*10000+mm*100+Math.min(dd,new Date(yy,mm,0).getDate())}
+function normal(st,y,mo,m,cut){let a=[];for(let yr=y-30;yr<y;yr++){let c=mappedCut(y,yr,cut),part=subset(st,yr,mo,c),v=stat(part,m),end=expectedDays(yr,mo,c);if(end&&v.days>=end&&v.v!==null)a.push(v.v)}return a.length?{v:a.reduce((s,v)=>s+v,0)/a.length,n:a.length}:null}
 function recordFor(st,y,mo,m,cut){let metric=m==='coldtg'?'tg':m,low=m==='coldtg'||m==='tnmin';let years=[];
- for(const key of index.keys()){const [code,yr]=key.split('_').map(Number);if(code!==st||yr>=y)continue;let part=subset(st,yr,mo,cut),v=stat(part,metric),expected=expectedDays(yr,mo,cut);if(expected&&v.v!==null&&v.days>=expected)years.push({year:yr,value:v.v})}
+ const [from]=bounds(y,mo);for(let yr=1901;yr<y;yr++){if(!index.has(st+'_'+yr))continue;let c=mappedCut(y,yr,cut),part=subset(st,yr,mo,c),v=stat(part,metric),expected=expectedDays(yr,mo,c);if(expected&&v.v!==null&&v.days>=expected)years.push({year:yr,value:v.v})}
  if(!years.length)return null;years.sort((a,b)=>low?a.value-b.value:b.value-a.value);const best=years[0].value;return {v:best,years:years.filter(z=>Math.abs(z.value-best)<0.00001).map(z=>z.year),n:years.length,first:Math.min(...years.map(z=>z.year))}
 }
 function extremeDates(st,yr,mo,cut,m,target){
@@ -4617,20 +4627,20 @@ function formatDates(ds){return ds.length?ds.map(d=>String(d).slice(6,8)+'-'+Str
 function fmt(v,m){return v===null?'—':(['tg','txavg','tnavg','txmax','tnmin'].includes(m)?v.toFixed(1):Number.isInteger(v)?String(v):v.toFixed(1)).replace('.',',')}
 function render(){
  if(!rows.length){$('statsResult').textContent='Gegevens worden geladen.';return}
- const y=+$('statsYear').value,mo=+$('statsMonth').value,choice=$('statsMetric').value,view=$('statsView').value,station=+$('statsStation').value;
+ const y=+$('statsYear').value,mo=$('statsMonth').value,choice=$('statsMetric').value,view=$('statsView').value,station=+$('statsStation').value;
  const isRec=choice.startsWith('rec_'),m=isRec?choice.slice(4):choice,base=m==='coldtg'?'tg':m;
  $('statsStationLabel').style.display=view==='month'?'':'none';
  let stns=[...new Set(rows.map(r=>r[0]))].sort((a,b)=>a-b);
- let latest=rows.filter(r=>Math.floor(r[1]/10000)===y&&(!mo||Math.floor(r[1]/100)%100===mo)).reduce((v,r)=>Math.max(v,r[1]),0);
- let cutoff=y===new Date().getFullYear()&&latest?latest%10000:null;
+ let latest=rows.reduce((v,r)=>Math.max(v,r[1]),0);
+ let cutoff=referenceCut(y,mo,latest);
  const make=(st,month,cut)=>({st,month,actual:stat(subset(st,y,month,cut),base),norm:normal(st,y,month,base,cut),record:isRec?recordFor(st,y,month,m,cut):null});
  let entries=view==='rank'?stns.map(st=>make(st,mo,cutoff)).filter(x=>x.actual.days).sort((a,b)=>{
    if(isRec){let av=a.record?.v,bv=b.record?.v;if(av==null)return 1;if(bv==null)return -1;return (m==='tnmin'||m==='coldtg'?av-bv:bv-av)}
    return m==='tnmin'?a.actual.v-b.actual.v:b.actual.v-a.actual.v
- }):Array.from({length:12},(_,i)=>make(station,i+1,y===new Date().getFullYear()&&cutoff&&i+1===Math.floor(cutoff/100)?cutoff:null));
+ }):(seasons[mo]?[make(station,mo,referenceCut(y,mo,latest))]:Array.from({length:12},(_,i)=>make(station,String(i+1),referenceCut(y,String(i+1),latest))));
  let html='<table class="cockpitTable"><thead><tr><th>#</th><th>'+(view==='rank'?'Station':'Maand')+'</th><th>Waarde '+y+'</th>'+(isRec?'<th>Historisch record</th><th>Recordjaar</th><th>Meetreeks</th><th>Status</th>':'<th>Normaal</th><th>Verschil</th><th>Referentie</th>')+(base==='txmax'||base==='tnmin'?'<th>Datum '+y+'</th>':'')+(isRec&&(base==='txmax'||base==='tnmin')?'<th>Recorddatum</th>':'')+'<th>Geldige dagen</th></tr></thead><tbody>';
  entries.forEach((x,i)=>{
- let name=view==='rank'?(names[x.st]||'Station '+x.st):months[x.month-1];
+ let name=view==='rank'?(names[x.st]||'Station '+x.st):(seasons[x.month]?.label||months[Number(x.month)-1]);
  let cells='';
  if(isRec){const rec=x.record,low=m==='tnmin'||m==='coldtg',current=x.actual.v;
   const better=rec&&current!==null&&(low?current<rec.v:current>rec.v),equal=rec&&current!==null&&Math.abs(current-rec.v)<0.00001;
@@ -4640,9 +4650,9 @@ function render(){
   cells='<td>'+fmt(norm,base)+'</td><td>'+diff+'</td><td>'+(x.norm?x.norm.n+' jaar':'—')+'</td>'}
  let dates='';
  if(base==='txmax'||base==='tnmin'){
-  let cut=view==='rank'?cutoff:(y===new Date().getFullYear()&&cutoff&&x.month===Math.floor(cutoff/100)?cutoff:null);
+  let cut=view==='rank'?cutoff:referenceCut(y,x.month,latest);
   dates='<td>'+formatDates(extremeDates(x.st,y,x.month,cut,base,x.actual.v))+'</td>';
-  if(isRec){let rd=x.record?x.record.years.flatMap(yr=>extremeDates(x.st,yr,x.month,cut,base,x.record.v)):[];
+  if(isRec){let rd=x.record?x.record.years.flatMap(yr=>extremeDates(x.st,yr,x.month,mappedCut(y,yr,cut),base,x.record.v)):[];
    dates+='<td>'+formatDates(rd)+'</td>';
   }
  }
@@ -4693,7 +4703,7 @@ async function daily(force=false){
  }catch(e){lastUpdate='Update mislukt: '+e.message;$('statsStatus').textContent=old+' · '+lastUpdate}
  finally{loading=false;btn.disabled=false;try{localStorage.setItem('ricoweer_knmi_check_v2',String(Date.now()))}catch(e){}}
 }
-async function init(){for(let i=1;i<=12;i++)$('statsMonth').add(new Option(months[i-1],i));$('statsStatus').textContent='Historische KNMI-gegevens laden…';try{let res=await fetch('./knmi-nederland-1901-2026.json',{cache:'force-cache'});if(!res.ok)throw Error('HTTP '+res.status);let data=await res.json();rows=data.rows;names=data.names;let saved=JSON.parse(localStorage.getItem('ricoweer_knmi_recent_v2')||'[]');if(saved.length){let map=new Map(rows.map(r=>[r[0]+'_'+r[1],r]));for(let r of saved)map.set(r[0]+'_'+r[1],r);rows=[...map.values()]}mergeArcenHorst();rebuildIndex();refreshSelectors();if(Date.now()-Number(localStorage.getItem('ricoweer_knmi_check_v2')||0)>6*3600000)daily()}catch(e){$('statsStatus').textContent='Historische gegevens niet bereikbaar: '+e.message}}
+async function init(){for(let i=1;i<=12;i++)$('statsMonth').add(new Option(months[i-1],i));for(const [key,p] of Object.entries(seasons))$('statsMonth').add(new Option(p.label,key));$('statsStatus').textContent='Historische KNMI-gegevens laden…';try{let res=await fetch('./knmi-nederland-1901-2026.json',{cache:'force-cache'});if(!res.ok)throw Error('HTTP '+res.status);let data=await res.json();rows=data.rows;names=data.names;let saved=JSON.parse(localStorage.getItem('ricoweer_knmi_recent_v2')||'[]');if(saved.length){let map=new Map(rows.map(r=>[r[0]+'_'+r[1],r]));for(let r of saved)map.set(r[0]+'_'+r[1],r);rows=[...map.values()]}mergeArcenHorst();rebuildIndex();refreshSelectors();if(Date.now()-Number(localStorage.getItem('ricoweer_knmi_check_v2')||0)>6*3600000)daily()}catch(e){$('statsStatus').textContent='Historische gegevens niet bereikbaar: '+e.message}}
 $('statsRefresh').addEventListener('click',()=>daily(true));['statsView','statsYear','statsMonth','statsMetric','statsStation'].forEach(id=>$(id).addEventListener('change',render));init();
 })();
 </script></body></html>
