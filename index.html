@@ -4607,6 +4607,11 @@ function recordFor(st,y,mo,m,cut){let metric=m==='coldtg'?'tg':m,low=m==='coldtg
  for(const key of index.keys()){const [code,yr]=key.split('_').map(Number);if(code!==st||yr>=y)continue;let part=subset(st,yr,mo,cut),v=stat(part,metric),expected=expectedDays(yr,mo,cut);if(expected&&v.v!==null&&v.days>=expected)years.push({year:yr,value:v.v})}
  if(!years.length)return null;years.sort((a,b)=>low?a.value-b.value:b.value-a.value);const best=years[0].value;return {v:best,years:years.filter(z=>Math.abs(z.value-best)<0.00001).map(z=>z.year),n:years.length,first:Math.min(...years.map(z=>z.year))}
 }
+function extremeDates(st,yr,mo,cut,m,target){
+ if(target===null||!['txmax','tnmin'].includes(m))return [];
+ return subset(st,yr,mo,cut).filter(r=>r[m==='txmax'?4:3]!==null&&Math.abs(r[m==='txmax'?4:3]/10-target)<0.00001).map(r=>r[1]);
+}
+function formatDates(ds){return ds.length?ds.map(d=>String(d).slice(6,8)+'-'+String(d).slice(4,6)+'-'+String(d).slice(0,4)).join(', '):'—'}
 function fmt(v,m){return v===null?'—':(['tg','txavg','tnavg','txmax','tnmin'].includes(m)?v.toFixed(1):Number.isInteger(v)?String(v):v.toFixed(1)).replace('.',',')}
 function render(){
  if(!rows.length){$('statsResult').textContent='Gegevens worden geladen.';return}
@@ -4621,7 +4626,7 @@ function render(){
    if(isRec){let av=a.record?.v,bv=b.record?.v;if(av==null)return 1;if(bv==null)return -1;return (m==='tnmin'||m==='coldtg'?av-bv:bv-av)}
    return m==='tnmin'?a.actual.v-b.actual.v:b.actual.v-a.actual.v
  }):Array.from({length:12},(_,i)=>make(station,i+1,y===new Date().getFullYear()&&cutoff&&i+1===Math.floor(cutoff/100)?cutoff:null));
- let html='<table class="cockpitTable"><thead><tr><th>#</th><th>'+(view==='rank'?'Station':'Maand')+'</th><th>Waarde '+y+'</th>'+(isRec?'<th>Historisch record</th><th>Recordjaar</th><th>Meetreeks</th><th>Status</th>':'<th>Normaal</th><th>Verschil</th><th>Referentie</th>')+'<th>Geldige dagen</th></tr></thead><tbody>';
+ let html='<table class="cockpitTable"><thead><tr><th>#</th><th>'+(view==='rank'?'Station':'Maand')+'</th><th>Waarde '+y+'</th>'+(isRec?'<th>Historisch record</th><th>Recordjaar</th><th>Meetreeks</th><th>Status</th>':'<th>Normaal</th><th>Verschil</th><th>Referentie</th>')+(base==='txmax'||base==='tnmin'?'<th>Datum '+y+'</th>':'')+(isRec&&(base==='txmax'||base==='tnmin')?'<th>Recorddatum</th>':'')+'<th>Geldige dagen</th></tr></thead><tbody>';
  entries.forEach((x,i)=>{
  let name=view==='rank'?(names[x.st]||'Station '+x.st):months[x.month-1];
  let cells='';
@@ -4631,7 +4636,15 @@ function render(){
   cells='<td>'+fmt(rec?.v??null,base)+'</td><td>'+(rec?rec.years.join(', '):'—')+'</td><td>'+(rec?rec.first+'–'+(y-1)+' ('+rec.n+' jaar)':'—')+'</td><td>'+badge+'</td>';
  }else{let norm=x.norm?.v??null,diff=norm===null||x.actual.v===null?'—':(x.actual.v-norm>=0?'+':'')+fmt(x.actual.v-norm,base);
   cells='<td>'+fmt(norm,base)+'</td><td>'+diff+'</td><td>'+(x.norm?x.norm.n+' jaar':'—')+'</td>'}
- html+='<tr><td>'+(i+1)+'</td><td>'+name+'</td><td><b>'+fmt(x.actual.v,base)+'</b></td>'+cells+'<td>'+x.actual.days+'</td></tr>';
+ let dates='';
+ if(base==='txmax'||base==='tnmin'){
+  let cut=view==='rank'?cutoff:(y===new Date().getFullYear()&&cutoff&&x.month===Math.floor(cutoff/100)?cutoff:null);
+  dates='<td>'+formatDates(extremeDates(x.st,y,x.month,cut,base,x.actual.v))+'</td>';
+  if(isRec){let rd=x.record?x.record.years.flatMap(yr=>extremeDates(x.st,yr,x.month,cut,base,x.record.v)):[];
+   dates+='<td>'+formatDates(rd)+'</td>';
+  }
+ }
+ html+='<tr><td>'+(i+1)+'</td><td>'+name+'</td><td><b>'+fmt(x.actual.v,base)+'</b></td>'+cells+dates+'<td>'+x.actual.days+'</td></tr>';
  });
  $('statsResult').innerHTML=html+'</tbody></table>';
 }
