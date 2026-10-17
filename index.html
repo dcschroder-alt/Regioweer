@@ -4482,7 +4482,7 @@ function atlasRainSummary(days){
 function updateWeatherAtlas(){
  const host=document.getElementById('ricoWeatherAtlas');if(!host)return;
  const days=(typeof nationalScanLastPack!=='undefined'?nationalScanLastPack?.days:[])||[];
- const valid=days.filter(d=>d?.pts?.some(p=>Number.isFinite(p.tx))).slice(0,10);
+ const valid=days.filter(d=>d?.pts?.some(p=>Number.isFinite(p.tx))).slice(0,15);
  if(!valid.length){host.querySelector('.ricoWeatherGrid').innerHTML='<div class="note">Nog geen landelijke modelmix beschikbaar. De weerkaarten verschijnen na de bestaande landelijke scan.</div>';return}
  const signature=valid.map(d=>d.date+':'+d.pts.filter(p=>Number.isFinite(p.tx)).length+':'+d.pts.map(p=>[p.tx,p.tn,p.rain,p.sun,p.wind,p.dir].join('/')).join(',')).join('|');
  const history=atlasHistory();const fullSignature=signature+'|'+(history?.savedAt||'')+'|'+(history?.days?.map(d=>d.date+':'+d.pts?.map(p=>p.tx+','+p.rain+','+p.gust).join(';')).join('|')||'');
@@ -4494,7 +4494,7 @@ function updateWeatherAtlas(){
   const mm=rain.length?rain.sort((a,b)=>a-b)[Math.floor(rain.length/2)]:null;
   const previous=atlasHistory();const signals=atlasSignals(d);const change=atlasDayChange(d,previous);
   const extra=`<div class="ricoAtlasExtra"><div><b>Verandering sinds vorige scan:</b> ${change}</div><div class="ricoChips">${signals.length?signals.slice(0,2).map(x=>`<span class="ricoChip">${x}</span>`).join(''):'<span class="ricoSmall">Geen bijzondere signalen uit de beschikbare dagwaarden</span>'}</div></div>`;
-  return `<article class="ricoWeatherCard"><div class="ricoWeatherTitle"><span>${safe(dayLabel(d.date))}</span><span>${good.length}/25</span></div><div class="ricoWeatherMap" id="ricoWeatherMap${i}" aria-label="Landelijk weerbeeld ${safe(dayLabel(d.date))}"></div><div class="ricoWeatherFoot">${mm!==null?'Landelijke neerslagmediaan '+mm.toFixed(1).replace('.',',')+' mm · ':''}temperaturen: modelmix${i>=7?' · langere termijn, grotere onzekerheid':''}</div>${extra}</article>`
+  return `<article class="ricoWeatherCard"><div class="ricoWeatherTitle"><span>${safe(dayLabel(d.date))}</span><span>${good.length}/25</span></div><div class="ricoWeatherMap" id="ricoWeatherMap${i}" aria-label="Landelijk weerbeeld ${safe(dayLabel(d.date))}"></div><div class="ricoWeatherFoot">${mm!==null?'Landelijke neerslagmediaan '+mm.toFixed(1).replace('.',',')+' mm · ':''}temperaturen: modelmix${i>=10?' · lange termijn, grotere onzekerheid':i>=7?' · langere termijn, grotere onzekerheid':''}</div>${extra}</article>`
  }).join('');
  const rainHost=host.querySelector('.ricoAtlasRain');if(rainHost)rainHost.remove();host.querySelector('.ricoWeatherGrid').insertAdjacentHTML('afterend',atlasRainSummary(valid));
  // Alleen bestaande kaartbibliotheek en OSM-kaarttegels. Geen weer-API-calls.
@@ -4516,7 +4516,7 @@ function updateWeatherAtlas(){
     ['IJmuiden','Amsterdam','Haarlem'],
     ['Enschede','Winterswijk','Emmen'],
     ['Rotterdam','Scheveningen','Den Haag'],
-    ['Utrecht','Lelystad','Arnhem'],
+    ['Emmeloord','Lelystad','Arnhem','Apeldoorn'],
     ['Vlissingen','Breda'],
     ['Maastricht','Eindhoven','Venlo']
    ];
@@ -4539,7 +4539,7 @@ function updateWeatherAtlas(){
     const popup=`<b>${safe(p.point.n)}</b><br>Max ${max}°${min!==null?' · min '+min+'°':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen`;
     // De midden-Nederlandse temperatuur en het symbool iets oostelijker plaatsen.
     // De bronlocatie en de popup blijven ongewijzigd.
-    const centerGroup=['Utrecht','Lelystad','Arnhem'];
+    const centerGroup=['Emmeloord','Lelystad','Arnhem','Apeldoorn'];
     const middlePoint=chosen.find(x=>centerGroup.includes(x.point.n));
     const shiftMiddle=middlePoint===p;
     L.marker([p.point.lat, p.point.lon+(shiftMiddle?0.24:0)],{icon}).bindPopup(popup).addTo(map);
@@ -4550,7 +4550,7 @@ function updateWeatherAtlas(){
    // anchor: coast links uitlijnen, oost rechts uitlijnen, midden centreren.
    const windSpots=[
     {lat:52.65,lon:3.35,anchor:[0,13],names:['Den Helder','IJmuiden','Texel','Terschelling']},
-    {lat:51.43,lon:5.45,anchor:[39,13],names:['Utrecht','Lelystad','Arnhem','Amersfoort']},
+    {lat:51.43,lon:5.45,anchor:[39,13],names:['Emmeloord','Lelystad','Arnhem','Amersfoort']},
     {lat:52.78,lon:7.20,anchor:[78,13],names:['Enschede','Winterswijk','Emmen','Groningen']}
    ];
    function beaufort(kmh){const m=kmh/3.6;return [0.3,1.6,3.4,5.5,8.0,10.8,13.9,17.2,20.8,24.5,28.5,32.7].findIndex(x=>m<x)===-1?12:[0.3,1.6,3.4,5.5,8.0,10.8,13.9,17.2,20.8,24.5,28.5,32.7].findIndex(x=>m<x)}
@@ -4571,7 +4571,7 @@ function install(){
  const panel=document.getElementById('nationalScanPanel');if(!panel)return;
  if(!document.getElementById('ricoWeatherAtlas')){
   const section=document.createElement('section');section.id='ricoWeatherAtlas';
-  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 10 dagen</div><div class="note">Landelijke modelmix op dezelfde 25 scanpunten. 8 geografisch gespreide locaties en windkracht op 3 plekken per kaart; geen extra Open-Meteo-verzoeken. Weersymbolen zijn indicaties op basis van dagneerslag en zonuren, geen dagdeelverwachtingen.</div><div class="ricoWeatherGrid"></div>';
+  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 15 dagen</div><div class="note">Landelijke modelmix op dezelfde 25 scanpunten. 8 geografisch gespreide locaties en windkracht op 3 plekken per kaart; geen extra Open-Meteo-verzoeken. Weersymbolen zijn indicaties op basis van dagneerslag en zonuren, geen dagdeelverwachtingen.</div><div class="ricoWeatherGrid"></div>';
   const map=panel.querySelector('.ricomapPanel');if(map)map.insertAdjacentElement('beforebegin',section);else panel.appendChild(section);
  }
  // Koppel aan bestaande landelijke scanweergave, inclusief cacheherstel.
