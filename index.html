@@ -443,6 +443,27 @@ body{min-width:0}
  }
 function withSlot(work){return new Promise((resolve,reject)=>{queue.push({work,resolve,reject});pump()})}function pump(){while(inFlight<MAX_PARALLEL&&queue.length){const item=queue.shift();inFlight++;Promise.resolve().then(item.work).then(item.resolve,item.reject).finally(()=>{inFlight--;pump()})}}
  try{entries=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(entries))entries=[]}catch(e){entries=[]}
+ // API-spaarstand: voorkom zekere buiten-domein-aanvragen; twijfelgevallen
+ // worden na een echte 400-fout tijdelijk onthouden per volledige URL.
+ const NEGATIVE_KEY='rico-api-negative-v1';
+ let negative={};try{negative=JSON.parse(localStorage.getItem(NEGATIVE_KEY)||'{}')||{}}catch(e){}
+ const rememberNegative=(url,ms)=>{negative[url]=Date.now()+ms;
+   const keys=Object.keys(negative).filter(k=>negative[k]>Date.now()).slice(-120);
+   negative=Object.fromEntries(keys.map(k=>[k,negative[k]]));
+   try{localStorage.setItem(NEGATIVE_KEY,JSON.stringify(negative))}catch(e){}
+ };
+ function outsideKnownDomain(url){try{
+   const u=new URL(url,location.href),q=u.searchParams;
+   const lat=Number(q.get('latitude')),lon=Number(q.get('longitude'));
+   if(!Number.isFinite(lat)||!Number.isFinite(lon))return false;
+   const model=(q.get('models')||'').toLowerCase();
+   // Conservatieve geografische grenzen; grensgevallen worden door API beslist.
+   if(model.includes('knmi_harmonie_arome_netherlands'))return lat<49||lat>55.8||lon<1.5||lon>8.5;
+   if(model.includes('icon_d2'))return lat<43||lat>58||lon< -4||lon>20;
+   if(model.includes('meteofrance_arome_france'))return lat<37||lat>55||lon< -12||lon>18;
+   return false;
+ }catch(e){return false}}
+ function blockedResponse(reason){return new Response(JSON.stringify({error:true,reason}),{status:400,headers:{'Content-Type':'application/json'}})}
  const isWeather=u=>{try{return /(^|\.)open-meteo\.com$/i.test(new URL(u,location.href).hostname)}catch(e){return false}};
  const nameOf=u=>{try{const x=new URL(u,location.href),q=x.searchParams;return (x.hostname.split('.')[0]||'api')+'/'+x.pathname.split('/').filter(Boolean).slice(-1)[0]+' · '+(q.get('models')||q.get('model')||'algemeen').slice(0,55)}catch(e){return 'onbekend'}};
  function log(rec){entries.push(rec);entries=entries.slice(-300);try{localStorage.setItem(KEY,JSON.stringify(entries))}catch(e){};if(window.ricoweerApiLogRender)window.ricoweerApiLogRender()}
@@ -451,6 +472,8 @@ function withSlot(work){return new Promise((resolve,reject)=>{queue.push({work,r
    if(!url||!isWeather(url))return rawFetch(input,init);
    const method=(init?.method||input?.method||'GET').toUpperCase();
    if(method!=='GET')return rawFetch(input,init);
+   if(outsideKnownDomain(url)){blocked++;return blockedResponse('Model buiten geografisch bereik voor deze locatie')}
+   if(negative[url]>Date.now()){blocked++;return blockedResponse('Model/run eerder niet beschikbaar; nieuwe poging tijdelijk uitgesteld')}
    const stored=await getStored(url),ttl=cacheTTL(url);
    if(stored&&Date.now()-stored.at<ttl){cacheHits++;return stored.response.clone()}
    if(invalidUntil.get(url)>Date.now()){blocked++;if(stored){staleHits++;return stored.response.clone()}
@@ -468,6 +491,8 @@ function withSlot(work){return new Promise((resolve,reject)=>{queue.push({work,r
        log({at:Date.now(),endpoint:nameOf(url),status:response.status,reason,limited,concurrentLimit,ms:Date.now()-started});
        if(response.ok){ricoApiRecovered();await store(url,response);return response}
        if(response.status===400&&/invalid value|invalid string value|cannot initialize multidomains/i.test(reason))invalidUntil.set(url,Date.now()+6*3600000);
+       if(response.status===400&&/no data is available for this location/i.test(reason))rememberNegative(url,6*3600000);
+       if(response.status===400&&/requested model run is not available/i.test(reason))rememberNegative(url,2*3600000);
        if(stored&&(response.status===429||response.status===503||response.status>=500)){
          staleHits++;return stored.response.clone();
        }
@@ -2073,13 +2098,13 @@ function gfs0012Candidates(){
   for(let backDay=0;backDay<6;backDay++){
     for(const h of [12,0]){
       const d=new Date(Date.UTC(anchor.getUTCFullYear(),anchor.getUTCMonth(),anchor.getUTCDate()-backDay,h,0,0));
-      if(d<=anchor)out.push(d);
+      if(d<=anchor && (!auto || anchor.getTime()-d.getTime()>=7*3600000))out.push(d);
     }
   }
   return out.sort((a,b)=>b-a);
 }
 async function fetchFixedGfs0012(candidate){
-  const lat='52.019260',lon='5.172830',run=candidate.toISOString().slice(0,16);const codes=['ncep_gfs_global','gfs_global'];let err=null;
+  const lat='52.019260',lon='5.172830',run=candidate.toISOString().slice(0,16);const codes=['ncep_gfs_global'];let err=null;
   for(const code of codes){try{const u=`https://single-runs-api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&run=${encodeURIComponent(run)}&models=${encodeURIComponent(code)}&hourly=temperature_2m&timezone=Europe%2FAmsterdam&forecast_hours=384`;const r=await fetch(u,{cache:'no-store'}),j=await r.json();if(!r.ok||j.error)throw new Error(j.reason||`HTTP ${r.status}`);if(!j.hourly?.time)throw new Error('Geen uurgegevens');const rows=hourlyToDaily(j.hourly);if(!rows.length)throw new Error('Geen dagwaarden');rows._fixedRun=run;return rows}catch(e){err=e}}
   throw err||new Error('GFS-run niet beschikbaar');
 }
