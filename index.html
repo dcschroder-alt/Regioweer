@@ -241,6 +241,16 @@ body{min-width:0}
 .rwDayTabs{display:flex;gap:8px;flex-wrap:wrap;margin:13px 0}.rwDayTabs button{border:1px solid #cad8e9;background:#f4f8fe;border-radius:22px;padding:10px 14px;font:inherit;font-weight:750;color:#254466;cursor:pointer}.rwDayTabs button.active{background:#2555c5;color:white;border-color:#2555c5}.rwOverviewExtra{margin-top:16px;display:grid;gap:14px}.rwExtraCard{border:1px solid #d6e2ed;border-radius:17px;padding:14px;background:#f7faff}.rwExtraCard h3{margin:0 0 10px;font-size:1.04rem}.rwMiniChart{width:100%;height:auto;display:block}.rwExtraText{line-height:1.6}.rwExtraMeta{color:#5b6e80;font-size:.87em;margin-top:6px}
 
 #modelStatusSummary{display:list-item;cursor:pointer;list-style:revert;user-select:none;touch-action:manipulation;padding:8px 4px}#modelStatusSummary:focus-visible{outline:2px solid #2563eb;outline-offset:3px}
+
+/* Wereldweer nieuws v17 */
+#worldNewsPanel summary{cursor:pointer;font-weight:850;font-size:17px;touch-action:manipulation;padding:5px 0}
+.worldNewsActions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0}
+.worldNewsList{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:10px;margin-top:12px}
+.worldNewsCard{padding:13px;border:1px solid var(--border,#9995);border-radius:12px;background:var(--card,#fff);min-width:0}
+.worldNewsCard a{color:inherit;font-weight:750;text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}
+.worldNewsCard .newsMeta{font-size:12px;opacity:.78;margin-top:7px}
+.worldNewsTag{font-size:12px;font-weight:700;display:inline-block;margin-bottom:7px;padding:3px 7px;border-radius:8px;background:#dcebf8;color:#183c63}
+@media(prefers-color-scheme:dark){.worldNewsTag{background:#253d57;color:#dce9f8}}
 </style></style>
 
 <style>
@@ -406,6 +416,14 @@ body{min-width:0}
  </div><div class="note">Normaal: voorgaande 30 kalenderjaren (2026 → 1996–2025). Bij een lopende maand wordt dezelfde periode t/m de laatste beschikbare dag vergeleken. Voor stations met een kortere meetreeks gebruiken we de beschikbare complete referentiejaren (maximaal 30). Historische records gebruiken de beschikbare meetreeks; bij een lopende maand wordt dezelfde periode vergeleken.</div></section>
 <section class="panel climateHero" id="climatePanel"><div class="climateTop"><div><div style="font-weight:900;font-size:18px">📊 Deze maand · klimaatmonitor</div><div class="note" id="climateSubtitle">Lopende maand, 30-jarig normaal en verwachting.</div></div><button class="ghost" id="climateRefresh" type="button">↻ Klimaat</button></div><div id="climateStatus" class="status">Klimaatgegevens worden geladen…</div><div id="climateBody" class="hidden"><div id="climateLive" class="climateLive hidden"></div><div class="climateGrid" id="climateGrid"></div><div class="climateForecast" id="climateForecast"></div><div id="climateSummary"></div><div style="font-weight:850;margin-top:13px">Temperatuurdagen sinds 1 januari</div><div class="climateDays" id="climateDays"></div><div class="note" id="climateDaysNote"></div><details style="margin-top:12px"><summary style="font-weight:850;cursor:pointer">📅 Dagarchief & klimaatgemiddelden</summary><div class="climateArchive"><input id="climateDate" type="date"><button class="ghost" id="climateLookup" type="button">Datum bekijken</button></div><div id="climateArchiveResult" class="climateArchiveResult">Kies een datum.</div><div style="font-weight:800;margin-top:11px">30-jarige klimaatgemiddelden</div><div class="note">Gemiddelde temperatuur van deze maand per 30-jarige referentieperiode.</div><div id="climateDecades" class="climateDecades"></div></details><div class="note">Klimaatgegevens: temperatuur, neerslag en extremen/records De Bilt (260) · zonneschijnduur gemiddelde van Den Helder, Eelde, De Bilt, Vlissingen en Maastricht. Temperatuurverificatie gebruikt voor Houten de ochtend-modelmix als vaste referentie. Recente TX/TN komen voorlopig uit Weerstatistieken; officiële KNMI-dagwaarden krijgen automatisch voorrang. Het lopende 30-jarige normaal schuift ieder jaar één jaar op.</div></div></section>
 
+
+<section class="panel" id="worldNewsPanel">
+<details id="worldNewsDetails"><summary>🌍 Wereldweer in het nieuws</summary>
+<div class="note">Actuele internationale berichten over extreem weer, aangevuld met bijzonder weernieuws. Titels komen rechtstreeks van nieuwsbronnen; open de bron voor het volledige verhaal. Geen Open-Meteo-verzoeken.</div>
+<div class="worldNewsActions"><button type="button" class="ghost" id="worldNewsRefresh">↻ Nieuws verversen</button><span class="note" id="worldNewsStatus" role="status" aria-live="polite">Open dit onderdeel om wereldweernieuws te laden.</span></div>
+<div class="worldNewsList" id="worldNewsList"></div>
+<div class="note" id="worldNewsFoot">Nieuwsbron: GDELT, met links naar de oorspronkelijke publicaties. Maximaal acht berichten; gegevens maximaal zes uur gecachet. Nieuws kan wijzigen of later worden gecorrigeerd.</div>
+</details></section>
 <section class="panel hidden" id="practicalPanel"><div style="font-weight:850;font-size:17px">Praktisch</div><div class="note">Alleen tips die op basis van de modelmix echt iets toevoegen.</div><div id="practicalGrid" class="practicalGrid"></div></section>
 <section class="panel hidden" id="changesPanel"><div style="font-weight:850;font-size:17px">Wat is veranderd?</div><div class="note">Vergelijking met de vorige keer dat je deze plaats en modelkeuze ophaalde.</div><div id="changesList" class="changeList"></div></section>
 <section class="panel hidden" id="modelStatusPanel"><details id="modelStatusDetails"><summary id="modelStatusSummary" style="font-weight:850;font-size:17px;cursor:pointer">Modelstatus</summary><div class="note">Run, leeftijd, cacheherkomst en deelname aan de modelmix voor morgen. Deze controle doet geen extra API-aanvragen.</div><div id="modelStatusGrid" class="modelStatusGrid"><div class="modelPill">Modelgegevens worden geladen. Open de modelmix of ververs de verwachting om de status te tonen.</div></div></details></section>
@@ -4868,4 +4886,36 @@ function renderDailyScan(p){let el=$('ricoDailyScan');if(p!=='day'){el.style.dis
 function init(){if(!window.ricoKnmi||ready)return;temp=window.ricoKnmi;ti=buildIndex(temp.rows);let s=$('ricoExtStation'),period=$('ricoExtPeriod');let names=temp.names;s.add(new Option('🇳🇱 Alle 34 stations – landelijke records','0'));for(let st of [...SELECTED_STATIONS].sort((a,b)=>(names[a]||'').localeCompare(names[b]||'')))s.add(new Option(names[st]||'Station '+st,st));s.value='260';for(let op of $('statsMonth').options)period.add(new Option(op.text,op.value));for(let month=1;month<=12;month++)for(let decade=1;decade<=3;decade++)period.add(new Option((['1e','2e','3e'][decade-1])+' decade '+months[month-1],'dec-'+month+'-'+decade));period.add(new Option('📅 Kalenderdag (dagrecords)','day'));let daySelect=$('ricoDay');for(let month=1;month<=12;month++)for(let d=1;d<=new Date(2024,month,0).getDate();d++){let md=String(month).padStart(2,'0')+String(d).padStart(2,'0');daySelect.add(new Option(d+' '+months[month-1],md))}daySelect.value='1017';period.value='10';['ricoDay','ricoExtStation','ricoNationalMode','ricoExtPeriod','ricoExtMetric','ricoExtCount'].forEach(id=>$(id).addEventListener('change',render));$('ricoExtStatus').textContent='Grondvorstgegevens laden…';fetch('./knmi-grondvorst-1901-2026.json',{cache:'force-cache'}).then(r=>{if(!r.ok)throw Error('HTTP '+r.status);return r.json()}).then(data=>{ground=data.rows;gi=buildIndex(ground);ready=true;render()}).catch(e=>{$('ricoExtStatus').textContent='Grondvorstbestand ontbreekt: '+e.message;ready=true;render()})}
 window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window.ricoKnmi;ti=buildIndex(temp.rows);render()}});if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
-</script></body></html>
+</script>
+<script>
+/* Ricoweer v17: losstaande, zuinige wereldweer-nieuwsfeed. Geen weersmodel-aanvragen. */
+(()=>{
+'use strict';
+const KEY='ricoweer-world-news-v17', TTL=6*60*60*1000;
+const $id=id=>document.getElementById(id);
+const query='("extreme weather" OR "flash floods" OR "severe flooding" OR "hurricane" OR "typhoon" OR "heatwave" OR "wildfires" OR "blizzard" OR "record temperature" OR "heavy snowfall" OR "tornado") sourcelang:english';
+const api='https://api.gdeltproject.org/api/v2/doc/doc?'+new URLSearchParams({query,mode:'artlist',format:'json',maxrecords:'75',timespan:'3d',sort:'datedesc'}).toString();
+const categories=[
+ [/hurricane|typhoon|cyclone|tropical storm/i,'🌀 Tropische storm'],
+ [/flood|heavy rain|rainfall|deluge/i,'🌧️ Overstromingen / regen'],
+ [/heatwave|heat wave|record heat|high temperature/i,'🌡️ Extreme hitte'],
+ [/blizzard|snowstorm|heavy snow|record snow|winter storm/i,'❄️ Sneeuw / winterweer'],
+ [/wildfire|bushfire|forest fire/i,'🔥 Natuurbrand'],
+ [/tornado|severe storm|thunderstorm|windstorm/i,'⛈️ Zwaar onweer / storm'],
+ [/drought/i,'🌵 Droogte'],
+ [/cold wave|record cold|extreme cold/i,'🥶 Extreme kou']
+];
+function tag(title){return (categories.find(([re])=>re.test(title))||[null,'🌍 Bijzonder weernieuws'])[1]}
+function safeUrl(u){try{const x=new URL(u);return ['https:','http:'].includes(x.protocol)?x.href:null}catch{return null}}
+function dateFor(raw){if(!raw)return null;let d;if(/^\d{14}$/.test(raw))d=new Date(raw.slice(0,4)+'-'+raw.slice(4,6)+'-'+raw.slice(6,8)+'T'+raw.slice(8,10)+':'+raw.slice(10,12)+':'+raw.slice(12,14)+'Z');else d=new Date(raw);return Number.isFinite(d.getTime())?d:null}
+function clean(a){if(!a||typeof a.title!=='string')return null;const url=safeUrl(a.url);if(!url)return null;const title=a.title.replace(/\s+/g,' ').trim();if(title.length<18)return null;const date=dateFor(a.seendate||a.date);return {title:title.slice(0,220),url,domain:String(a.domain||new URL(url).hostname).slice(0,80),date:date?date.toISOString():null,tag:tag(title)}}
+function render(items,at,stale){const list=$id('worldNewsList');list.replaceChildren();for(const item of items){const card=document.createElement('article');card.className='worldNewsCard';const label=document.createElement('span');label.className='worldNewsTag';label.textContent=item.tag;const link=document.createElement('a');link.href=item.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=item.title;const meta=document.createElement('div');meta.className='newsMeta';meta.textContent=item.domain+(item.date?' · '+new Date(item.date).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'');card.append(label,document.createElement('br'),link,meta);list.append(card)}
+const time=at?new Date(at).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'onbekend';$id('worldNewsStatus').textContent=items.length?(items.length+' berichten · opgehaald '+time+(stale?' · opgeslagen versie':' · actueel')):'Geen relevante berichten beschikbaar.'}
+function readCache(){try{const c=JSON.parse(localStorage.getItem(KEY)||'null');return c&&Array.isArray(c.items)&&Number.isFinite(c.at)?c:null}catch{return null}}
+let pending=null;
+async function load(force=false){if(pending)return pending;const cache=readCache();if(cache){render(cache.items,cache.at,false);if(!force&&Date.now()-cache.at<TTL)return}const button=$id('worldNewsRefresh');button.disabled=true;$id('worldNewsStatus').textContent=cache?'Nieuws bijwerken…':'Nieuws ophalen…';pending=(async()=>{try{const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),12000);let resp;try{resp=await fetch(api,{signal:ctrl.signal,cache:'no-store',headers:{Accept:'application/json'}})}finally{clearTimeout(timer)}if(!resp.ok)throw new Error('HTTP '+resp.status);const json=await resp.json();if(!Array.isArray(json.articles))throw new Error('Geen artikelen in antwoord');const seen=new Set(), items=[];for(const raw of json.articles){const item=clean(raw);if(!item)continue;const key=item.url.split('?')[0];if(seen.has(key))continue;seen.add(key);items.push(item);if(items.length>=8)break}if(!items.length)throw new Error('Geen geschikte berichten');const at=Date.now();try{localStorage.setItem(KEY,JSON.stringify({at,items}))}catch{}render(items,at,false)}catch(e){if(cache){render(cache.items,cache.at,true);$id('worldNewsStatus').textContent+=' · Nieuwsbron tijdelijk niet bereikbaar'}else{$id('worldNewsList').replaceChildren();$id('worldNewsStatus').textContent='Nieuwsbron tijdelijk niet bereikbaar. Probeer later opnieuw.'} }finally{button.disabled=false;pending=null}})();return pending}
+function init(){const details=$id('worldNewsDetails');if(!details)return;details.addEventListener('toggle',()=>{if(details.open)load(false)});$id('worldNewsRefresh').addEventListener('click',()=>load(true));if(details.open)load(false)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+</body></html>
