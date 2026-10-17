@@ -4592,6 +4592,8 @@ const $=id=>document.getElementById(id);
 const months=['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
 let rows=[], names={}, lastUpdate='', loading=false, index=new Map();
 function rebuildIndex(){index=new Map();for(const r of rows){const key=r[0]+'_'+Math.floor(r[1]/10000);if(!index.has(key))index.set(key,[]);index.get(key).push(r)}}
+function mergeArcenHorst(){const merged=new Map();for(const r of rows){const st=r[0]===391?392:r[0],key=st+'_'+r[1];const old=merged.get(key);if(!old||r[0]===392)merged.set(key,[st,...r.slice(1)])}rows=[...merged.values()];names[392]='Horst (voorheen Arcen)';delete names[391]}
+
 const metricValue=(r,m)=>m==='tg'?r[2]:m==='txavg'||m==='txmax'?r[4]:m==='tnavg'||m==='tnmin'?r[3]:m==='warm'||m==='summer'||m==='tropical'||m==='hot35'||m==='ice'?r[4]:r[3];
 function stat(list,m){let a=list.map(r=>metricValue(r,m)).filter(v=>v!==null&&Number.isFinite(v));if(!a.length)return {v:null,days:0};if(m==='tg'||m==='txavg'||m==='tnavg')return {v:a.reduce((s,v)=>s+v,0)/a.length/10,days:a.length};if(m==='txmax')return {v:Math.max(...a)/10,days:a.length};if(m==='tnmin')return {v:Math.min(...a)/10,days:a.length};const hits={warm:v=>v>=200,summer:v=>v>=250,tropical:v=>v>=300,hot35:v=>v>=350,frost:v=>v<0,moderate:v=>v< -50,severe:v=>v< -100,ice:v=>v<0,tropicalNight:v=>v>=200};return {v:a.filter(hits[m]||(()=>false)).length,days:a.length}}
 function subset(st,y,mo,cut){return (index.get(st+'_'+y)||[]).filter(r=>(!mo||Math.floor(r[1]/100)%100===mo)&&(!cut||r[1]%10000<=cut))}
@@ -4649,8 +4651,49 @@ function render(){
  $('statsResult').innerHTML=html+'</tbody></table>';
 }
 function refreshSelectors(){let oldYear=$('statsYear').value,oldStation=$('statsStation').value;let ys=[...new Set(rows.map(r=>Math.floor(r[1]/10000)))].sort((a,b)=>b-a);$('statsYear').replaceChildren(...ys.map(y=>new Option(y,y)));if(ys.includes(+oldYear))$('statsYear').value=oldYear;let stns=[...new Set(rows.map(r=>r[0]))].sort((a,b)=>a-b);$('statsStation').replaceChildren(...stns.map(st=>new Option(names[st]||'Station '+st,st)));$('statsStation').value=stns.includes(+oldStation)?oldStation:260;let latest=rows.reduce((a,r)=>Math.max(a,r[1]),0);$('statsStatus').textContent=rows.length.toLocaleString('nl-NL')+' dagregels · '+stns.length+' stations · t/m '+String(latest).slice(6,8)+'-'+String(latest).slice(4,6)+'-'+String(latest).slice(0,4)+(lastUpdate?' · '+lastUpdate:'');render()}
-async function daily(force=false){if(loading)return;loading=true;let btn=$('statsRefresh');btn.disabled=true;let old=$('statsStatus').textContent;$('statsStatus').textContent='Nieuwe KNMI-dagwaarden ophalen…';try{let max=rows.reduce((a,r)=>Math.max(a,r[1]),0),start=new Date(String(max).slice(0,4)+'-'+String(max).slice(4,6)+'-'+String(max).slice(6,8)+'T12:00:00Z');start.setUTCDate(start.getUTCDate()-3);let ymd=d=>d.toISOString().slice(0,10).replaceAll('-','');let today=new Date(),stns=[...new Set(rows.map(r=>r[0]))];let form=new URLSearchParams({stns:stns.join(':'),vars:'TG:TN:TX',start:ymd(start),end:ymd(today)});let response=await fetch('https://www.daggegevens.knmi.nl/klimatologie/daggegevens',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:form.toString(),cache:'no-store'});if(!response.ok)throw Error('KNMI HTTP '+response.status);let txt=await response.text(),header=null,updates=[];for(let line of txt.split(/\r?\n/)){if(line.startsWith('#')){let h=line.replace(/^#\s*/,'').split(',').map(v=>v.trim());if(h.includes('STN')&&h.includes('YYYYMMDD'))header=h;continue}if(!header||!/^\s*\d{3},/.test(line))continue;let a=line.split(',').map(v=>v.trim()),get=k=>a[header.indexOf(k)],v=k=>get(k)===''?null:Number(get(k));let st=v('STN'),d=v('YYYYMMDD');if(!st||!d)continue;updates.push([st,d,v('TG'),v('TN'),v('TX')])}if(!updates.length)throw Error('KNMI heeft nog geen nieuwe waarden geleverd');let map=new Map(rows.map(r=>[r[0]+'_'+r[1],r]));for(let r of updates)map.set(r[0]+'_'+r[1],r);rows=[...map.values()];rebuildIndex();lastUpdate='KNMI bijgewerkt';try{localStorage.setItem('ricoweer_knmi_recent_v2',JSON.stringify(updates))}catch(e){}refreshSelectors()}catch(e){lastUpdate='Automatische update niet beschikbaar ('+e.message+')';$('statsStatus').textContent=old+' · '+lastUpdate}finally{loading=false;btn.disabled=false;localStorage.setItem('ricoweer_knmi_check_v2',String(Date.now()))}}
-async function init(){for(let i=1;i<=12;i++)$('statsMonth').add(new Option(months[i-1],i));$('statsStatus').textContent='Historische KNMI-gegevens laden…';try{let res=await fetch('./knmi-nederland-1901-2026.json',{cache:'force-cache'});if(!res.ok)throw Error('HTTP '+res.status);let data=await res.json();rows=data.rows;names=data.names;let saved=JSON.parse(localStorage.getItem('ricoweer_knmi_recent_v2')||'[]');if(saved.length){let map=new Map(rows.map(r=>[r[0]+'_'+r[1],r]));for(let r of saved)map.set(r[0]+'_'+r[1],r);rows=[...map.values()]}rebuildIndex();refreshSelectors();if(Date.now()-Number(localStorage.getItem('ricoweer_knmi_check_v2')||0)>6*3600000)daily()}catch(e){$('statsStatus').textContent='Historische gegevens niet bereikbaar: '+e.message}}
+async function daily(force=false){
+ if(loading)return;loading=true;const btn=$('statsRefresh');btn.disabled=true;
+ const old=$('statsStatus').textContent;$('statsStatus').textContent='Nieuwe KNMI-dagwaarden ophalen…';
+ try{
+  const max=rows.reduce((a,r)=>Math.max(a,r[1]),0);
+  const start=new Date(String(max).slice(0,4)+'-'+String(max).slice(4,6)+'-'+String(max).slice(6,8)+'T12:00:00Z');start.setUTCDate(start.getUTCDate()-3);
+  const ymd=d=>d.toISOString().slice(0,10).replaceAll('-','');
+  const stationIds=[...new Set(rows.map(r=>r[0]))].filter(st=>st!==392);
+  // Vraag in kleinere groepen op: een verzoek voor alle stations wordt soms door KNMI geweigerd.
+  const groups=[];for(let i=0;i<stationIds.length;i+=10)groups.push(stationIds.slice(i,i+10));
+  groups.push([391,392]);
+  let updates=[],failed=0;
+  for(const group of groups){
+   const form=new URLSearchParams({stns:group.join(':'),vars:'TG:TN:TX',start:ymd(start),end:ymd(new Date())});
+   try{
+    let response;
+    // De KNMI-daggegevenspagina ondersteunt een formulier-POST; probeer GET als fallback.
+    try{response=await fetch('https://www.daggegevens.knmi.nl/klimatologie/daggegevens',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body:form.toString(),cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status)}
+    catch(e){response=await fetch('https://www.daggegevens.knmi.nl/klimatologie/daggegevens?'+form.toString(),{cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status)}
+    const txt=await response.text();let header=null;
+    for(const line of txt.split(/\r?\n/)){
+     if(line.startsWith('#')){const h=line.replace(/^#\s*/,'').split(',').map(v=>v.trim());if(h.includes('STN')&&h.includes('YYYYMMDD'))header=h;continue}
+     if(!header||!/^\s*\d{3},/.test(line))continue;
+     const a=line.split(',').map(v=>v.trim()),get=k=>a[header.indexOf(k)],v=k=>get(k)===''?null:Number(get(k));
+     const st=v('STN'),d=v('YYYYMMDD');if(!st||!d)continue;
+     updates.push([st===391?392:st,d,v('TG'),v('TN'),v('TX')]);
+    }
+   }catch(e){failed++}
+  }
+  if(!updates.length)throw Error('geen nieuwe dagwaarden ontvangen; controleer KNMI-toegang/CORS');
+  const map=new Map(rows.map(r=>[r[0]+'_'+r[1],r]));
+  // Bij overlap heeft Horst (392) voorrang op Arcen (391).
+  for(const r of updates)map.set(r[0]+'_'+r[1],r);
+  rows=[...map.values()];mergeArcenHorst();rebuildIndex();
+  const recent=rows.filter(r=>r[1]>=Number(ymd(start)));
+  try{localStorage.setItem('ricoweer_knmi_recent_v2',JSON.stringify(recent))}catch(e){}
+  const latest=rows.reduce((a,r)=>Math.max(a,r[1]),0);
+  lastUpdate='KNMI t/m '+String(latest).slice(6,8)+'-'+String(latest).slice(4,6)+'-'+String(latest).slice(0,4)+(failed?' · '+failed+' groepen niet bereikbaar':'');
+  refreshSelectors();
+ }catch(e){lastUpdate='Update mislukt: '+e.message;$('statsStatus').textContent=old+' · '+lastUpdate}
+ finally{loading=false;btn.disabled=false;try{localStorage.setItem('ricoweer_knmi_check_v2',String(Date.now()))}catch(e){}}
+}
+async function init(){for(let i=1;i<=12;i++)$('statsMonth').add(new Option(months[i-1],i));$('statsStatus').textContent='Historische KNMI-gegevens laden…';try{let res=await fetch('./knmi-nederland-1901-2026.json',{cache:'force-cache'});if(!res.ok)throw Error('HTTP '+res.status);let data=await res.json();rows=data.rows;names=data.names;let saved=JSON.parse(localStorage.getItem('ricoweer_knmi_recent_v2')||'[]');if(saved.length){let map=new Map(rows.map(r=>[r[0]+'_'+r[1],r]));for(let r of saved)map.set(r[0]+'_'+r[1],r);rows=[...map.values()]}mergeArcenHorst();rebuildIndex();refreshSelectors();if(Date.now()-Number(localStorage.getItem('ricoweer_knmi_check_v2')||0)>6*3600000)daily()}catch(e){$('statsStatus').textContent='Historische gegevens niet bereikbaar: '+e.message}}
 $('statsRefresh').addEventListener('click',()=>daily(true));['statsView','statsYear','statsMonth','statsMetric','statsStation'].forEach(id=>$(id).addEventListener('change',render));init();
 })();
 </script></body></html>
