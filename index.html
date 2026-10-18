@@ -401,7 +401,7 @@ body{min-width:0}
  <div class="v34toolbar" style="display:flex;flex-wrap:wrap;gap:10px">
  <label>Station <select id="ricoExtStation"></select></label><label id="ricoNationalModeWrap" style="display:none">Landelijk overzicht <select id="ricoNationalMode"><option value="all">Historische top (alle stations)</option><option value="station">Record per station</option></select></label>
  <label>Periode <select id="ricoExtPeriod"></select></label>
- <label>Statistiek <select id="ricoExtMetric"><option value="tg_hi">Warmste gemiddelde temperatuur</option><option value="tg_lo">Koudste gemiddelde temperatuur</option><option value="tx_hi">Hoogste maximumtemperatuur</option><option value="tn_lo">Laagste minimumtemperatuur</option><option value="warm_hi">Meeste warme dagen ≥20°C</option><option value="warm_lo">Minste warme dagen ≥20°C</option><option value="summer_hi">Meeste zomerse dagen ≥25°C</option><option value="tropical_hi">Meeste tropische dagen ≥30°C</option><option value="frost_hi">Meeste vorstdagen</option><option value="ice_hi">Meeste ijsdagen</option><option value="ground_hi">Meeste grondvorstdagen (T10N &lt;0°C)</option><option value="ground_lo">Minste grondvorstdagen</option><option value="first15">Eerste dag ≥15°C</option><option value="last15">Laatste dag ≥15°C</option><option value="first20">Eerste dag ≥20°C</option><option value="last20">Laatste dag ≥20°C</option><option value="first25">Eerste dag ≥25°C</option><option value="last25">Laatste dag ≥25°C</option><option value="first30">Eerste dag ≥30°C</option><option value="last30">Laatste dag ≥30°C</option><option value="ground_first">Eerste grondvorst (vorstjaar juli–juni)</option><option value="ground_last">Laatste grondvorst (vorstjaar juli–juni)</option></select></label>
+ <label>Statistiek <select id="ricoExtMetric"><option value="tg_hi">Warmste gemiddelde temperatuur</option><option value="tg_lo">Koudste gemiddelde temperatuur</option><option value="tx_hi">Hoogste maximumtemperatuur</option><option value="tn_lo">Laagste minimumtemperatuur</option><option value="warm_hi">Meeste warme dagen ≥20°C</option><option value="warm_lo">Minste warme dagen ≥20°C</option><option value="summer_hi">Meeste zomerse dagen ≥25°C</option><option value="tropical_hi">Meeste tropische dagen ≥30°C</option><option value="frost_hi">Meeste vorstdagen</option><option value="ice_hi">Meeste ijsdagen</option><option value="ground_hi">Meeste grondvorstdagen (T10N &lt;0°C)</option><option value="ground_lo">Minste grondvorstdagen</option><option value="first15">Eerste dag ≥15°C</option><option value="last15">Laatste dag ≥15°C</option><option value="first20">Eerste dag ≥20°C</option><option value="last20">Laatste dag ≥20°C</option><option value="first25">Eerste dag ≥25°C</option><option value="last25">Laatste dag ≥25°C</option><option value="first30">Eerste dag ≥30°C</option><option value="last30">Laatste dag ≥30°C</option><option value="ground_first">Eerste grondvorst (vorstjaar augustus–juli)</option><option value="ground_last">Laatste grondvorst (vorstjaar augustus–juli)</option></select></label>
  <label id="ricoDayWrap" style="display:none">Dag <select id="ricoDay"></select></label><label>Top <select id="ricoExtCount"><option value="10">10</option><option value="20">20</option><option value="50">50</option></select></label>
  </div><div id="ricoDailyScan" style="display:none;margin:12px 0"></div><div id="ricoExtStatus" class="note" style="margin:8px 0">Gegevens voorbereiden…</div><div id="ricoExtResult" style="overflow-x:auto"></div>
  </div><div class="note">Normaal: voorgaande 30 kalenderjaren (2026 → 1996–2025). Bij een lopende maand wordt dezelfde periode t/m de laatste beschikbare dag vergeleken. Voor stations met een kortere meetreeks gebruiken we de beschikbare complete referentiejaren (maximaal 30). Historische records gebruiken de beschikbare meetreeks; bij een lopende maand wordt dezelfde periode vergeleken.</div></section>
@@ -4806,7 +4806,7 @@ $('statsRefresh').addEventListener('click',()=>daily(true));['statsView','statsY
 const $=id=>document.getElementById(id), months=['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
 let temp=null, ground=null, ti=new Map(),gi=new Map(),ready=false;
 const SELECTED_STATIONS=new Set([377, 370, 319, 380, 340, 350, 392, 375, 275, 283, 356, 323, 344, 290, 260, 348, 310, 269, 330, 240, 278, 215, 279, 257, 273, 249, 280, 286, 270, 235, 267, 242, 277, 251]);
-const activeYear=new Date().getFullYear();
+const displayYear=new Date().getFullYear();
 const dayKey=(d)=>String(d).slice(4);
 
 const nice=d=>{let n=String(d);return n.slice(6,8)+'-'+n.slice(4,6)+'-'+n.slice(0,4)};
@@ -4815,13 +4815,13 @@ const yearOf=d=>Math.floor(d/10000);
 const leap=y=>new Date(y,2,0).getDate()===29;
 const days=(a,b)=>Math.round((utc(b)-utc(a))/86400000)+1;
 const season={lente:[[3,1],[5,31],0],zomer:[[6,1],[8,31],0],herfst:[[9,1],[11,30],0],winter:[[12,1],[2,29],1],lentehalf:[[3,1],[4,15],0],zomerhalf:[[6,1],[7,16],0],herfsthalf:[[9,1],[10,15],0],winterhalf:[[12,1],[1,15],1]};
-function bounds(y,p){if(p==='day'){let md=$('ricoDay').value;return [y*10000+Number(md),y*10000+Number(md)]}if(/^dec-\d{1,2}-[123]$/.test(p)){let z=p.split('-'),m=+z[1],n=+z[2],start=n===1?1:n===2?11:21,end=n===1?10:n===2?20:new Date(y,m,0).getDate();return[y*10000+m*100+start,y*10000+m*100+end]}if(p==='vorstjaar')return [(y-1)*10000+701,y*10000+630];if(p==='0')return[y*10000+101,y*10000+1231];if(/^\d+$/.test(p)){let m=+p;return[y*10000+m*100+1,y*10000+m*100+new Date(y,m,0).getDate()]};let q=season[p];if(!q)return[0,0];let endy=y+q[2],endday=Math.min(q[1][1],new Date(endy,q[1][0],0).getDate());return[y*10000+q[0][0]*100+q[0][1],endy*10000+q[1][0]*100+endday]}
+function bounds(y,p){if(p==='day'){let md=$('ricoDay').value;return [y*10000+Number(md),y*10000+Number(md)]}if(/^dec-\d{1,2}-[123]$/.test(p)){let z=p.split('-'),m=+z[1],n=+z[2],start=n===1?1:n===2?11:21,end=n===1?10:n===2?20:new Date(y,m,0).getDate();return[y*10000+m*100+start,y*10000+m*100+end]}if(p==='vorstjaar')return [(y-1)*10000+801,y*10000+731];if(p==='0')return[y*10000+101,y*10000+1231];if(/^\d+$/.test(p)){let m=+p;return[y*10000+m*100+1,y*10000+m*100+new Date(y,m,0).getDate()]};let q=season[p];if(!q)return[0,0];let endy=y+q[2],endday=Math.min(q[1][1],new Date(endy,q[1][0],0).getDate());return[y*10000+q[0][0]*100+q[0][1],endy*10000+q[1][0]*100+endday]}
 function buildIndex(rows){let m=new Map();for(let r of rows){let key=r[0]+'_'+yearOf(r[1]);if(!m.has(key))m.set(key,[]);m.get(key).push(r)}return m}
 function fetchRows(map,st,a,b){let out=[];for(let y=yearOf(a);y<=yearOf(b);y++)for(let r of map.get(st+'_'+y)||[])if(r[1]>=a&&r[1]<=b)out.push(r);return out}
 function series(st,y,p,isGround){let [a,b]=bounds(y,p);return fetchRows(isGround?gi:ti,st,a,b)}
 function record(st,y,p,m){if(m==='ground_first'||m==='ground_last')p='vorstjaar';let g=m.startsWith('ground'),rows=series(st,y,p,g),[a,b]=bounds(y,p),expected=days(a,b),values=rows.map(r=>({d:r[1],v:r[g?2:m.startsWith('tg')?2:m.startsWith('tn')||m==='frost_hi'?3:4]})).filter(o=>Number.isFinite(o.v));
  // Avoid ranking years with incomplete daily observations. Only selected variable is required.
- let partial=values.length<expected;if(partial && y!==activeYear)return null;if(!values.length)return null;
+ let partial=values.length<expected;const currentSeasonYear=(new Date().getMonth()>=7?displayYear+1:displayYear);if(partial && y!==(p==='vorstjaar'?currentSeasonYear:displayYear))return null;if(!values.length)return null;
  let v=null, dates=[];
  if(m==='tg_hi'||m==='tg_lo'){v=values.reduce((s,o)=>s+o.v,0)/values.length/10}
  else if(m==='tx_hi'||m==='tn_lo'){let best=m==='tx_hi'?Math.max(...values.map(o=>o.v)):Math.min(...values.map(o=>o.v));v=best/10;dates=values.filter(o=>o.v===best).map(o=>o.d)}
@@ -4831,29 +4831,29 @@ function record(st,y,p,m){if(m==='ground_first'||m==='ground_last')p='vorstjaar'
  return {year:y,v,dates,n:values.length,partial};}
 function fmt(v,m){if(m==='tg_hi'||m==='tg_lo'||m==='tx_hi'||m==='tn_lo')return v.toFixed(1).replace('.',',')+' °C';if(m.startsWith('first')||m.startsWith('last')||m==='ground_first'||m==='ground_last')return 'dag '+v;return String(v)}
 function render(){if(!ready)return;
- let st=+$('ricoExtStation').value,p=$('ricoExtPeriod').value,m=$('ricoExtMetric').value,count=+$('ricoExtCount').value;
+ let st=+$('ricoExtStation').value,p=$('ricoExtPeriod').value,m=$('ricoExtMetric').value,count=+$('ricoExtCount').value;const displayYear=(m==='ground_first'||m==='ground_last')&&new Date().getMonth()>=7?activeYear+1:activeYear;
  $('ricoDayWrap').style.display=p==='day'?'':'none';
  $('ricoNationalModeWrap').style.display=st===0?'':'none';
  if(st===0){renderNational(p,m,count);renderDailyScan(p);return;}if(!st)return;
- let maxYear=Math.max(...[...ti.keys()].filter(k=>k.startsWith(st+'_')).map(k=>+k.split('_')[1]));
+ let maxYear=Math.max(displayYear,...[...ti.keys()].filter(k=>k.startsWith(st+'_')).map(k=>+k.split('_')[1]));
  let out=[];for(let y=1901;y<=maxYear;y++){let r=record(st,y,p,m);if(r)out.push(r)}
  let low=m.endsWith('_lo')||m==='tn_lo'||m==='tg_lo'||m.startsWith('first')||m==='ground_first';
  out.sort((a,b)=>low?a.v-b.v||a.year-b.year:b.v-a.v||a.year-b.year);
- let current=out.find(x=>x.year===activeYear),shown=out.slice(0,count),rank=current?out.indexOf(current)+1:null;
- $('ricoExtStatus').textContent=out.length+' meetjaren · '+(current?'lopend jaar '+activeYear+' voorlopig op plaats '+rank+' van '+out.length:'lopend jaar nog niet beschikbaar')+' · recente KNMI-dagwaarden kunnen nog voorlopig zijn · onvolledige historische jaren uitgesloten';
+ let current=out.find(x=>x.year===displayYear),shown=out.slice(0,count),rank=current?out.indexOf(current)+1:null;
+ $('ricoExtStatus').textContent=out.length+' meetjaren · '+(current?'lopend jaar '+displayYear+' voorlopig op plaats '+rank+' van '+out.length:'lopend jaar nog niet beschikbaar')+' · recente KNMI-dagwaarden kunnen nog voorlopig zijn · onvolledige historische jaren uitgesloten';
  let html='<table class="cockpitTable"><thead><tr><th>Positie</th><th>Jaar</th><th>Waarde</th><th>Datum(s)</th><th>Geldige dagen</th></tr></thead><tbody>';
- shown.forEach((r,i)=>{html+='<tr'+(r.year===activeYear?' style="background:#e5f5e9"':'')+'><td>'+(i+1)+'</td><td><b>'+r.year+'</b>'+(r.year===activeYear?' · Voorlopig':'')+'</td><td>'+fmt(r.v,m)+'</td><td>'+(r.dates.length?r.dates.map(nice).join(', '):'—')+'</td><td>'+r.n+(r.partial?' / onvolledig':'')+'</td></tr>'});
+ shown.forEach((r,i)=>{html+='<tr'+(r.year===displayYear?' style="background:#e5f5e9"':'')+'><td>'+(i+1)+'</td><td><b>'+r.year+'</b>'+(r.year===displayYear?' · Voorlopig':'')+'</td><td>'+fmt(r.v,m)+'</td><td>'+(r.dates.length?r.dates.map(nice).join(', '):'—')+'</td><td>'+r.n+(r.partial?' / onvolledig':'')+'</td></tr>'});
  html+='</tbody></table>';
- if(current&&rank>count)html+='<p style="padding:10px;background:#e5f5e9;border-radius:8px"><b>'+activeYear+' · Voorlopig</b>: plaats '+rank+' van '+out.length+' · '+fmt(current.v,m)+'</p>';
+ if(current&&rank>count)html+='<p style="padding:10px;background:#e5f5e9;border-radius:8px"><b>'+displayYear+' · Voorlopig</b>: plaats '+rank+' van '+out.length+' · '+fmt(current.v,m)+'</p>';
  $('ricoExtResult').innerHTML=html+(out.length?'':'<p>Geen complete historische meetjaren voor deze selectie.</p>');
  renderDailyScan(p);
 }
 function renderNational(p,m,count){
- const mode=$('ricoNationalMode').value,low=m.endsWith('_lo')||m==='tn_lo'||m==='tg_lo'||m.startsWith('first')||m==='ground_first';
+ const displayYear=(m==='ground_first'||m==='ground_last')&&new Date().getMonth()>=7?activeYear+1:activeYear;const mode=$('ricoNationalMode').value,low=m.endsWith('_lo')||m==='tn_lo'||m==='tg_lo'||m.startsWith('first')||m==='ground_first';
  const all=[],stationBest=[];
  for(const st of SELECTED_STATIONS){
   let best=null;
-  for(let y=1901;y<=activeYear;y++){
+  for(let y=1901;y<=displayYear;y++){
    const r=record(st,y,p,m);if(!r)continue;
    const item={...r,st};all.push(item);
    if(!best||(low?item.v<best.v:item.v>best.v))best=item;
@@ -4863,17 +4863,17 @@ function renderNational(p,m,count){
  const sort=(a,b)=>low?a.v-b.v||a.year-b.year:b.v-a.v||a.year-b.year;
  all.sort(sort);stationBest.sort(sort);
  const data=mode==='station'?stationBest:all,shown=data.slice(0,count),names=temp.names;
- const current=all.filter(r=>r.year===activeYear),currentBest=current.length?[...current].sort(sort)[0]:null;
- $('ricoExtStatus').textContent=(mode==='station'?'Record per station · ':'Landelijke historische ranglijst · ')+data.length+' resultaten · '+stationBest.length+' stations met metingen · '+activeYear+' voorlopig · recente KNMI-dagwaarden kunnen nog wijzigen';
+ const current=all.filter(r=>r.year===displayYear),currentBest=current.length?[...current].sort(sort)[0]:null;
+ $('ricoExtStatus').textContent=(mode==='station'?'Record per station · ':'Landelijke historische ranglijst · ')+data.length+' resultaten · '+stationBest.length+' stations met metingen · '+displayYear+' voorlopig · recente KNMI-dagwaarden kunnen nog wijzigen';
  let html='<table class="cockpitTable"><thead><tr><th>Positie</th><th>Station</th><th>Jaar</th><th>Waarde</th><th>Datum(s)</th><th>Geldige dagen</th></tr></thead><tbody>';
  shown.forEach((r,i)=>{
-  const style=r.year===activeYear?'background:#e5f5e9':r.st===260?'background:#e3f1ff':'';
-  html+='<tr'+(style?' style="'+style+'"':'')+'><td>'+(i+1)+'</td><td>'+(r.st===260?'<b>':'')+(names[r.st]||'Station '+r.st)+(r.st===260?'</b>':'')+'</td><td><b>'+r.year+'</b>'+(r.year===activeYear?' · Voorlopig':'')+'</td><td>'+fmt(r.v,m)+'</td><td>'+(r.dates.length?r.dates.map(nice).join(', '):'—')+'</td><td>'+r.n+(r.partial?' / onvolledig':'')+'</td></tr>';
+  const style=r.year===displayYear?'background:#e5f5e9':r.st===260?'background:#e3f1ff':'';
+  html+='<tr'+(style?' style="'+style+'"':'')+'><td>'+(i+1)+'</td><td>'+(r.st===260?'<b>':'')+(names[r.st]||'Station '+r.st)+(r.st===260?'</b>':'')+'</td><td><b>'+r.year+'</b>'+(r.year===displayYear?' · Voorlopig':'')+'</td><td>'+fmt(r.v,m)+'</td><td>'+(r.dates.length?r.dates.map(nice).join(', '):'—')+'</td><td>'+r.n+(r.partial?' / onvolledig':'')+'</td></tr>';
  });
  html+='</tbody></table>';
  if(mode==='all'&&currentBest&&!shown.some(r=>r.st===currentBest.st&&r.year===currentBest.year)){
   const rank=all.indexOf(currentBest)+1;
-  html+='<p style="padding:10px;background:#e5f5e9;border-radius:8px"><b>'+activeYear+' · Voorlopig</b>: beste actuele station '+(names[currentBest.st]||currentBest.st)+' op plaats '+rank+' van '+all.length+' · '+fmt(currentBest.v,m)+'</p>';
+  html+='<p style="padding:10px;background:#e5f5e9;border-radius:8px"><b>'+displayYear+' · Voorlopig</b>: beste actuele station '+(names[currentBest.st]||currentBest.st)+' op plaats '+rank+' van '+all.length+' · '+fmt(currentBest.v,m)+'</p>';
  }
  if(!data.length)html+='<p>Geen complete historische meetjaren voor deze selectie.</p>';
  $('ricoExtResult').innerHTML=html;
