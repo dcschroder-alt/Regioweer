@@ -1911,6 +1911,18 @@ function rainSummary(rows){
   if(groups.length>3){return `Verspreide buien in ${groups.length} perioden: ${groups.slice(0,3).map(fmtGroup).join(' · ')} · …`}
   return groups.length>1?'Verspreide buien: '+groups.map(fmtGroup).join(' · '):groups.map(fmtGroup).join(' · ');
 }
+// Shared sharp night pictograms for the overview and national six-hour maps.
+function ricoNightOverviewIcon(code,precip){
+ const rain=Number(precip)>=.05 || [51,53,55,61,63,65,66,67,80,81,82,95,96,99].includes(Number(code));
+ const cloudy=Number(code)>=3;
+ const partial=Number(code)>=1 && Number(code)<=2;
+ const moon='<path d="M30 6a19 19 0 1 0 20 28A18 18 0 0 1 30 6Z" fill="#f9df87" stroke="#b88939" stroke-width="1.5"/>';
+ const cloud='<path d="M20 43c-7 0-11-4-11-10 0-5 4-9 9-10 2-8 9-13 17-11 7 1 11 6 12 12 6-1 12 4 12 10 0 6-5 9-12 9Z" fill="#f4f8fc" stroke="#6e8ba2" stroke-width="2"/>';
+ const drops='<path d="M21 48l-3 7M34 48l-3 7M47 48l-3 7" stroke="#278fc7" stroke-width="3.5" stroke-linecap="round"/>';
+ const content=rain?cloud+drops:cloudy?cloud:partial?moon+cloud:moon;
+ const alt=rain?'Regen':cloudy?'Bewolkt':partial?'Maan met wolken':'Helder';
+ return `<svg class="ricoNightSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 64" width="38" height="38" role="img" aria-label="${alt} in de nacht">${content}</svg>`;
+}
 function dayPartSummary(rows,label,h0,h1,date=null){
  const a=rows.filter(r=>{const h=+r.time.slice(11,13);return h>=h0&&h<h1});if(!a.length)return '';
  const temps=a.map(r=>r.temp).filter(Number.isFinite),p=a.reduce((x,r)=>x+(r.precip||0),0),pct=Math.max(0,...a.map(r=>r.rainPct||0)),codes=a.map(r=>r.code).filter(Number.isFinite);
@@ -1919,9 +1931,13 @@ function dayPartSummary(rows,label,h0,h1,date=null){
  const tfirst=temps.length?Math.round(temps[0]):null,tlast=temps.length?Math.round(temps[temps.length-1]):null,code=dominantHourlyCode(codes);let wx=hourEmoji({code,precip:p,time:(date||'2000-01-01')+'T'+String(h0).padStart(2,'0')+':00'});
  // Ochtend is een dagdeel: toon hier nooit een maan, ook niet als 06:00 nog voor zonsopkomst ligt.
  if(label==='Ochtend'){if(p>=.05)wx='🌦️';else if(code<=1)wx='☀️';else if(code<=3)wx='🌤️';else wx='☁️'}
- // Avondicoon volgt de echte zonsondergang. Na zonsondergang nooit maan + wolk combineren:
- // helder = maan, bewolkt = wolk, neerslag = neerslagsymbool.
- if(label==='Avond'&&date){const ss=sunsetMinutesForDate(date),nightShare=Number.isFinite(ss)?Math.max(0,Math.min(360,1440-Math.max(1080,ss)))/360:0;if(nightShare>.5){if(p>=.05)wx='🌧️';else if(code<=1)wx='🌙';else if(code<=3)wx='☁️';else wx='☁️'}}
+ // Keep night and evening symbols visually consistent with the six-hour maps.
+ if(label==='Nacht')wx=ricoNightOverviewIcon(code,p);
+ if(label==='Avond'&&date){
+   const ss=sunsetMinutesForDate(date);
+   const nightShare=Number.isFinite(ss)?Math.max(0,Math.min(360,1440-Math.max(1080,ss)))/360:0;
+   if(nightShare>.5)wx=ricoNightOverviewIcon(code,p);
+ }
  const wind=winds.length?Math.round(winds.reduce((x,y)=>x+y,0)/winds.length):null,dir=circ(dirs),pressure=press.length?Math.round(press.reduce((x,y)=>x+y,0)/press.length):null,gust=gusts.length?Math.round(Math.max(...gusts)):null,cloud=clouds.length?Math.round(clouds.reduce((x,y)=>x+y,0)/clouds.length):null,dew=dews.length?Math.round(dews.reduce((x,y)=>x+y,0)/dews.length):null,vis=a.map(r=>r.visibility).filter(Number.isFinite),hum=a.map(r=>r.humidity).filter(Number.isFinite),minVis=vis.length?Math.min(...vis):null,maxHum=hum.length?Math.max(...hum):null,mist=!!date&&strictMistSignal(date)&&Number.isFinite(minVis)&&minVis>0&&minVis<1500; 
  const rain=p>=.05?`💧 ${p.toFixed(1).replace('.',',')} mm${pct?` · ${pct}% modellen nat`:''}`:'💧 droog';
  return `<div class="dayPart"><b>${label}</b><div class="partIcon">${wx}</div><div class="partTemp">${Number.isFinite(tfirst)?tfirst+'°':'—'}${Number.isFinite(tlast)&&tlast!==tfirst?' → '+tlast+'°':''}</div><div class="partMeta">${rain}<br>💨 ${Number.isFinite(wind)?bftText(wind):'—'} ${compass(dir)}<br>◉ ${Number.isFinite(pressure)?pressure+' hPa MSL':'—'}${Number.isFinite(gust)&&gust>=35?`<br>💨 stoten ${gust} km/u`:''}${Number.isFinite(cloud)?` · ☁️ ${cloud}%`:''}${Number.isFinite(dew)?`<br>💧 dauwpunt ${dew}°`:''}${mist?`<br>🌫️ mistsignaal`:''}</div></div>`;
