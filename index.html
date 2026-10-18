@@ -338,6 +338,34 @@ body{min-width:0}
  #ricoWeatherAtlas .ricoWeatherWindArrow{font-size:15px;}
  #ricoRainStorm .note{font-size:12px;line-height:1.45;}
 }
+</style><style>
+/* v27: leesbare landelijke klimaat-ranglijst op mobiel */
+.ricoRankSort{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0 8px;font-size:14px;font-weight:750;color:var(--text,#25384a)}
+.ricoRankSort select{max-width:100%;min-width:0;border:1px solid #cbd8e4;border-radius:12px;padding:9px 12px;background:var(--panel,#fff);color:inherit;font:inherit}
+.ricoStatsResult{margin-top:10px;min-width:0}
+.ricoStatsTableScroll{overflow-x:auto;border-radius:12px}
+.ricoStatsTable{width:100%;min-width:780px;border-collapse:collapse;font-size:13px}
+.ricoStatsTable th,.ricoStatsTable td{padding:10px 9px;border-bottom:1px solid #dfe8f0;text-align:right;white-space:nowrap}
+.ricoStatsTable th:nth-child(2),.ricoStatsTable td:nth-child(2){text-align:left;white-space:normal;min-width:190px}
+.ricoStatsTable th{background:#eef4fa;color:#29445f}
+.ricoStatsTable tr.ricoHome{background:#e7f2ff}
+.ricoStatsMobile{display:none}
+.ricoStatsItem{padding:13px;border:1px solid #d5e1eb;border-radius:15px;background:#f7fbff;margin:9px 0;color:#1d3852}
+.ricoStatsItem.ricoHome{background:#e8f3ff;border-color:#b2d3ed}
+.ricoStatsItemHead{display:flex;gap:9px;align-items:baseline;justify-content:space-between;margin-bottom:11px}
+.ricoStatsItemHead b{font-size:16px;overflow-wrap:anywhere;text-align:right}
+.ricoStatsValues{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.ricoStatsValues>div{min-width:0}
+.ricoStatsValues small{display:block;font-size:11px;color:#61758a;line-height:1.3}
+.ricoStatsValues strong{font-size:20px;line-height:1.5;font-variant-numeric:tabular-nums}
+.ricoStatsBar{height:7px;border-radius:20px;background:#dce7f0;margin-top:10px;overflow:hidden}
+.ricoStatsBar>span{display:block;height:100%;background:#297ab5;border-radius:20px}
+.ricoStatsFoot{font-size:11px;color:#63778a;margin-top:7px;overflow-wrap:anywhere}
+@media(max-width:700px){.ricoStatsTableScroll.ricoRankOnly{display:none}.ricoStatsMobile{display:block}.ricoRankSort{align-items:stretch;flex-direction:column}.ricoRankSort select{width:100%}}
+.dark .ricoStatsItem{background:#1b2b3b;color:#eef6ff;border-color:#344b60}
+.dark .ricoStatsItem.ricoHome{background:#193c59}
+.dark .ricoStatsValues small,.dark .ricoStatsFoot{color:#b9c9d9}
+.dark .ricoStatsBar{background:#344b60}
 </style></head>
 <body><div class="wrap">
 <section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v1.0</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
@@ -395,7 +423,7 @@ body{min-width:0}
 <section class="panel" id="stationStatsPanel"><div style="font-weight:900;font-size:18px">📊 KNMI-stations · temperatuurstatistieken</div><div class="note">Excelachtig maandoverzicht met verschuivend 30-jarig normaal. Historische gegevens ingebouwd vanaf 1901 waar beschikbaar. Recente KNMI-dagwaarden worden bij openen gecontroleerd (maximaal elke 6 uur). Waarden van de laatste 3 dagen krijgen het label voorlopig totdat hun definitieve status bevestigd is. Geen upload nodig.</div>
 <div class="v34toolbar"><button type="button" id="statsRefresh" class="ghost">↻ KNMI-gegevens vernieuwen</button></div><div id="statsStatus" class="note" aria-live="polite">Nog geen daggegevens geladen.</div>
 <div class="v34toolbar"><label>Weergave <select id="statsView"><option value="rank">Landelijke ranglijst</option><option value="month">Per maand per station</option></select></label><label>Jaar <select id="statsYear"></select></label><label>Periode <select id="statsMonth"><option value="0">Heel jaar</option></select></label><label>Statistiek <select id="statsMetric"><option value="tg">Gemiddelde temperatuur TG</option><option value="txavg">Gemiddelde maximumtemperatuur TX</option><option value="tnavg">Gemiddelde minimumtemperatuur TN</option><option value="txmax">Hoogste maximumtemperatuur</option><option value="tnmin">Laagste minimumtemperatuur</option><option value="warm">Warme dagen ≥20°C</option><option value="summer">Zomerse dagen ≥25°C</option><option value="tropical">Tropische dagen ≥30°C</option><option value="hot35">Zeer hete dagen ≥35°C</option><option value="frost">Vorstdagen &lt;0°C</option><option value="moderate">Matige vorst &lt;−5°C</option><option value="severe">Strenge vorst &lt;−10°C</option><option value="ice">IJsdagen (Tx &lt;0°C)</option><option value="tropicalNight">Tropische nachten ≥20°C</option><option value="rec_warm">🏆 RECORDS — meeste warme dagen</option><option value="rec_summer">🏆 RECORDS — meeste zomerse dagen</option><option value="rec_tropical">🏆 RECORDS — meeste tropische dagen</option><option value="rec_frost">🏆 RECORDS — meeste vorstdagen</option><option value="rec_ice">🏆 RECORDS — meeste ijsdagen</option><option value="rec_tg">🏆 RECORDS — hoogste gemiddelde temperatuur</option><option value="rec_coldtg">🏆 RECORDS — laagste gemiddelde temperatuur</option><option value="rec_txmax">🏆 RECORDS — hoogste maximumtemperatuur</option><option value="rec_tnmin">🏆 RECORDS — laagste minimumtemperatuur</option></select></label><label id="statsStationLabel" style="display:none">Station <select id="statsStation"></select></label></div>
-<div id="statsResult" style="overflow-x:auto;margin-top:10px"></div><div id="ricoExtended" class="card" style="margin-top:16px;padding:14px;border:1px solid var(--border,#a4a4a455);border-radius:12px">
+<div id="ricoRankSortWrap" class="ricoRankSort"><label for="ricoRankSort">Rangschikken op</label><select id="ricoRankSort"><option value="actual">Waarde van geselecteerd jaar</option><option value="record">Historisch record</option><option value="near">Dichtst bij historisch record</option></select></div><div id="statsResult" class="ricoStatsResult"></div><div id="ricoExtended" class="card" style="margin-top:16px;padding:14px;border:1px solid var(--border,#a4a4a455);border-radius:12px">
  <h3 style="margin:0 0 8px">🏆 Historische top 10 & eerste/laatste dagen</h3>
  <p class="note">Records en eerste/laatste datums per station. Kies een periode en statistiek; historische jaren worden apart vergeleken. Temperatuur: KNMI TX/TN/TG; grondvorst: T10N. Een samengestelde reeks is niet gehomogeniseerd.</p>
  <div class="v34toolbar" style="display:flex;flex-wrap:wrap;gap:10px">
@@ -4724,9 +4752,24 @@ function render(){
  let latest=rows.reduce((v,r)=>Math.max(v,r[1]),0);
  let cutoff=referenceCut(y,mo,latest);
  const make=(st,month,cut)=>({st,month,actual:stat(subset(st,y,month,cut),base),norm:normal(st,y,month,base,cut),record:isRec?recordFor(st,y,month,m,cut):null});
+ const sortWrap=$('ricoRankSortWrap'),sortControl=$('ricoRankSort');
+ sortWrap.style.display=view==='rank'&&isRec?'flex':'none';
+ const low=m==='tnmin'||m==='coldtg';
+ const order=sortControl.value;
+ const score=x=>{
+  if(order==='record')return x.record?.v??null;
+  if(order==='near'){
+   if(x.record?.v==null||x.actual.v==null)return null;
+   // Afstand tot het record, in de juiste richting; records voorbijgestreefd staan vooraan.
+   return low?x.actual.v-x.record.v:x.record.v-x.actual.v;
+  }
+  return x.actual.v;
+ };
  let entries=view==='rank'?stns.map(st=>make(st,mo,cutoff)).filter(x=>x.actual.days).sort((a,b)=>{
-   if(isRec){let av=a.record?.v,bv=b.record?.v;if(av==null)return 1;if(bv==null)return -1;return (m==='tnmin'||m==='coldtg'?av-bv:bv-av)}
-   return m==='tnmin'?a.actual.v-b.actual.v:b.actual.v-a.actual.v
+   let av=isRec?score(a):a.actual.v,bv=isRec?score(b):b.actual.v;
+   if(av==null)return 1;if(bv==null)return -1;
+   const asc=isRec&&order==='near'||(isRec&&order==='record'&&low)||(!isRec&&low)||(isRec&&order==='actual'&&low);
+   return (asc?av-bv:bv-av)||String(names[a.st]||'').localeCompare(String(names[b.st]||''),'nl');
  }):(seasons[mo]?[make(station,mo,referenceCut(y,mo,latest))]:Array.from({length:12},(_,i)=>make(station,String(i+1),referenceCut(y,String(i+1),latest))));
  let html='<table class="cockpitTable"><thead><tr><th>#</th><th>'+(view==='rank'?'Station':'Maand')+'</th><th>Waarde '+y+'</th>'+(isRec?'<th>Historisch record</th><th>Recordjaar</th><th>Meetreeks</th><th>Status</th>':'<th>Normaal</th><th>Verschil</th><th>Referentie</th>')+(base==='txmax'||base==='tnmin'?'<th>Datum '+y+'</th>':'')+(isRec&&(base==='txmax'||base==='tnmin')?'<th>Recorddatum</th>':'')+'<th>Geldige dagen</th></tr></thead><tbody>';
  entries.forEach((x,i)=>{
@@ -4748,7 +4791,21 @@ function render(){
  }
  html+='<tr'+(view==='rank'&&x.st===260?' style="background:#e3f1ff"':'')+'><td>'+(i+1)+'</td><td>'+(view==='rank'&&x.st===260?'<b>'+name+'</b>':name)+'</td><td><b>'+fmt(x.actual.v,base)+'</b></td>'+cells+dates+'<td>'+x.actual.days+'</td></tr>';
  });
- $('statsResult').innerHTML=html+'</tbody></table>';
+ const tableHtml=html+'</tbody></table>';
+ if(view==='rank'&&isRec){
+  const units=['tg','txavg','tnavg','txmax','tnmin'].includes(base)?' °C':' dagen';
+  const val=v=>v==null?'—':fmt(v,base)+units;
+  const cards=entries.map((x,i)=>{
+   const rec=x.record?.v??null,cur=x.actual.v;
+   const diff=rec==null||cur==null?null:cur-rec;
+   const gap=diff==null?'—':(diff>0?'+':'')+fmt(diff,base)+(units===' dagen'?' dagen':' °C');
+   const ratio=rec!=null&&cur!=null&&rec>0&&cur>=0?Math.max(0,Math.min(100,cur/rec*100)):null;
+   const name=names[x.st]||'Station '+x.st;
+   const status=rec!=null&&cur!=null?(low?cur<rec:cur>rec)?'Nieuw record':Math.abs(cur-rec)<0.00001?'Record geëvenaard':'' :'';
+   return '<article class="ricoStatsItem'+(x.st===260?' ricoHome':'')+'"><div class="ricoStatsItemHead"><span>#'+(i+1)+'</span><b>'+name.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</b></div><div class="ricoStatsValues"><div><small>Waarde '+y+'</small><strong>'+val(cur)+'</strong></div><div><small>Historisch record</small><strong>'+val(rec)+'</strong></div><div><small>Verschil</small><strong>'+gap+'</strong></div></div>'+(ratio!==null?'<div class="ricoStatsBar" aria-label="'+Math.round(ratio)+' procent van record"><span style="width:'+ratio+'%"></span></div>':'')+'<div class="ricoStatsFoot">'+(x.record?'Recordjaar: '+x.record.years.join(', ')+' · ':'')+'Geldige dagen: '+x.actual.days+(status?' · '+status:'')+'</div></article>';
+  }).join('');
+  $('statsResult').innerHTML='<div class="ricoStatsTableScroll ricoRankOnly">'+tableHtml.replace('class="cockpitTable"','class="ricoStatsTable"')+'</div><div class="ricoStatsMobile">'+cards+'</div>';
+ }else $('statsResult').innerHTML='<div class="ricoStatsTableScroll">'+tableHtml+'</div>';
 }
 function refreshSelectors(){const allowed=new Set([377,370,319,380,340,350,392,375,275,283,356,323,344,290,260,348,310,269,330,240,278,215,279,257,273,249,280,286,270,235,267,242,277,251]);rows=rows.filter(r=>allowed.has(r[0]));rebuildIndex();window.ricoKnmi={rows,names};window.dispatchEvent(new Event('rico-knmi-ready'));let oldYear=$('statsYear').value,oldStation=$('statsStation').value;let ys=[...new Set(rows.map(r=>Math.floor(r[1]/10000)))].sort((a,b)=>b-a);$('statsYear').replaceChildren(...ys.map(y=>new Option(y,y)));if(ys.includes(+oldYear))$('statsYear').value=oldYear;let stns=[...new Set(rows.map(r=>r[0]))].sort((a,b)=>a-b);$('statsStation').replaceChildren(...stns.map(st=>new Option(names[st]||'Station '+st,st)));$('statsStation').value=stns.includes(+oldStation)?oldStation:260;let latest=rows.reduce((a,r)=>Math.max(a,r[1]),0);$('statsStatus').textContent=rows.length.toLocaleString('nl-NL')+' dagregels · '+stns.length+' stations · t/m '+String(latest).slice(6,8)+'-'+String(latest).slice(4,6)+'-'+String(latest).slice(0,4)+(lastUpdate?' · '+lastUpdate:'');render()}
 async function daily(force=false){
@@ -4799,7 +4856,7 @@ async function daily(force=false){
  finally{loading=false;btn.disabled=false;try{localStorage.setItem('ricoweer_knmi_check_v2',String(Date.now()))}catch(e){}}
 }
 async function init(){for(let i=1;i<=12;i++)$('statsMonth').add(new Option(months[i-1],i));for(const [key,p] of Object.entries(seasons))$('statsMonth').add(new Option(p.label,key));$('statsStatus').textContent='Historische KNMI-gegevens laden…';try{let res=await fetch('./knmi-nederland-1901-2026.json',{cache:'force-cache'});if(!res.ok)throw Error('HTTP '+res.status);let data=await res.json();rows=data.rows;names=data.names;let saved=JSON.parse(localStorage.getItem('ricoweer_knmi_recent_v2')||'[]');if(saved.length){let map=new Map(rows.map(r=>[r[0]+'_'+r[1],r]));for(let r of saved)map.set(r[0]+'_'+r[1],r);rows=[...map.values()]}mergeArcenHorst();rebuildIndex();refreshSelectors();if(Date.now()-Number(localStorage.getItem('ricoweer_knmi_check_v2')||0)>6*3600000)daily()}catch(e){$('statsStatus').textContent='Historische gegevens niet bereikbaar: '+e.message}}
-$('statsRefresh').addEventListener('click',()=>daily(true));['statsView','statsYear','statsMonth','statsMetric','statsStation'].forEach(id=>$(id).addEventListener('change',render));init();
+$('ricoRankSort').addEventListener('change',render);$('statsRefresh').addEventListener('click',()=>daily(true));['statsView','statsYear','statsMonth','statsMetric','statsStation'].forEach(id=>$(id).addEventListener('change',render));init();
 })();
 </script><script>(()=>{
 'use strict';
