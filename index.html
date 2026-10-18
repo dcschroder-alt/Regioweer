@@ -242,6 +242,39 @@ body{min-width:0}
 
 #modelStatusSummary{display:list-item;cursor:pointer;list-style:revert;user-select:none;touch-action:manipulation;padding:8px 4px}#modelStatusSummary:focus-visible{outline:2px solid #2563eb;outline-offset:3px}
 
+
+/* v29 historical leaderboard */
+.ricoHistTableWrap{overflow-x:auto;max-width:100%;border:1px solid #dce6ef;border-radius:16px;margin-top:12px}
+.ricoHistTable{width:100%;min-width:650px;border-collapse:collapse;font-size:13px}
+.ricoHistTable th{background:#f0f5fa;color:#27425f;font-size:12px;text-align:left;padding:11px 12px;white-space:nowrap}
+.ricoHistTable td{padding:10px 12px;border-bottom:1px solid #e5edf4;vertical-align:middle}
+.ricoHistTable tbody tr:last-child td{border-bottom:0}
+.ricoHistTable tbody tr:hover{background:#f6faff}
+.ricoHistTable .ricoHistValue{font-weight:800;color:#173b60;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ricoHistRank{display:inline-flex;align-items:center;justify-content:center;min-width:35px;height:35px;border-radius:11px;background:#edf2f7;color:#234363;font-weight:900;font-variant-numeric:tabular-nums}
+.ricoHistRank.ricoHistGold{background:#f8ebc6;color:#77520a}
+.ricoHistRank.ricoHistSilver{background:#e7ebf0;color:#46566a}
+.ricoHistRank.ricoHistBronze{background:#f2e1d4;color:#7c4b2b}
+.ricoHistProvisional{display:inline-block;margin-left:5px;font-size:11px;color:#27734c;font-weight:700}
+.ricoHistTable tr.ricoHistCurrent{background:#eef9f1}
+.ricoHistTable tr.ricoHistHome:not(.ricoHistCurrent){background:#eef5fd}
+.ricoHistMobile{display:none}
+.ricoHistCards{display:grid;gap:8px;margin-top:12px}
+.ricoHistCard{border:1px solid #dce6ef;border-radius:14px;padding:11px 12px;background:#fff;min-width:0}
+.ricoHistCard.ricoHistCurrent{background:#f0faf3;border-color:#cde5d4}
+.ricoHistCard.ricoHistHome:not(.ricoHistCurrent){background:#f1f7fe}
+.ricoHistCardTop{display:flex;gap:10px;align-items:center}
+.ricoHistCardName{flex:1;min-width:0;font-size:14px;font-weight:800;color:#17344f;overflow-wrap:anywhere}
+.ricoHistCardValue{font-size:17px;font-weight:900;color:#143d64;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ricoHistCardMeta{font-size:11px;color:#65788b;margin:5px 0 0 45px;line-height:1.5}
+.ricoHistCardMeta b{color:#254b6c}
+.dark .ricoHistCard{background:#192a3a;border-color:#34485a}
+.dark .ricoHistCardName,.dark .ricoHistCardValue{color:#e8f2fd}
+.dark .ricoHistCardMeta{color:#bdcddd}
+.dark .ricoHistCard.ricoHistCurrent{background:#1b3a30}
+.dark .ricoHistTable th{background:#1b2b3b;color:#e4edf6}
+.dark .ricoHistTable td{border-color:#34485a}
+@media(max-width:700px){.ricoHistTableWrap{display:none}.ricoHistMobile{display:block}.ricoHistCardMeta{margin-left:45px}}
 </style></style>
 
 <style>
@@ -339,7 +372,7 @@ body{min-width:0}
  #ricoRainStorm .note{font-size:12px;line-height:1.45;}
 }
 </style><style>
-/* v27: leesbare landelijke klimaat-ranglijst op mobiel */
+/* v29: leesbare landelijke klimaat-ranglijst op mobiel */
 .ricoRankSort{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:12px 0 8px;font-size:14px;font-weight:750;color:var(--text,#25384a)}
 .ricoRankSort select{max-width:100%;min-width:0;border:1px solid #cbd8e4;border-radius:12px;padding:9px 12px;background:var(--panel,#fff);color:inherit;font:inherit}
 .ricoStatsResult{margin-top:10px;min-width:0}
@@ -1897,19 +1930,19 @@ function dayAdviceCards(dayMix,rows,dew,gust,date=null){
  const isToday=date===nlToday(),temps=rows?.map(r=>r.temp).filter(Number.isFinite)||[];
  const lead=date?Math.max(0,Math.round((new Date(date+'T12:00:00')-new Date(forecastStartDate()+'T12:00:00'))/864e5)):0;
  const cards=[],rain=rainSummary(rows),uv=(isToday&&nlHourNow()>=17)?null:dayMix?.uv,max=isToday&&temps.length?Math.max(...temps):dayMix?.max,min=isToday&&temps.length?Math.min(...temps):dayMix?.min;
- const adviceRows=isToday?(rows||[]):(rows||[]).filter(r=>{const h=+String(r.time||'').slice(11,13);return h>=6&&h<18});
+ const adviceRows=isToday?(rows||[]):(rows||[]).filter(r=>{const h=+String(r.time||'').slice(11,13);return h>=6&&h<24});
  const rowPrec=adviceRows.length?adviceRows.reduce((a,r)=>a+(Number(r.precip)||0),0):null;
  const rowPop=adviceRows.length?Math.max(0,...adviceRows.map(r=>Number(r.rainPct)||0)):null;
  const pop=Number.isFinite(dayMix?.dayPop)?Number(dayMix.dayPop):(Number.isFinite(rowPop)?rowPop:(dayMix?.pop||0)),prec=Number.isFinite(dayMix?.dayPrecip)?Number(dayMix.dayPrecip):(Number.isFinite(rowPrec)?rowPrec:(dayMix?.precip||0));
- const lateRows=(rows||[]).filter(r=>{const h=+String(r.time||'').slice(11,13);return h>=15&&h<21}),latePrec=lateRows.reduce((a,r)=>a+(Number(r.precip)||0),0),latePop=Math.max(0,...lateRows.map(r=>Number(r.rainPct)||0));
- const earlyRows=(rows||[]).filter(r=>{const h=+String(r.time||'').slice(11,13);return h>=0&&h<15});
+ const lateRows=(rows||[]).filter(r=>{const h=+String(r.time||'').slice(11,13);return h>=18&&h<24}),latePrec=lateRows.reduce((a,r)=>a+(Number(r.precip)||0),0),latePop=Math.max(0,...lateRows.map(r=>Number(r.rainPct)||0));
+ const earlyRows=(rows||[]).filter(r=>{const h=+String(r.time||'').slice(11,13);return h>=6&&h<18});
  const earlyPrec=earlyRows.reduce((a,r)=>a+(Number(r.precip)||0),0),earlyPop=Math.max(0,...earlyRows.map(r=>Number(r.rainPct)||0));
  // 'Later' alleen gebruiken wanneer het eerder daadwerkelijk overwegend droog is.
  const lateShower=!isToday&&lead<=5&&lateRows.length&&latePrec>=.05&&earlyPrec<.05&&earlyPop<35&&((Number(dayMix?.precip)||0)>=.5||latePop>=40||(Number(dayMix?.pop)||0)>=60);
  if(lead>=11&&(prec>=.1||pop>=50))cards.push(['rain','🌧️ Buiensignaal',`Er is een neerslagsignaal, maar timing en hoeveelheid zijn op deze termijn nog onzeker.`]);
  else if(lead>=6&&(prec>=.1||pop>=50))cards.push(['rain','☂️ Kans op een bui',`Er is kans op een bui, maar de precieze timing is op deze termijn nog onzeker.`]);
- else if(lateShower)cards.push(['rain','☂️ Later kans op een bui',`Het grootste deel van de dag kan droog verlopen, maar later neemt de buienkans toe.`]);
- else if(prec>=.1||pop>=50)cards.push(['rain','☂️ Paraplu mee',rain.includes('Geen betekenisvolle')?(isToday?'Kans op een bui gedurende de resterende uren.':'Overdag kans op een bui.'):rain.replace(/\s*\([^)]*modellen\)/g,'')]);else cards.push(['ok','☂️ Geen paraplu nodig',isToday?'De resterende uren verlopen waarschijnlijk droog.':'Overdag blijft het volgens de modelmix droog.']);
+ else if(lateShower)cards.push(['rain','☂️ Vooral ’s avonds kans op een bui',`Ochtend en middag verlopen overwegend droog, maar in de avond neemt de kans op een bui toe.`]);
+ else if(prec>=.1||pop>=50)cards.push(['rain','☂️ Paraplu mee',rain.includes('Geen betekenisvolle')?(isToday?'Kans op een bui gedurende de resterende uren.':'In de middag of avond kans op een bui.'):rain.replace(/\s*\([^)]*modellen\)/g,'')]);else cards.push(['ok','☂️ Geen paraplu nodig',isToday?'De resterende uren verlopen waarschijnlijk droog.':'Middag en avond blijven volgens de modelmix waarschijnlijk droog.']);
  if(Number.isFinite(uv)&&uv>=6)cards.push(['sun','🧴 Insmeren',`UV ${Math.round(uv)} · vooral rond het middaguur goed beschermen.`]);else if(Number.isFinite(uv)&&uv>=3)cards.push(['sun','🧴 Zonbescherming',`UV ${Math.round(uv)} · bij langer buiten zijn insmeren.`]);
  if(Number.isFinite(max)&&max>=28)cards.push(['warm','🥤 Warm weer',`Rond ${Math.round(max)}° · voldoende drinken en zo nodig verkoeling zoeken.`]);
  if(Number.isFinite(max)&&max<10)cards.push(['cold','🧥 Warme jas',`Overdag rond ${Math.round(max)}°.`]);else if(Number.isFinite(max)&&max<16)cards.push(['cold','🧥 Jas aan',`Met maximaal ${Math.round(max)}° is een jas prettig.`]);
@@ -2056,11 +2089,12 @@ function buildDayNarrative(date,dayMix,rows,arrays,wind,dir,gust,dew){
    const part=(a,b)=>{const q=rows.filter(r=>{const h=+r.time.slice(11,13);return h>=a&&h<b});if(!q.length)return null;const pr=q.reduce((z,r)=>z+(Number(r.precip)||0),0),wet=Math.max(0,...q.map(r=>Number(r.rainPct)||0)),cl=q.map(r=>Number(r.cloud)).filter(Number.isFinite),cloud=cl.length?cl.reduce((x,y)=>x+y,0)/cl.length:null;return{pr,wet,cloud}};
    const nPart=part(0,6),oPart=part(6,12),mPart=part(12,18),aPart=part(18,24),wetp=x=>x&&(x.pr>=.1||x.wet>=25),dryp=x=>x&&!wetp(x);
    if(lead<=5){
-     if(wetp(nPart)&&dryp(oPart)&&dryp(mPart))bits.push(`Na een natte nacht wordt het overdag droog${Number(dayMix.sun)>=4?' en krijgt de zon steeds meer ruimte':''}.`);
-     else if(wetp(nPart)&&wetp(oPart)&&dryp(mPart))bits.push(`In de nacht en ochtend kan neerslag vallen; in de middag wordt het droog${Number(dayMix.sun)>=4?' en zonniger':''}.`);
+     if(wetp(nPart)&&dryp(oPart)&&dryp(mPart)&&dryp(aPart))bits.push(`Na een natte nacht blijft het in de ochtend, middag en avond waarschijnlijk droog${Number(dayMix.sun)>=4?' en krijgt de zon steeds meer ruimte':''}.`);
+     else if(wetp(nPart)&&wetp(oPart)&&dryp(mPart)&&dryp(aPart))bits.push(`In de nacht en ochtend kan neerslag vallen; in de middag en avond wordt het droog${Number(dayMix.sun)>=4?' en zonniger':''}.`);
      else if(dryp(oPart)&&dryp(mPart)&&wetp(aPart))bits.push(`Ochtend en middag verlopen overwegend droog; in de avond neemt de kans op regen of buien toe.`);
-     else if(dryp(oPart)&&wetp(mPart)&&wetp(aPart))bits.push(`De ochtend verloopt overwegend droog, vanaf de middag neemt de kans op regen of buien toe.`);
-     else if(wetp(oPart)&&wetp(mPart)&&wetp(aPart)&&daytimePrecip(dayMix)>=.1)bits.push(`In de ochtend, middag en avond is er kans op buien.`);
+     else if(dryp(oPart)&&wetp(mPart)&&wetp(aPart))bits.push(`De ochtend verloopt overwegend droog. In de middag is een bui mogelijk; ook in de avond blijft kans op regen of buien bestaan.`);
+     else if(wetp(oPart)&&wetp(mPart)&&wetp(aPart))bits.push(`In de ochtend, middag en avond is er kans op buien.`);
+     else if(wetp(aPart))bits.push(`Ook in de avond is er kans op een bui.`);
    } else if((daytimePrecip(dayMix)>=.1)||(wetp(oPart)||wetp(mPart)||wetp(aPart))){
      bits.push(lead>=11?`Er is een neerslagsignaal, maar timing en hoeveelheid zijn op deze termijn nog onzeker.`:`Er is kans op enkele buien; de precieze timing is op deze termijn nog onzeker.`);
    }
@@ -2083,20 +2117,20 @@ function buildDayNarrative(date,dayMix,rows,arrays,wind,dir,gust,dew){
    const reasonText=why.length===1?why[0]:why.length===2?`${why[0]} en ${why[1]}`:`${why.slice(0,-1).join(', ')} en ${why.at(-1)}`;
    bits.push(`De ${sc<60?'lage':'redelijke'} modelovereenkomst komt vooral doordat ${reasonText}.`);
  }
- const narrativeRows=isToday?rows:rows.filter(r=>{const h=+String(r.time||'').slice(11,13);return h>=6&&h<18}),wet=narrativeRows.filter(r=>(r.precip||0)>=.05), rain=rainSummary(narrativeRows),scope=isToday?'de rest van de dag':'overdag';
+ const narrativeRows=isToday?rows:rows.filter(r=>{const h=+String(r.time||'').slice(11,13);return h>=6&&h<24}),wet=narrativeRows.filter(r=>(r.precip||0)>=.05), rain=rainSummary(narrativeRows),scope=isToday?'de rest van de dag':'middag en avond';
  const remainPrec=narrativeRows.reduce((a,r)=>a+(Number(r.precip)||0),0),remainPop=Math.max(0,...narrativeRows.map(r=>Number(r.rainPct)||0));
  const dayMedian=Number.isFinite(dayMix.dayPrecip)?Number(dayMix.dayPrecip):Number(dayMix.precip)||0,dayPop=Number.isFinite(dayMix.dayPop)?Number(dayMix.dayPop):Number(dayMix.pop)||0;
  const rowDayPrec=narrativeRows.reduce((a,r)=>a+(Number(r.precip)||0),0);
  const rowDayPop=Math.max(0,...narrativeRows.map(r=>Number(r.rainPct)||0));
- const dryNow=isToday?(remainPrec<.1&&remainPop<35):(dayMedian<.1&&dayPop<50&&rowDayPrec<.1&&rowDayPop<35);
+ const dryNow=remainPrec<.05&&remainPop<25&&dayMedian<.1&&dayPop<50;
  if(dryNow){
-   bits.push(`Het blijft ${isToday?'de rest van de dag ':''}<strong>droog</strong>${!isToday?' overdag':''}.`);
+   bits.push(`Het blijft ${isToday?'de rest van de dag':'in de middag en avond'} waarschijnlijk <strong>droog</strong>.`);
  } else if(wet.length||dayMedian>=.1){
-   const modelRain=arrays.map(a=>a.filter(r=>{if(String(r.time||'').slice(0,10)!==date)return false;if(isToday)return true;const h=+String(r.time||'').slice(11,13);return h>=6&&h<18}).reduce((z,r)=>z+(Number(r.precip)||0),0)).filter(Number.isFinite);
+   const modelRain=arrays.map(a=>a.filter(r=>{if(String(r.time||'').slice(0,10)!==date)return false;if(isToday)return true;const h=+String(r.time||'').slice(11,13);return h>=6&&h<24}).reduce((z,r)=>z+(Number(r.precip)||0),0)).filter(Number.isFinite);
    const rainMed=modelRain.length?medianNums(modelRain):Number(dayMix.precip),rainLo=modelRain.length?Math.min(...modelRain):null,rainHi=modelRain.length?Math.max(...modelRain):null;
    let amount='';
    if(Number.isFinite(rainMed)&&Number.isFinite(rainLo)&&Number.isFinite(rainHi))amount=` De neerslagmediaan ligt rond <strong>${rainMed.toFixed(1).replace('.',',')} mm</strong>, met een modelrange van <strong>${rainLo.toFixed(1).replace('.',',')}–${rainHi.toFixed(1).replace('.',',')} mm</strong>.`;
-   if(lead<=5)bits.push(`Neerslag is het belangrijkste aandachtspunt: ${rain}.${amount}`);
+   if(lead<=5)bits.push(`Neerslag in de middag en avond: ${rain}.${amount}`);
    else bits.push(`${lead>=11?'Er is een neerslagsignaal':'Er is kans op neerslag of een bui'}, maar de precieze timing is op deze termijn nog onzeker.${amount}`);
  }
  if(isToday){
@@ -4891,6 +4925,10 @@ function record(st,y,p,m){if(m==='ground_first'||m==='ground_last')p='vorstjaar'
  else{let predicate=m.startsWith('ground')?o=>o.v<0:m.startsWith('warm')?o=>o.v>=200:m.startsWith('summer')?o=>o.v>=250:m.startsWith('tropical')?o=>o.v>=300:m.startsWith('frost')?o=>o.v<0:m.startsWith('ice')?o=>o.v<0:()=>false;v=values.filter(predicate).length}
  return {year:y,v,dates,n:values.length,partial};}
 function fmt(v,m){if(m==='tg_hi'||m==='tg_lo'||m==='tx_hi'||m==='tn_lo')return v.toFixed(1).replace('.',',')+' °C';if(m.startsWith('first')||m.startsWith('last')||m==='ground_first'||m==='ground_last')return 'dag '+v;return String(v)}
+function ricoHistRanks(items,metric){let last=null,rank=0;return items.map((item,i)=>{const value=fmt(item.v,metric);if(last===null||value!==last){rank=i+1;last=value;}return rank;});}
+function ricoHistBadge(rank){return '<span class="ricoHistRank '+(rank===1?'ricoHistGold':rank===2?'ricoHistSilver':rank===3?'ricoHistBronze':'')+'">'+rank+'</span>';}
+function ricoHistEsc(value){return String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function ricoHistCards(items,ranks,metric,names,currentYear,withStation){return '<div class="ricoHistMobile ricoHistCards">'+items.map((r,i)=>{const isCurrent=r.year===currentYear;const home=r.st===260||r.tiedStations?.includes(260);const station=r.tiedStations?r.tiedStations.map(st=>names[st]||'Station '+st).join(', '):names[r.st]||'Station '+r.st;const label=withStation?station:String(r.year);const meta=(withStation?'Jaar: <b>'+r.year+'</b> · ':'')+(r.dates.length?'Datum: '+r.dates.map(nice).join(', ')+' · ':'')+'Geldige dagen: '+r.n+(r.partial?' (onvolledig)':'')+(isCurrent?' · Voorlopig':'');return '<article class="ricoHistCard'+(isCurrent?' ricoHistCurrent':'')+(home?' ricoHistHome':'')+'"><div class="ricoHistCardTop">'+ricoHistBadge(ranks[i])+'<div class="ricoHistCardName">'+ricoHistEsc(label)+(isCurrent?'<span class="ricoHistProvisional"> · voorlopig</span>':'')+'</div><div class="ricoHistCardValue">'+fmt(r.v,metric)+'</div></div><div class="ricoHistCardMeta">'+meta+'</div></article>';}).join('')+'</div>';}
 function render(){if(!ready)return;
  syncFrostPeriod();let st=+$('ricoExtStation').value,p=$('ricoExtPeriod').value,m=$('ricoExtMetric').value,count=+$('ricoExtCount').value;const displayYear=(m==='ground_first'||m==='ground_last')&&new Date().getMonth()>=7?activeYear+1:activeYear;
  $('ricoDayWrap').style.display=p==='day'?'':'none';
@@ -4900,12 +4938,13 @@ function render(){if(!ready)return;
  let out=[];for(let y=1901;y<=maxYear;y++){let r=record(st,y,p,m);if(r)out.push(r)}
  let low=m.endsWith('_lo')||m==='tn_lo'||m==='tg_lo'||m.startsWith('first')||m==='ground_first';
  out.sort((a,b)=>low?a.v-b.v||a.year-b.year:b.v-a.v||a.year-b.year);
- let current=out.find(x=>x.year===displayYear),shown=out.slice(0,count),rank=current?out.indexOf(current)+1:null;
+ let current=out.find(x=>x.year===displayYear),shown=out.slice(0,count),rank=current?ricoHistRanks(out,m)[out.indexOf(current)]:null;
  $('ricoExtStatus').textContent=out.length+' meetjaren · '+(current?'lopend jaar '+displayYear+' voorlopig op plaats '+rank+' van '+out.length:'lopend jaar nog niet beschikbaar')+' · recente KNMI-dagwaarden kunnen nog voorlopig zijn · onvolledige historische jaren uitgesloten';
- let html='<table class="cockpitTable"><thead><tr><th>Positie</th><th>Jaar</th><th>Waarde</th><th>Datum(s)</th><th>Geldige dagen</th></tr></thead><tbody>';
- shown.forEach((r,i)=>{html+='<tr'+(r.year===displayYear?' style="background:#e5f5e9"':'')+'><td>'+(i+1)+'</td><td><b>'+r.year+'</b>'+(r.year===displayYear?' · Voorlopig':'')+'</td><td>'+fmt(r.v,m)+'</td><td>'+(r.dates.length?r.dates.map(nice).join(', '):'—')+'</td><td>'+r.n+(r.partial?' / onvolledig':'')+'</td></tr>'});
- html+='</tbody></table>';
- if(current&&rank>count)html+='<p style="padding:10px;background:#e5f5e9;border-radius:8px"><b>'+displayYear+' · Voorlopig</b>: plaats '+rank+' van '+out.length+' · '+fmt(current.v,m)+'</p>';
+ const ranks=ricoHistRanks(out,m),shownRanks=ranks.slice(0,shown.length);
+ let html='<div class="ricoHistTableWrap"><table class="ricoHistTable"><thead><tr><th>Rang</th><th>Jaar</th><th>Waarde</th><th>Datum(s)</th><th>Geldige dagen</th></tr></thead><tbody>';
+ shown.forEach((r,i)=>{html+='<tr'+(r.year===displayYear?' class="ricoHistCurrent"':'')+'><td>'+ricoHistBadge(shownRanks[i])+'</td><td><b>'+r.year+'</b>'+(r.year===displayYear?'<span class="ricoHistProvisional">Voorlopig</span>':'')+'</td><td class="ricoHistValue">'+fmt(r.v,m)+'</td><td>'+(r.dates.length?r.dates.map(nice).join(', '):'—')+'</td><td>'+r.n+(r.partial?' / onvolledig':'')+'</td></tr>'});
+ html+='</tbody></table></div>'+ricoHistCards(shown,shownRanks,m,{},displayYear,false);
+ if(current&&rank>count)html+='<p style="padding:10px;background:#e5f5e9;border-radius:8px"><b>'+displayYear+' · Voorlopig</b>: gedeelde plaats '+ranks[out.indexOf(current)]+' van '+out.length+' · '+fmt(current.v,m)+'</p>';
  $('ricoExtResult').innerHTML=html+(out.length?'':'<p>Geen complete historische meetjaren voor deze selectie.</p>');
  renderDailyScan(p);
 }
@@ -4939,15 +4978,17 @@ function renderNational(p,m,count){
  const data=mode==='station'?stationBest:uniqueNational?nationalYears:all,shown=data.slice(0,count),names=temp.names;
  const current=data.filter(r=>r.year===displayYear),currentBest=current.length?[...current].sort(sort)[0]:null;
  $('ricoExtStatus').textContent=(mode==='station'?'Record per station · ':uniqueNational?'Landelijke ranglijst: één resultaat per vorstjaar · ':'Landelijke historische ranglijst · ')+data.length+(uniqueNational?' vorstjaren':' resultaten')+' · '+stationBest.length+' stations met metingen · '+displayYear+' voorlopig · recente KNMI-dagwaarden kunnen nog wijzigen';
- let html='<table class="cockpitTable"><thead><tr><th>Positie</th><th>Station</th><th>Jaar</th><th>Waarde</th><th>Datum(s)</th><th>Geldige dagen</th></tr></thead><tbody>';
+ const ranks=ricoHistRanks(data,m),shownRanks=ranks.slice(0,shown.length);
+ let html='<div class="ricoHistTableWrap"><table class="ricoHistTable"><thead><tr><th>Rang</th><th>Station</th><th>Jaar</th><th>Waarde</th><th>Datum(s)</th><th>Geldige dagen</th></tr></thead><tbody>';
  shown.forEach((r,i)=>{
-  const style=r.year===displayYear?'background:#e5f5e9':r.st===260?'background:#e3f1ff':'';
-  html+='<tr'+(style?' style="'+style+'"':'')+'><td>'+(i+1)+'</td><td>'+(r.st===260?'<b>':'')+(r.tiedStations?r.tiedStations.map(st=>names[st]||'Station '+st).join(', '):(names[r.st]||'Station '+r.st))+(r.st===260?'</b>':'')+'</td><td><b>'+r.year+'</b>'+(r.year===displayYear?' · Voorlopig':'')+'</td><td>'+fmt(r.v,m)+'</td><td>'+(r.dates.length?r.dates.map(nice).join(', '):'—')+'</td><td>'+r.n+(r.partial?' / onvolledig':'')+'</td></tr>';
+  const classes=(r.year===displayYear?'ricoHistCurrent ':'')+(r.st===260||r.tiedStations?.includes(260)?'ricoHistHome':'');
+  const station=r.tiedStations?r.tiedStations.map(st=>names[st]||'Station '+st).join(', '):(names[r.st]||'Station '+r.st);
+  html+='<tr class="'+classes.trim()+'"><td>'+ricoHistBadge(shownRanks[i])+'</td><td>'+ricoHistEsc(station)+'</td><td><b>'+r.year+'</b>'+(r.year===displayYear?'<span class="ricoHistProvisional">Voorlopig</span>':'')+'</td><td class="ricoHistValue">'+fmt(r.v,m)+'</td><td>'+(r.dates.length?r.dates.map(nice).join(', '):'—')+'</td><td>'+r.n+(r.partial?' / onvolledig':'')+'</td></tr>';
  });
- html+='</tbody></table>';
+ html+='</tbody></table></div>'+ricoHistCards(shown,shownRanks,m,names,displayYear,true);
  if(mode==='all'&&currentBest&&!shown.some(r=>r.st===currentBest.st&&r.year===currentBest.year)){
-  const rank=data.indexOf(currentBest)+1;
-  html+='<p style="padding:10px;background:#e5f5e9;border-radius:8px"><b>'+displayYear+' · Voorlopig</b>: beste actuele station '+(names[currentBest.st]||currentBest.st)+' op plaats '+rank+' van '+data.length+' · '+fmt(currentBest.v,m)+'</p>';
+  const rank=ranks[data.indexOf(currentBest)];
+  html+='<p style="padding:10px;background:#e5f5e9;border-radius:8px"><b>'+displayYear+' · Voorlopig</b>: beste actuele station '+ricoHistEsc(names[currentBest.st]||currentBest.st)+' op gedeelde plaats '+rank+' van '+data.length+' · '+fmt(currentBest.v,m)+'</p>';
  }
  if(!data.length)html+='<p>Geen complete historische meetjaren voor deze selectie.</p>';
  $('ricoExtResult').innerHTML=html;
