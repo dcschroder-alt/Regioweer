@@ -4806,7 +4806,8 @@ $('statsRefresh').addEventListener('click',()=>daily(true));['statsView','statsY
 const $=id=>document.getElementById(id), months=['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
 let temp=null, ground=null, ti=new Map(),gi=new Map(),ready=false;
 const SELECTED_STATIONS=new Set([377, 370, 319, 380, 340, 350, 392, 375, 275, 283, 356, 323, 344, 290, 260, 348, 310, 269, 330, 240, 278, 215, 279, 257, 273, 249, 280, 286, 270, 235, 267, 242, 277, 251]);
-const displayYear=new Date().getFullYear();
+const activeYear=new Date().getFullYear();
+const displayYear=activeYear;
 const dayKey=(d)=>String(d).slice(4);
 
 const nice=d=>{let n=String(d);return n.slice(6,8)+'-'+n.slice(4,6)+'-'+n.slice(0,4)};
