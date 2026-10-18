@@ -1919,7 +1919,9 @@ function ricoNightOverviewIcon(code,precip){
  const moon='<path d="M30 6a19 19 0 1 0 20 28A18 18 0 0 1 30 6Z" fill="#f9df87" stroke="#b88939" stroke-width="1.5"/>';
  const cloud='<path d="M20 43c-7 0-11-4-11-10 0-5 4-9 9-10 2-8 9-13 17-11 7 1 11 6 12 12 6-1 12 4 12 10 0 6-5 9-12 9Z" fill="#f4f8fc" stroke="#6e8ba2" stroke-width="2"/>';
  const drops='<path d="M21 48l-3 7M34 48l-3 7M47 48l-3 7" stroke="#278fc7" stroke-width="3.5" stroke-linecap="round"/>';
- const content=rain?cloud+drops:cloudy?cloud:partial?moon+cloud:moon;
+ if(rain)return '🌧️'; // Zelfde gekleurde neerslagsymbool als overdag.
+ if(cloudy)return '☁️'; // Geen afwijkend blauw lijnsymbool.
+ const content=partial?moon+cloud:moon;
  const alt=rain?'Regen':cloudy?'Bewolkt':partial?'Maan met wolken':'Helder';
  return `<svg class="ricoNightSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 64" width="38" height="38" role="img" aria-label="${alt} in de nacht">${content}</svg>`;
 }
@@ -5080,8 +5082,8 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
    const cloud='<path d="M20 43c-7 0-11-4-11-10 0-5 4-9 9-10 2-8 9-13 17-11 7 1 11 6 12 12 6-1 12 4 12 10 0 6-5 9-12 9Z" fill="#f4f8fc" stroke="#6e8ba2" stroke-width="2"/>';
    const drops='<path d="M21 48l-3 7M34 48l-3 7M47 48l-3 7" stroke="#278fc7" stroke-width="3.5" stroke-linecap="round"/>';
    const svg=(content)=>`<svg class="ricoNightSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 64" width="34" height="34" role="img" aria-label="${rain?'Regen in de nacht':heavyCloud?'Bewolkt in de nacht':partly?'Wolken en opklaringen in de nacht':'Heldere nacht'}">${content}</svg>`;
-   if(rain)return svg((partly?moon:'')+cloud+drops);
-   if(heavyCloud)return svg(cloud);
+   if(rain)return '🌧️'; // Eén uniforme regenstijl voor alle dagdelen.
+   if(heavyCloud)return '☁️';
    if(partly)return svg(moon+cloud);
    return svg(moon);
  }
