@@ -423,7 +423,8 @@ body{min-width:0}
 <div class="worldNewsActions"><button type="button" class="ghost" id="worldNewsRefresh">↻ Nieuws verversen</button><span class="note" id="worldNewsStatus" role="status" aria-live="polite">Open dit onderdeel om wereldweernieuws te laden.</span></div>
 <div class="worldNewsList" id="worldNewsList"></div>
 <div class="note"><a href="https://news.google.com/search?q=extreme%20weather" target="_blank" rel="noopener noreferrer">↗ Open wereldwijd weernieuws rechtstreeks in Google Nieuws</a></div>
-<div class="note" id="worldNewsFoot">Nieuwsbronnen: GDELT en Google Nieuws RSS, met links naar de publicaties. Maximaal acht berichten; gegevens maximaal zes uur gecachet. Nieuws kan wijzigen of later worden gecorrigeerd.</div>
+<div class="note" style="margin-top:10px">Rechtstreeks zoeken: <a href="https://news.google.com/search?q=extreme%20weather%20floods%20hurricane%20heatwave" target="_blank" rel="noopener noreferrer">🌪️ Extreem weer</a> · <a href="https://news.google.com/search?q=weather%20records%20snowstorm%20flooding" target="_blank" rel="noopener noreferrer">🌡️ Weerrecords en bijzonder weer</a></div>
+<div class="note" id="worldNewsFoot">Automatisch nieuws ophalen is afhankelijk van toegestane externe verbindingen. Bronnen: GDELT en Google Nieuws RSS, met links naar de publicaties. Maximaal acht berichten; gegevens maximaal zes uur gecachet. Nieuws kan wijzigen of later worden gecorrigeerd.</div>
 </details></section>
 <section class="panel hidden" id="practicalPanel"><div style="font-weight:850;font-size:17px">Praktisch</div><div class="note">Alleen tips die op basis van de modelmix echt iets toevoegen.</div><div id="practicalGrid" class="practicalGrid"></div></section>
 <section class="panel hidden" id="changesPanel"><div style="font-weight:850;font-size:17px">Wat is veranderd?</div><div class="note">Vergelijking met de vorige keer dat je deze plaats en modelkeuze ophaalde.</div><div id="changesList" class="changeList"></div></section>
@@ -2834,6 +2835,7 @@ function ensembleChangeRows(){
 function renderChanges(prev){const p=$('changesPanel'),box=$('changesList');if(!p||!box)return;if(!prev?.rows?.length||!lastRows.length){p.classList.add('hidden');box.innerHTML='';return}const pm=Object.fromEntries(prev.rows.map(r=>[r.date,r])),items=[];for(const r of lastRows.slice(0,6)){const o=pm[r.date];if(!o)continue;const tx=r.max-o.max,tn=r.min-o.min,pr=(r.precip||0)-(o.precip||0),su=(r.sun||0)-(o.sun||0);let parts=[];if(Math.abs(tx)>=1)parts.push(`🌡️ TX ${tx>0?'▲ +':'▼ '}${tx.toFixed(1).replace('.',',')}°`);if(Math.abs(tn)>=1.5)parts.push(`TN ${tn>0?'▲ +':'▼ '}${tn.toFixed(1).replace('.',',')}°`);if(Math.abs(pr)>=2)parts.push(`💧 deterministisch ${pr>0?'natter':'droger'} ${Math.abs(pr).toFixed(1).replace('.',',')} mm`);if(Math.abs(su)>=2)parts.push(`☀️ ${su>0?'zonniger':'minder zon'} ${Math.abs(su).toFixed(1).replace('.',',')} u`);if(parts.length)items.push({date:r.date,parts,strong:Math.abs(tx)>=3||Math.abs(pr)>=10})}for(const e of ensembleChangeRows()){const found=items.find(x=>x.date===e.date);if(found){found.parts.push(...e.parts);found.strong=found.strong||e.strong}else items.push(e)}items.sort((a,b)=>a.date.localeCompare(b.date));if(!items.length){p.classList.add('hidden');box.innerHTML='';return}p.classList.remove('hidden');box.innerHTML=items.slice(0,7).map(i=>`<div class="changeItem ${i.strong?'strong':''}"><b>${dayShort(i.date)}</b> · ${i.parts.join(' · ')}</div>`).join('')}
 
 function likelyOutsideDomain(k){const lat=+$('lat').value,lon=+$('lon').value;if(k==='harmonie')return !(lat>=49&&lat<=55.8&&lon>=1.5&&lon<=8.5);if(k==='icon_d2')return !(lat>=43&&lat<=58&&lon>=-4&&lon<=20);if(k==='arome')return !(lat>=37&&lat<=55&&lon>=-12&&lon<=18);return false}
+function modelStatusEscape(x){return String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function renderModelStatus(data){
  const p=$('modelStatusPanel'),box=$('modelStatusGrid'),sum=$('modelStatusSummary');
  if(!p||!box)return;
@@ -2860,8 +2862,8 @@ function renderModelStatus(data){
    const why=likelyOutsideDomain(k)?'Buiten modeldomein':'Run of gegevens niet beschikbaar';
    const note=!ok?why:!inMix?'Geen volledige TX/TN voor morgen':`${target}: TX/TN beschikbaar`;
    const weight=inMix&&totalWeight?100*weightFor(k)/totalWeight:0;
-   return `<div class="modelPill ${ok?'':'missing'}"><b>${escapeHtml(String(MODELS[k]?.name||k))}</b>${inMix?'✓ in mix morgen':ok?'◌ geladen, niet in mix morgen':'✕ ontbreekt'}<br><span>${ok?escapeHtml(String(runLabel)):escapeHtml(why)}</span><div class="freshMini">${ok?`${source} · ${loaded?fmtAge(age)+' oud':'leeftijd onbekend'}${age>21600000?' · ⚠️ ouder dan 6 uur':''}`:'Geen actuele modelgegevens'}</div><div class="freshMini">${escapeHtml(note)}${inMix?' · gewicht '+weight.toFixed(1).replace('.',',')+'%':''}</div></div>`;
-  }catch(e){console.warn('Modelstatus model',k,e);return `<div class="modelPill missing"><b>${escapeHtml(String(MODELS[k]?.name||k))}</b>Status kon niet worden berekend</div>`}
+   return `<div class="modelPill ${ok?'':'missing'}"><b>${modelStatusEscape(String(MODELS[k]?.name||k))}</b>${inMix?'✓ in mix morgen':ok?'◌ geladen, niet in mix morgen':'✕ ontbreekt'}<br><span>${ok?modelStatusEscape(String(runLabel)):modelStatusEscape(why)}</span><div class="freshMini">${ok?`${source} · ${loaded?fmtAge(age)+' oud':'leeftijd onbekend'}${age>21600000?' · ⚠️ ouder dan 6 uur':''}`:'Geen actuele modelgegevens'}</div><div class="freshMini">${modelStatusEscape(note)}${inMix?' · gewicht '+weight.toFixed(1).replace('.',',')+'%':''}</div></div>`;
+  }catch(e){console.warn('Modelstatus model',k,e);return `<div class="modelPill missing"><b>${modelStatusEscape(String(MODELS[k]?.name||k))}</b>Status kon niet worden berekend</div>`}
  });
  if(sum)sum.textContent=`${active.length<keys.length?'⚠️ ':''}Modelstatus · ${active.length}/${keys.length} in mix morgen · ${present} geladen`;
  box.innerHTML=html.join('')+($('model')?.value==='mix'?`<div class="modelPill"><b>🌐 Modelmix voor ${target}</b>${active.length}/${keys.length} kernmodellen met volledige TX/TN<br><span>Deze controle doet geen extra API-verzoeken.</span></div>`:'');
@@ -2871,7 +2873,7 @@ $('modelStatusDetails')?.addEventListener('toggle',function(){
  if(!this.open)return;
  const grid=$('modelStatusGrid');
  if(!grid||grid.querySelectorAll('.modelPill').length>1)return;
- try{renderModelStatus(lastMixData||{});}catch(e){console.warn('Modelstatus openen',e);grid.innerHTML='<div class="modelPill missing">Modelstatus kon niet worden opgebouwd. Ververs de modelmix.</div>'}
+ try{renderModelStatus(lastMixData||{});}catch(e){console.warn('Modelstatus openen',e);grid.innerHTML='<div class="modelPill missing">Modelstatus kon niet worden opgebouwd. Bekijk de browserconsole voor details; de modelmix kan wel werken.</div>'}
 });
 
 
@@ -4889,10 +4891,10 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
 })();
 </script>
 <script>
-/* Ricoweer v18: GDELT plus onafhankelijke RSS-route. Geen Open-Meteo-aanvragen. */
+/* Ricoweer v19: GDELT plus onafhankelijke RSS-route. Geen Open-Meteo-aanvragen. */
 (()=>{
 'use strict';
-const KEY='ricoweer-world-news-v18',TTL=6*60*60*1000;
+const KEY='ricoweer-world-news-v19',TTL=6*60*60*1000;
 const el=id=>document.getElementById(id);
 const terms='("extreme weather" OR "flooding" OR "hurricane" OR "typhoon" OR "heatwave" OR "snowstorm" OR "tornado" OR "weather record")';
 const gdelt='https://api.gdeltproject.org/api/v2/doc/doc?'+new URLSearchParams({query:terms+' sourcelang:english',mode:'artlist',format:'json',maxrecords:'50',timespan:'3d',sort:'datedesc'});
@@ -4910,7 +4912,7 @@ function cache(){try{const x=JSON.parse(localStorage.getItem(KEY)||'null');retur
 function render(items,at,source,stale=false){const list=el('worldNewsList');list.replaceChildren();for(const a of items){const card=document.createElement('article');card.className='worldNewsCard';const badge=document.createElement('span');badge.className='worldNewsTag';badge.textContent=a.tag;const link=document.createElement('a');link.href=a.url;link.target='_blank';link.rel='noopener noreferrer';link.textContent=a.title;const meta=document.createElement('div');meta.className='newsMeta';meta.textContent=a.domain+(a.date?' · '+new Date(a.date).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'');card.append(badge,document.createElement('br'),link,meta);list.append(card)}el('worldNewsStatus').textContent=items.length+' berichten · '+source+(stale?' · opgeslagen berichten':'')+' · '+new Date(at).toLocaleString('nl-NL',{day:'numeric',month:'short',hour:'2-digit'})}
 async function request(ep){const ctrl=new AbortController();const timer=setTimeout(()=>ctrl.abort(),8500);try{const r=await fetch(ep.url,{signal:ctrl.signal,cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);return await ep.parse(r)}finally{clearTimeout(timer)}}
 let pending=null;
-async function load(force=false){if(pending)return pending;const old=cache();if(old){render(old.items,old.at,old.source,true);if(!force&&Date.now()-old.at<TTL)return}const button=el('worldNewsRefresh');button.disabled=true;el('worldNewsStatus').textContent='Nieuwsbronnen raadplegen…';pending=(async()=>{let errors=[];try{for(const ep of endpoints){try{const articles=await request(ep),seen=new Set(),items=[];for(const a of articles){const item=clean(a);if(!item)continue;const key=item.url.split('?')[0];if(seen.has(key))continue;seen.add(key);items.push(item);if(items.length===8)break}if(!items.length)throw Error('Geen geschikte berichten');const at=Date.now();try{localStorage.setItem(KEY,JSON.stringify({items,at,source:ep.name}))}catch{}render(items,at,ep.name);return}catch(e){errors.push(ep.name+': '+e.message)}}if(old){render(old.items,old.at,old.source,true);el('worldNewsStatus').textContent+=' · Actuele bronnen onbereikbaar'}else{el('worldNewsList').replaceChildren();el('worldNewsStatus').textContent='Nieuwsbronnen niet bereikbaar. Open eventueel de externe nieuwsfeed hieronder.'}console.warn('Ricoweer wereldweer:',errors.join(' | '))}finally{button.disabled=false;pending=null}})();return pending}
+async function load(force=false){if(pending)return pending;const old=cache();if(old){render(old.items,old.at,old.source,true);if(!force&&Date.now()-old.at<TTL)return}const button=el('worldNewsRefresh');button.disabled=true;el('worldNewsStatus').textContent='Nieuwsbronnen raadplegen…';pending=(async()=>{let errors=[];try{for(const ep of endpoints){try{const articles=await request(ep),seen=new Set(),items=[];for(const a of articles){const item=clean(a);if(!item)continue;const key=item.url.split('?')[0];if(seen.has(key))continue;seen.add(key);items.push(item);if(items.length===8)break}if(!items.length)throw Error('Geen geschikte berichten');const at=Date.now();try{localStorage.setItem(KEY,JSON.stringify({items,at,source:ep.name}))}catch{}render(items,at,ep.name);return}catch(e){errors.push(ep.name+': '+e.message)}}if(old){render(old.items,old.at,old.source,true);el('worldNewsStatus').textContent+=' · Actuele bronnen onbereikbaar'}else{el('worldNewsList').replaceChildren();el('worldNewsStatus').textContent='Automatisch ophalen is door browser- of bronbeperkingen niet mogelijk. Gebruik de rechtstreekse nieuwslinks hieronder.'}console.warn('Ricoweer wereldweer:',errors.join(' | '))}finally{button.disabled=false;pending=null}})();return pending}
 function init(){const d=el('worldNewsDetails');if(!d)return;d.addEventListener('toggle',()=>{if(d.open)load()});el('worldNewsRefresh').addEventListener('click',()=>load(true));if(d.open)load()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
