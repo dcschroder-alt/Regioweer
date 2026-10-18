@@ -258,8 +258,8 @@ body{min-width:0}
 .ricoHistProvisional{display:inline-block;margin-left:5px;font-size:11px;color:#27734c;font-weight:700}
 .ricoHistTable tr.ricoHistCurrent{background:#eef9f1}
 .ricoHistTable tr.ricoHistHome:not(.ricoHistCurrent){background:#eef5fd}
-.ricoHistMobile.ricoHistCards{display:none}
-.ricoHistCards{gap:8px;margin-top:12px}
+.ricoHistMobile{display:none}
+.ricoHistCards{display:grid;gap:8px;margin-top:12px}
 .ricoHistCard{border:1px solid #dce6ef;border-radius:14px;padding:11px 12px;background:#fff;min-width:0}
 .ricoHistCard.ricoHistCurrent{background:#f0faf3;border-color:#cde5d4}
 .ricoHistCard.ricoHistHome:not(.ricoHistCurrent){background:#f1f7fe}
@@ -274,7 +274,7 @@ body{min-width:0}
 .dark .ricoHistCard.ricoHistCurrent{background:#1b3a30}
 .dark .ricoHistTable th{background:#1b2b3b;color:#e4edf6}
 .dark .ricoHistTable td{border-color:#34485a}
-@media(max-width:700px){.ricoHistTableWrap{display:none!important}.ricoHistMobile.ricoHistCards{display:grid}.ricoHistCardMeta{margin-left:45px}}
+@media(max-width:700px){.ricoHistTableWrap{display:none}.ricoHistMobile{display:block}.ricoHistCardMeta{margin-left:45px}}
 </style></style>
 
 <style>
@@ -1911,18 +1911,6 @@ function rainSummary(rows){
   if(groups.length>3){return `Verspreide buien in ${groups.length} perioden: ${groups.slice(0,3).map(fmtGroup).join(' · ')} · …`}
   return groups.length>1?'Verspreide buien: '+groups.map(fmtGroup).join(' · '):groups.map(fmtGroup).join(' · ');
 }
-// Shared sharp night pictograms for the overview and national six-hour maps.
-function ricoNightOverviewIcon(code,precip){
- const rain=Number(precip)>=.05 || [51,53,55,61,63,65,66,67,80,81,82,95,96,99].includes(Number(code));
- const cloudy=Number(code)>=3;
- const partial=Number(code)>=1 && Number(code)<=2;
- const moon='<path d="M30 6a19 19 0 1 0 20 28A18 18 0 0 1 30 6Z" fill="#f9df87" stroke="#b88939" stroke-width="1.5"/>';
- const cloud='<path d="M20 43c-7 0-11-4-11-10 0-5 4-9 9-10 2-8 9-13 17-11 7 1 11 6 12 12 6-1 12 4 12 10 0 6-5 9-12 9Z" fill="#f4f8fc" stroke="#6e8ba2" stroke-width="2"/>';
- const drops='<path d="M21 48l-3 7M34 48l-3 7M47 48l-3 7" stroke="#278fc7" stroke-width="3.5" stroke-linecap="round"/>';
- const content=rain?cloud+drops:cloudy?cloud:partial?moon+cloud:moon;
- const alt=rain?'Regen':cloudy?'Bewolkt':partial?'Maan met wolken':'Helder';
- return `<svg class="ricoNightSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 64" width="38" height="38" role="img" aria-label="${alt} in de nacht">${content}</svg>`;
-}
 function dayPartSummary(rows,label,h0,h1,date=null){
  const a=rows.filter(r=>{const h=+r.time.slice(11,13);return h>=h0&&h<h1});if(!a.length)return '';
  const temps=a.map(r=>r.temp).filter(Number.isFinite),p=a.reduce((x,r)=>x+(r.precip||0),0),pct=Math.max(0,...a.map(r=>r.rainPct||0)),codes=a.map(r=>r.code).filter(Number.isFinite);
@@ -1931,13 +1919,9 @@ function dayPartSummary(rows,label,h0,h1,date=null){
  const tfirst=temps.length?Math.round(temps[0]):null,tlast=temps.length?Math.round(temps[temps.length-1]):null,code=dominantHourlyCode(codes);let wx=hourEmoji({code,precip:p,time:(date||'2000-01-01')+'T'+String(h0).padStart(2,'0')+':00'});
  // Ochtend is een dagdeel: toon hier nooit een maan, ook niet als 06:00 nog voor zonsopkomst ligt.
  if(label==='Ochtend'){if(p>=.05)wx='🌦️';else if(code<=1)wx='☀️';else if(code<=3)wx='🌤️';else wx='☁️'}
- // Keep night and evening symbols visually consistent with the six-hour maps.
- if(label==='Nacht')wx=ricoNightOverviewIcon(code,p);
- if(label==='Avond'&&date){
-   const ss=sunsetMinutesForDate(date);
-   const nightShare=Number.isFinite(ss)?Math.max(0,Math.min(360,1440-Math.max(1080,ss)))/360:0;
-   if(nightShare>.5)wx=ricoNightOverviewIcon(code,p);
- }
+ // Avondicoon volgt de echte zonsondergang. Na zonsondergang nooit maan + wolk combineren:
+ // helder = maan, bewolkt = wolk, neerslag = neerslagsymbool.
+ if(label==='Avond'&&date){const ss=sunsetMinutesForDate(date),nightShare=Number.isFinite(ss)?Math.max(0,Math.min(360,1440-Math.max(1080,ss)))/360:0;if(nightShare>.5){if(p>=.05)wx='🌧️';else if(code<=1)wx='🌙';else if(code<=3)wx='☁️';else wx='☁️'}}
  const wind=winds.length?Math.round(winds.reduce((x,y)=>x+y,0)/winds.length):null,dir=circ(dirs),pressure=press.length?Math.round(press.reduce((x,y)=>x+y,0)/press.length):null,gust=gusts.length?Math.round(Math.max(...gusts)):null,cloud=clouds.length?Math.round(clouds.reduce((x,y)=>x+y,0)/clouds.length):null,dew=dews.length?Math.round(dews.reduce((x,y)=>x+y,0)/dews.length):null,vis=a.map(r=>r.visibility).filter(Number.isFinite),hum=a.map(r=>r.humidity).filter(Number.isFinite),minVis=vis.length?Math.min(...vis):null,maxHum=hum.length?Math.max(...hum):null,mist=!!date&&strictMistSignal(date)&&Number.isFinite(minVis)&&minVis>0&&minVis<1500; 
  const rain=p>=.05?`💧 ${p.toFixed(1).replace('.',',')} mm${pct?` · ${pct}% modellen nat`:''}`:'💧 droog';
  return `<div class="dayPart"><b>${label}</b><div class="partIcon">${wx}</div><div class="partTemp">${Number.isFinite(tfirst)?tfirst+'°':'—'}${Number.isFinite(tlast)&&tlast!==tfirst?' → '+tlast+'°':''}</div><div class="partMeta">${rain}<br>💨 ${Number.isFinite(wind)?bftText(wind):'—'} ${compass(dir)}<br>◉ ${Number.isFinite(pressure)?pressure+' hPa MSL':'—'}${Number.isFinite(gust)&&gust>=35?`<br>💨 stoten ${gust} km/u`:''}${Number.isFinite(cloud)?` · ☁️ ${cloud}%`:''}${Number.isFinite(dew)?`<br>💧 dauwpunt ${dew}°`:''}${mist?`<br>🌫️ mistsignaal`:''}</div></div>`;
@@ -2746,6 +2730,8 @@ async function getRandstadSunTimes(rows){
  try{
   const start=rows[0]?.date,end=rows[rows.length-1]?.date;
   if(!start||!end)return {};
+  const key='rico-randstad-suntimes-v31-'+start+'-'+end;
+  try{const cached=JSON.parse(localStorage.getItem(key)||'null');if(cached?.data&&Date.now()-cached.savedAt<86400000)return cached.data}catch(e){}
   // Request UTC timestamps and format each instant separately in Amsterdam.
   // This prevents a fixed summer offset from leaking into 25 October.
   const u=`https://api.open-meteo.com/v1/forecast?latitude=52.10&longitude=4.70&daily=sunrise,sunset&timezone=GMT&start_date=${start}&end_date=${end}`;
@@ -2754,37 +2740,40 @@ async function getRandstadSunTimes(rows){
   const fmt=new Intl.DateTimeFormat('nl-NL',{timeZone:'Europe/Amsterdam',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
   const local=t=>t?fmt.format(new Date(t.endsWith('Z')?t:t+'Z')):'';
   const out={};for(let i=0;i<j.daily.time.length;i++)out[j.daily.time[i]]={rise:local(j.daily.sunrise?.[i]),set:local(j.daily.sunset?.[i])};
+  try{localStorage.setItem(key,JSON.stringify({savedAt:Date.now(),data:out}))}catch(e){}
   return out;
  }catch(e){console.warn('Randstad zonnetijden niet beschikbaar',e);return {}}
 }
 async function drawRandstadCardsPng(){
- // De landelijke scan wordt onafhankelijk geladen. Gebruik direct de beschikbare
- // modelmix als de regionale scan nog niet gereed is, zonder extra API-verzoeken.
- const pngStart=isoDatePlus(appBaseDate(),1); // Randstad-PNG altijd vanaf morgen
+ // Randstad-PNG uitsluitend op echte regionale scanpunten baseren.
+ // Geen stille terugval naar de geselecteerde plaats (bijvoorbeeld Houten).
+ const pngStart=isoDatePlus(appBaseDate(),1);
+ const validRegions=d=>['Randstad-kust','Randstad-west','Randstad-oost'].every(region=>{
+  const r=nsRegion(d,[region]);return r&&r.n>0&&Number.isFinite(r.tx)&&Number.isFinite(r.tn);
+ });
  let days=(nationalScanLastPack?.days||[]).filter(d=>d?.date>=pngStart);
  if(!days.length){
   try{const cached=JSON.parse(localStorage.getItem(NATIONAL_SCAN_CACHE)||'null');days=(cached?.days||[]).filter(d=>d?.date>=pngStart)}catch(e){}
  }
- const fallback=!days.length;
- if(fallback){
-  days=(lastRows||[]).filter(r=>r?.date>=pngStart&&Number.isFinite(r.max)).map(r=>({
-   date:r.date,models:Array.from({length:Math.max(0,r.count||0)},(_,i)=>'model '+(i+1)),
-   _mixFallback:r,pts:[]
-  }));
+ if(!days.length){
+  // Hergebruik de bestaande landelijke scanfunctie en zijn tijdvakcache.
+  await renderNationalScan(false);
+  days=(nationalScanLastPack?.days||[]).filter(d=>d?.date>=pngStart);
  }
+ if(!days.length)throw new Error('Geen regionale scan beschikbaar. Open eerst Modelmix en wacht tot de landelijke scan is geladen.');
  const rows=days.slice(0,10);
- if(!rows.length)throw new Error('Er zijn nog geen modelmixgegevens geladen. Kies Modelmix en vernieuw de verwachting.');
+ const incomplete=rows.filter(d=>!validRegions(d));
+ if(incomplete.length)throw new Error('Randstad-PNG niet gemaakt: kust, west en oost ontbreken voor '+incomplete.map(d=>d.date).join(', ')+'. Vernieuw eerst de landelijke scan.');
  // De bestaande daggegevens worden hergebruikt; geen extra model-API-verzoeken.
  const sunTimes=await getRandstadSunTimes(rows),cols=Math.min(5,rows.length),cardW=376,cardH=565,gap=18,margin=34,header=118;
  const nRows=Math.ceil(rows.length/cols),W=margin*2+cols*cardW+(cols-1)*gap,H=header+margin+nRows*cardH+(nRows-1)*gap+50;
  const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
  x.fillStyle='#eaf2fa';x.fillRect(0,0,W,H);x.fillStyle='#1159bd';x.fillRect(0,0,W,94);
  x.textAlign='left';x.fillStyle='#fff';x.font='bold 38px Arial';x.fillText(`Ricoweer · Randstad · ${rows.length} dagen`,margin,51);
- x.font='20px Arial';x.fillText(fallback?'Modelmix · regionale scan nog niet geladen':'Regionale modelmix  |  kust · westelijk binnenland · Utrecht/Flevoland',margin,80);
+ x.font='20px Arial';x.fillText('Regionale modelmix  |  kust · westelijk binnenland · Utrecht/Flevoland',margin,80);
  function label(t,px,py,font='22px Arial',color='#263f5b'){x.font=font;x.fillStyle=color;x.fillText(t,px,py)}
  function box(l,t,w,h,fill,stroke){x.fillStyle=fill;x.strokeStyle=stroke;x.lineWidth=2;x.beginPath();if(x.roundRect)x.roundRect(l,t,w,h,18);else x.rect(l,t,w,h);x.fill();x.stroke()}
  const prepared=rows.map(d=>{
-  if(d._mixFallback){const r=d._mixFallback;return {d,rs:[],rk:null,rw:null,ro:null,tx:r.max,tn:r.min,sun:r.sun,rain:{mix:r.precip},wind:r.wind,dir:r.windDir}}
   const rk=nsRegion(d,['Randstad-kust']),rw=nsRegion(d,['Randstad-west']),ro=nsRegion(d,['Randstad-oost']),rs=[rk,rw,ro].filter(q=>q.n>0);
   return {d,rs,rk,rw,ro,tx:nsMedian(rs.map(v=>v?.tx)),tn:nsMedian(rs.map(v=>v?.tn)),sun:nsMedian(rs.map(v=>v?.sun)),rain:nsRainScope(d,['Randstad-kust','Randstad-west','Randstad-oost']),wind:nsMedian(rs.map(v=>v?.wind)),dir:nsCircularMean(rs.map(v=>v?.dir))}
  });
@@ -4977,8 +4966,7 @@ function fmt(v,m){if(m==='tg_hi'||m==='tg_lo'||m==='tx_hi'||m==='tn_lo')return v
 function ricoHistRanks(items,metric){let last=null,rank=0;return items.map((item,i)=>{const value=fmt(item.v,metric);if(last===null||value!==last){rank=i+1;last=value;}return rank;});}
 function ricoHistBadge(rank){return '<span class="ricoHistRank '+(rank===1?'ricoHistGold':rank===2?'ricoHistSilver':rank===3?'ricoHistBronze':'')+'">'+rank+'</span>';}
 function ricoHistEsc(value){return String(value).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
-function ricoHistIsProvisional(r,period,metric){if(!r)return false;const [a,b]=bounds(r.year,(metric==='ground_first'||metric==='ground_last')?'vorstjaar':period);const now=new Date(),today=now.getFullYear()*10000+(now.getMonth()+1)*100+now.getDate();return !!r.partial||b>today;}
-function ricoHistCards(items,ranks,metric,names,currentYear,withStation,period){return '<div class="ricoHistMobile ricoHistCards">'+items.map((r,i)=>{const isCurrent=r.year===currentYear;const isProvisional=isCurrent&&ricoHistIsProvisional(r,period,metric);const home=r.st===260||r.tiedStations?.includes(260);const station=r.tiedStations?r.tiedStations.map(st=>names[st]||'Station '+st).join(', '):names[r.st]||'Station '+r.st;const label=withStation?station:String(r.year);const meta=(withStation?'Jaar: <b>'+r.year+'</b> · ':'')+(r.dates.length?'Datum: '+r.dates.map(nice).join(', ')+' · ':'')+'Geldige dagen: '+r.n+(r.partial?' (onvolledig)':'')+(isProvisional?' · Voorlopig':'');return '<article class="ricoHistCard'+(isCurrent?' ricoHistCurrent':'')+(home?' ricoHistHome':'')+'"><div class="ricoHistCardTop">'+ricoHistBadge(ranks[i])+'<div class="ricoHistCardName">'+ricoHistEsc(label)+(isProvisional?'<span class="ricoHistProvisional"> · voorlopig</span>':'')+'</div><div class="ricoHistCardValue">'+fmt(r.v,metric)+'</div></div><div class="ricoHistCardMeta">'+meta+'</div></article>';}).join('')+'</div>';}
+function ricoHistCards(items,ranks,metric,names,currentYear,withStation){return '<div class="ricoHistMobile ricoHistCards">'+items.map((r,i)=>{const isCurrent=r.year===currentYear;const home=r.st===260||r.tiedStations?.includes(260);const station=r.tiedStations?r.tiedStations.map(st=>names[st]||'Station '+st).join(', '):names[r.st]||'Station '+r.st;const label=withStation?station:String(r.year);const meta=(withStation?'Jaar: <b>'+r.year+'</b> · ':'')+(r.dates.length?'Datum: '+r.dates.map(nice).join(', ')+' · ':'')+'Geldige dagen: '+r.n+(r.partial?' (onvolledig)':'')+(isCurrent?' · Voorlopig':'');return '<article class="ricoHistCard'+(isCurrent?' ricoHistCurrent':'')+(home?' ricoHistHome':'')+'"><div class="ricoHistCardTop">'+ricoHistBadge(ranks[i])+'<div class="ricoHistCardName">'+ricoHistEsc(label)+(isCurrent?'<span class="ricoHistProvisional"> · voorlopig</span>':'')+'</div><div class="ricoHistCardValue">'+fmt(r.v,metric)+'</div></div><div class="ricoHistCardMeta">'+meta+'</div></article>';}).join('')+'</div>';}
 function render(){if(!ready)return;
  syncFrostPeriod();let st=+$('ricoExtStation').value,p=$('ricoExtPeriod').value,m=$('ricoExtMetric').value,count=+$('ricoExtCount').value;const displayYear=(m==='ground_first'||m==='ground_last')&&new Date().getMonth()>=7?activeYear+1:activeYear;
  $('ricoDayWrap').style.display=p==='day'?'':'none';
@@ -4989,11 +4977,11 @@ function render(){if(!ready)return;
  let low=m.endsWith('_lo')||m==='tn_lo'||m==='tg_lo'||m.startsWith('first')||m==='ground_first';
  out.sort((a,b)=>low?a.v-b.v||a.year-b.year:b.v-a.v||a.year-b.year);
  let current=out.find(x=>x.year===displayYear),shown=out.slice(0,count),rank=current?ricoHistRanks(out,m)[out.indexOf(current)]:null;
- $('ricoExtStatus').textContent=out.length+' meetjaren · '+(current?(ricoHistIsProvisional(current,p,m)?'lopend jaar ':'afgesloten periode ')+displayYear+(ricoHistIsProvisional(current,p,m)?' voorlopig':'')+' op plaats '+rank+' van '+out.length:'jaar '+displayYear+' nog niet beschikbaar')+' · recente KNMI-dagwaarden kunnen nog voorlopig zijn · onvolledige historische jaren uitgesloten';
+ $('ricoExtStatus').textContent=out.length+' meetjaren · '+(current?'lopend jaar '+displayYear+' voorlopig op plaats '+rank+' van '+out.length:'lopend jaar nog niet beschikbaar')+' · recente KNMI-dagwaarden kunnen nog voorlopig zijn · onvolledige historische jaren uitgesloten';
  const ranks=ricoHistRanks(out,m),shownRanks=ranks.slice(0,shown.length);
  let html='<div class="ricoHistTableWrap"><table class="ricoHistTable"><thead><tr><th>Rang</th><th>Jaar</th><th>Waarde</th><th>Datum(s)</th><th>Geldige dagen</th></tr></thead><tbody>';
- shown.forEach((r,i)=>{html+='<tr'+(r.year===displayYear?' class="ricoHistCurrent"':'')+'><td>'+ricoHistBadge(shownRanks[i])+'</td><td><b>'+r.year+'</b>'+(r.year===displayYear&&ricoHistIsProvisional(r,p,m)?'<span class="ricoHistProvisional">Voorlopig</span>':'')+'</td><td class="ricoHistValue">'+fmt(r.v,m)+'</td><td>'+(r.dates.length?r.dates.map(nice).join(', '):'—')+'</td><td>'+r.n+(r.partial?' / onvolledig':'')+'</td></tr>'});
- html+='</tbody></table></div>'+ricoHistCards(shown,shownRanks,m,{},displayYear,false,p);
+ shown.forEach((r,i)=>{html+='<tr'+(r.year===displayYear?' class="ricoHistCurrent"':'')+'><td>'+ricoHistBadge(shownRanks[i])+'</td><td><b>'+r.year+'</b>'+(r.year===displayYear?'<span class="ricoHistProvisional">Voorlopig</span>':'')+'</td><td class="ricoHistValue">'+fmt(r.v,m)+'</td><td>'+(r.dates.length?r.dates.map(nice).join(', '):'—')+'</td><td>'+r.n+(r.partial?' / onvolledig':'')+'</td></tr>'});
+ html+='</tbody></table></div>'+ricoHistCards(shown,shownRanks,m,{},displayYear,false);
  if(current&&rank>count)html+='<p style="padding:10px;background:#e5f5e9;border-radius:8px"><b>'+displayYear+' · Voorlopig</b>: gedeelde plaats '+ranks[out.indexOf(current)]+' van '+out.length+' · '+fmt(current.v,m)+'</p>';
  $('ricoExtResult').innerHTML=html+(out.length?'':'<p>Geen complete historische meetjaren voor deze selectie.</p>');
  renderDailyScan(p);
@@ -5033,9 +5021,9 @@ function renderNational(p,m,count){
  shown.forEach((r,i)=>{
   const classes=(r.year===displayYear?'ricoHistCurrent ':'')+(r.st===260||r.tiedStations?.includes(260)?'ricoHistHome':'');
   const station=r.tiedStations?r.tiedStations.map(st=>names[st]||'Station '+st).join(', '):(names[r.st]||'Station '+r.st);
-  html+='<tr class="'+classes.trim()+'"><td>'+ricoHistBadge(shownRanks[i])+'</td><td>'+ricoHistEsc(station)+'</td><td><b>'+r.year+'</b>'+(r.year===displayYear&&ricoHistIsProvisional(r,p,m)?'<span class="ricoHistProvisional">Voorlopig</span>':'')+'</td><td class="ricoHistValue">'+fmt(r.v,m)+'</td><td>'+(r.dates.length?r.dates.map(nice).join(', '):'—')+'</td><td>'+r.n+(r.partial?' / onvolledig':'')+'</td></tr>';
+  html+='<tr class="'+classes.trim()+'"><td>'+ricoHistBadge(shownRanks[i])+'</td><td>'+ricoHistEsc(station)+'</td><td><b>'+r.year+'</b>'+(r.year===displayYear?'<span class="ricoHistProvisional">Voorlopig</span>':'')+'</td><td class="ricoHistValue">'+fmt(r.v,m)+'</td><td>'+(r.dates.length?r.dates.map(nice).join(', '):'—')+'</td><td>'+r.n+(r.partial?' / onvolledig':'')+'</td></tr>';
  });
- html+='</tbody></table></div>'+ricoHistCards(shown,shownRanks,m,names,displayYear,true,p);
+ html+='</tbody></table></div>'+ricoHistCards(shown,shownRanks,m,names,displayYear,true);
  if(mode==='all'&&currentBest&&!shown.some(r=>r.st===currentBest.st&&r.year===currentBest.year)){
   const rank=ranks[data.indexOf(currentBest)];
   html+='<p style="padding:10px;background:#e5f5e9;border-radius:8px"><b>'+displayYear+' · Voorlopig</b>: beste actuele station '+ricoHistEsc(names[currentBest.st]||currentBest.st)+' op gedeelde plaats '+rank+' van '+data.length+' · '+fmt(currentBest.v,m)+'</p>';
@@ -5054,48 +5042,4 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
 })();
 </script>
 
-<style id="ricoDaypartMapStyle">
-.ricoMapMode{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.ricoMapMode button{border:1px solid #b9d0e2;border-radius:10px;padding:10px 15px;background:#edf5fa;color:#17476b;font-weight:800;cursor:pointer}.ricoMapMode button[aria-pressed="true"]{background:#087e9b;color:white}.ricoDaypartNote{font-size:12px;color:#526b7b;margin:7px 0}.ricoDaypartGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.ricoPartMapCard{min-width:0;border:1px solid #bdd3e3;border-radius:12px;overflow:hidden;background:#e9f2f8}.ricoPartMapTitle{background:#087e9b;color:white;padding:10px;font-weight:850;display:flex;justify-content:space-between}.ricoPartMapCanvas{height:460px;background:#d5e8ed}.ricoPartMapFoot{font-size:12px;padding:10px;color:#26465a;line-height:1.5}.ricoPartMapPin{display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;font-weight:900;line-height:1.05;width:76px;height:58px;filter:drop-shadow(0 1px 2px #fff)}.ricoPartMapPin .ricoWeatherSymbol{font-size:25px;line-height:30px;height:30px;display:block;filter:drop-shadow(0 2px 1px rgba(16,39,57,.78)) drop-shadow(1px 0 1px rgba(16,39,57,.65)) drop-shadow(-1px 0 1px rgba(16,39,57,.65))}.ricoPartMapPin .ricoWeatherTemp{background:rgba(255,255,255,.96);border-radius:7px;padding:3px 7px;box-shadow:0 1px 4px #19374d55;font-size:15px;white-space:nowrap}.ricoPartMapPin .ricoTx{color:#c72d26}.ricoPartMapPin .ricoTn{color:#1269c4}.ricoPartMapPin .ricoNightSvg{display:block;width:34px;height:34px;overflow:visible;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}.ricoDaypartHidden{display:none!important}@media(max-width:1000px){.ricoDaypartGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.ricoDaypartGrid{grid-template-columns:1fr}.ricoPartMapCanvas{height:430px}}
-</style>
-<script>
-/* v35: daypart night symbols; daypart temperature as one value, using the same marker styling as daily maps; never invent hourly values from daily scan. */
-(()=>{
- const FALLBACK_POINTS=[{n:'Wadden',lat:53.30,lon:5.07},{n:'Noordwest',lat:52.96,lon:4.76},{n:'Noordoost',lat:53.22,lon:6.57},{n:'Midden',lat:52.09,lon:5.12},{n:'Zuidwest',lat:51.45,lon:3.57},{n:'Zuidoost',lat:50.85,lon:5.69}];
- const PREFERRED=[['Terschelling','Texel','Den Helder'],['Groningen','Leeuwarden','Emmen'],['IJmuiden','Den Helder','Amsterdam'],['Emmeloord','Lelystad','Almere'],['Enschede','Winterswijk','Emmen'],['Rotterdam','Scheveningen','Leiden'],['Houten','Gouda','Almere'],['Apeldoorn','Arnhem','Lelystad'],['Vlissingen','Breda'],['Maastricht','Venlo','Eindhoven']];
- function points(){const ds=typeof nationalScanLastPack!=='undefined'?nationalScanLastPack?.days:[];const all=ds?.find(d=>d?.pts?.length)?.pts||[];const chosen=PREFERRED.map(names=>names.map(n=>all.find(p=>p.point?.n===n&&Number.isFinite(p.point?.lat)&&Number.isFinite(p.point?.lon))).find(Boolean)).filter(Boolean).map(p=>({n:p.point.n,lat:p.point.lat,lon:p.point.lon}));return chosen.length>=8?chosen:FALLBACK_POINTS}
- const HOUR_SLOTS=[5,11,17,23],NAMES=['Ochtend','Middag','Avond','Nacht'];let maps=[],busy=false,loadedKey='';
- function localNow(){return new Date(new Date().toLocaleString('en-US',{timeZone:'Europe/Amsterdam'}))}
- function dateStr(d){return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}
- function slots(){let d=localNow();d.setMinutes(0,0,0);let slot=HOUR_SLOTS.filter(h=>h<=d.getHours()).pop();if(slot===undefined){d.setDate(d.getDate()-1);slot=23}d.setHours(slot,0,0,0);return Array.from({length:9},(_,i)=>{const start=new Date(d.getTime()+i*21600000);return {start,end:new Date(start.getTime()+21600000),name:NAMES[HOUR_SLOTS.indexOf(start.getHours())],date:dateStr(start)}})}
- function med(v){v=v.filter(Number.isFinite).sort((a,b)=>a-b);return v.length?(v.length%2?v[(v.length-1)/2]:(v[v.length/2-1]+v[v.length/2])/2):null}
- function fmt(v,d=0){return Number.isFinite(v)?v.toFixed(d).replace('.',','):'—'}
- function bft(kmh){if(!Number.isFinite(kmh))return '—';const ms=kmh/3.6;return [0.3,1.6,3.4,5.5,8,10.8,13.9,17.2,20.8,24.5,28.5,32.7].findIndex(x=>ms<x)===-1?12:[0.3,1.6,3.4,5.5,8,10.8,13.9,17.2,20.8,24.5,28.5,32.7].findIndex(x=>ms<x)}
- function summarize(rows){const temps=rows.map(x=>x.temp).filter(Number.isFinite),cloud=med(rows.map(x=>x.cloud)),wind=med(rows.map(x=>x.wind)),rain=rows.map(x=>x.rain).filter(Number.isFinite),pop=med(rows.map(x=>x.pop));if(!temps.length)return null;const mm=rain.length?rain.reduce((a,b)=>a+b,0):null;const wet=(mm!==null&&mm>=.2)||(Number.isFinite(pop)&&pop>=50);const icon=wet?(cloud!==null&&cloud<60?'🌦️':'🌧️'):(cloud===null?'🌤️':cloud<25?'☀️':cloud<60?'🌤️':cloud<85?'⛅':'☁️');return {lo:Math.min(...temps),hi:Math.max(...temps),cloud,wind,mm,pop,icon}}
- // v35: nachtelijke pictogrammen als een enkel scherp SVG-symbool; geen losse emoji's.
- function nightIcon(dayIcon){
-   const rain=dayIcon==='🌧️'||dayIcon==='🌦️';
-   const heavyCloud=dayIcon==='☁️';
-   const partly=dayIcon==='🌤️'||dayIcon==='⛅'||dayIcon==='🌦️';
-   const moon='<path d="M30 6a19 19 0 1 0 20 28A18 18 0 0 1 30 6Z" fill="#f9df87" stroke="#b88939" stroke-width="1.5"/>';
-   const cloud='<path d="M20 43c-7 0-11-4-11-10 0-5 4-9 9-10 2-8 9-13 17-11 7 1 11 6 12 12 6-1 12 4 12 10 0 6-5 9-12 9Z" fill="#f4f8fc" stroke="#6e8ba2" stroke-width="2"/>';
-   const drops='<path d="M21 48l-3 7M34 48l-3 7M47 48l-3 7" stroke="#278fc7" stroke-width="3.5" stroke-linecap="round"/>';
-   const svg=(content)=>`<svg class="ricoNightSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 64" width="34" height="34" role="img" aria-label="${rain?'Regen in de nacht':heavyCloud?'Bewolkt in de nacht':partly?'Wolken en opklaringen in de nacht':'Heldere nacht'}">${content}</svg>`;
-   if(rain)return svg((partly?moon:'')+cloud+drops);
-   if(heavyCloud)return svg(cloud);
-   if(partly)return svg(moon+cloud);
-   return svg(moon);
- }
- function daypartIcon(dayIcon,slot){
-   // Avond 17-23 bevat in Nederland overwegend nachtelijke uren in het winterhalfjaar.
-   // Nacht 23-05 is altijd donker. Ochtend en middag behouden dagsymbolen.
-   return (slot.name==='Nacht'||slot.name==='Avond')?nightIcon(dayIcon):dayIcon;
- }
- async function fetchDate(date){const key='rico-v34-timing-'+points().map(p=>p.n).join('-')+'-'+date;try{const old=JSON.parse(localStorage.getItem(key)||'null');if(old?.saved&&Date.now()-old.saved<90*60000&&old.data?.loc?.length)return old.data}catch(e){}const data=await nsFetchTimingPoints(date,points(),'rico-v34-atlas');try{localStorage.setItem(key,JSON.stringify({saved:Date.now(),data}))}catch(e){}return data}
- function sixHours(slot,byDate){const result=[];for(const p of points()){const rows=[];for(let k=0;k<6;k++){const hour=new Date(slot.start.getTime()+k*3600000);const data=byDate[dateStr(hour)];const loc=data?.loc?.find(x=>x.name===p.n);const value=loc?.rows?.find(x=>x.hour===hour.getHours());if(value)rows.push(value)}result.push({point:p,data:rows.length>=4?summarize(rows):null})}return result}
- function cleanMaps(){maps.forEach(m=>{try{m.remove()}catch(e){}});maps=[]}
- async function render(){const target=document.getElementById('ricoDaypartMaps');if(!target||busy)return;const s=slots(),signature=s.map(x=>x.start.toISOString()).join('|');if(signature===loadedKey&&target.querySelector('.ricoPartMapCard'))return;busy=true;target.innerHTML='<p class="ricoDaypartNote">Zesuursverwachtingen laden voor de locaties van de dagkaarten…</p>';try{const dates=[...new Set(s.flatMap(x=>[dateStr(x.start),dateStr(new Date(x.end.getTime()-3600000))]))];const byDate={};for(const date of dates)byDate[date]=await fetchDate(date);cleanMaps();const dateLabel=x=>x.toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short'});target.innerHTML='<div class="ricoDaypartGrid">'+s.map((x,i)=>`<article class="ricoPartMapCard"><div class="ricoPartMapTitle"><span>${dateLabel(x.start)} · ${x.name}</span><span>${String(x.start.getHours()).padStart(2,'0')}:00–${String(x.end.getHours()).padStart(2,'0')}:00</span></div><div id="ricoPartMap${i}" class="ricoPartMapCanvas"></div><div id="ricoPartFoot${i}" class="ricoPartMapFoot"></div></article>`).join('')+'</div>';await ricoLeafletReady();s.forEach((slot,i)=>{const data=sixHours(slot,byDate),usable=data.filter(x=>x.data),el=document.getElementById('ricoPartMap'+i);if(!el||!window.L)return;const map=L.map(el,{zoomControl:false,scrollWheelZoom:false,dragging:false,doubleClickZoom:false,boxZoom:false,keyboard:false,touchZoom:false,attributionControl:false});maps.push(map);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:10}).addTo(map);map.fitBounds([[50.75,3.35],[53.52,7.15]],{padding:[10,10],animate:false});usable.forEach(({point,data:d})=>{const isLow=slot.name==='Avond'||slot.name==='Nacht';const temp=Math.round(isLow?d.lo:d.hi);const symbol=daypartIcon(d.icon,slot);const label=`${slot.name} ${temp}°`;const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin ricoPartMapPin"><span class="ricoWeatherSymbol">${symbol}</span><span class="ricoWeatherTemp ${isLow?'ricoTn':'ricoTx'}">${temp}°</span></div>`,iconSize:[76,58],iconAnchor:[38,29]});L.marker([point.lat+({Emmeloord:.03,Houten:-.09,Apeldoorn:.04}[point.n]||0),point.lon+({Emmeloord:.07,Houten:-.02,Apeldoorn:.12,IJmuiden:.02}[point.n]||0)],{icon}).bindPopup(`<b>${point.n}</b><br>${label}<br>Neerslag ${fmt(d.mm,1)} mm (6 uur)<br>Neerslagkans indicatie ${fmt(d.pop)}%<br>Wind ${bft(d.wind)} Bft`).addTo(map)});const rain=med(usable.map(x=>x.data.mm)),wet=usable.filter(x=>(x.data.mm||0)>=.2).length;document.getElementById('ricoPartFoot'+i).textContent=usable.length?`Regionale neerslagmediaan ${fmt(rain,1)} mm · ${wet}/${usable.length} regio’s met neerslag · zesuursamenvatting`:'Geen volledige uurgegevens voor dit tijdvak';setTimeout(()=>map.invalidateSize(),80)});loadedKey=signature}catch(e){target.innerHTML='<p class="ricoDaypartNote">Dagdeelkaarten niet beschikbaar: '+String(e.message||e).replace(/[<>]/g,'')+'. Dagkaarten blijven beschikbaar.</p>'}finally{busy=false}}
- function install(){const atlas=document.getElementById('ricoWeatherAtlas');if(!atlas||document.getElementById('ricoMapMode'))return;const controls=document.createElement('div');controls.className='ricoMapMode';controls.id='ricoMapMode';controls.innerHTML='<button type="button" data-mode="daily" aria-pressed="true">Dagkaarten</button><button type="button" data-mode="parts" aria-pressed="false">Dagdelen · 54 uur</button>';const holder=document.createElement('div');holder.id='ricoDaypartMaps';holder.className='ricoDaypartHidden';const grid=atlas.querySelector('.ricoWeatherGrid');if(!grid)return;grid.before(controls,holder);const note=document.createElement('div');note.className='ricoDaypartNote';note.textContent='Dagdelen: 05–11, 11–17, 17–23 en 23–05 uur. Elk symbool vat zes uur samen. Dezelfde tien kaartlocaties als de dagkaarten; dagdelen gebruiken afzonderlijke uurdata en geen 25-punts modelmix. Bij openen gecachete uurdata-aanvragen, geen verzoeken bij elke kaart.';holder.before(note);note.classList.add('ricoDaypartHidden');controls.addEventListener('click',e=>{const b=e.target.closest('button[data-mode]');if(!b)return;const parts=b.dataset.mode==='parts';controls.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));holder.classList.toggle('ricoDaypartHidden',!parts);grid.classList.toggle('ricoDaypartHidden',parts);note.classList.toggle('ricoDaypartHidden',!parts);const rain=atlas.querySelector('.ricoAtlasRain');if(rain)rain.classList.toggle('ricoDaypartHidden',parts);if(parts)render()})}
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
-})();
-</script>
 </body></html>
