@@ -402,7 +402,7 @@ body{min-width:0}
 </style><style id="ricoCoastV40Style">
 .ricoCoastOverview{border:1px solid #c9dce9;border-radius:12px;padding:14px;margin:12px 0;background:#f6fafd;color:#17344a}.ricoCoastBarRow{margin:12px 0}.ricoCoastBarLabel{display:flex;justify-content:space-between;gap:12px;font-size:14px}.ricoCoastTrack{height:12px;background:#dfe9f1;border-radius:12px;overflow:hidden;margin-top:5px}.ricoCoastFill{height:100%;border-radius:12px}.ricoCoastInfoGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}.ricoCoastInfo{display:flex;flex-direction:column;gap:6px;background:white;border:1px solid #dce8f0;border-radius:10px;padding:12px}.ricoCoastInfo small{color:#536b7d}.ricoCoastInfo strong{font-size:16px}.ricoCoastInfo span{font-size:12px;color:#526a7b}@media(max-width:650px){.ricoCoastInfoGrid{grid-template-columns:1fr}}
 </style>
-</head>
+<style id="rico-v44-tidy-css">.ricoTidyDetails{margin:0}.ricoTidyDetails>summary{cursor:pointer;list-style:none;font-weight:900;font-size:17px;color:#173a63;padding:4px 2px 8px}.ricoTidyDetails>summary::-webkit-details-marker{display:none}.ricoTidyDetails>summary:before{content:'▸';display:inline-block;margin-right:9px;color:#1474b4}.ricoTidyDetails[open]>summary:before{content:'▾'}.ricoTidyDetails>.ricoTidyBody{padding-top:3px}.ricoTidyDetails:not([open]){min-height:28px}.dark .ricoTidyDetails>summary{color:#dbeafe}#ricoweer-api-fab{position:fixed;bottom:9px;left:9px;right:auto;z-index:9998;font-size:11px;padding:7px 9px;opacity:.74;border-radius:13px}#ricoweer-api-fab:focus,#ricoweer-api-fab:hover{opacity:1}@media(max-width:620px){.ricoTidyDetails>summary{font-size:16px}.ricoTidyDetails>.ricoTidyBody{min-width:0}}</style></head>
 <body><div class="wrap">
 <section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v1.0</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
 <nav class="quickJump" aria-label="Snel naar onderdelen"><span class="quickJumpLabel">Snel naar</span><button type="button" data-jump="todayGlancePanel">Vandaag</button><button type="button" data-jump="weatherTextPanel">Weerbericht</button><button type="button" data-jump="nationalScanPanel">Landelijk</button><button type="button" data-jump="longRangePanel">6 weken</button><button type="button" data-jump="climatePanel">Klimaat</button><button type="button" data-jump="editorialDeskPanel">Redactie</button><button type="button" data-jump="v97Cockpit">Cockpit</button><button type="button" data-jump="smartCockpit">Energie</button></nav>
@@ -5179,4 +5179,35 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
-</body></html>
+<script id="rico-v44-tidy-js">(function(){
+ const sections=[
+ ['smartBriefPanel','📊 Meteorologische briefing'],['assistantPanel','🧭 Meteorologische assistent'],
+ ['overviewPanel','📌 Extra overzicht'],['todayTomorrowPanel','🌤 Vandaag en morgen · extra overzicht'],
+ ['signal10Panel','⚠️ 10-daagse signalen'],['fineSignalsPanel','🔬 Fijnmazige signalen'],
+ ['ensembleMixPanel','🌐 Ensemble-modelmix'],['v95InsightPanel','🧠 Modelanalyse en verificatie'],
+ ['v97Cockpit','🛰️ Meteorologische cockpit'],['smartCockpit','🧠 Analyse, timing en energie'],
+ ['stationStatsPanel','📊 KNMI-stations en historische ranglijsten'],['climateStoriesPanel','📚 Klimatologische verhalen'],
+ ['editorialDeskPanel','✍️ Redactionele assistent'],['practicalPanel','🧭 Praktische tips'],
+ ['changesPanel','🔄 Veranderingen sinds vorige run'],['modelStatusPanel','⚙️ Modelstatus'],
+ ['longRangePanel','🔭 Zeswekenverwachting · EC46']
+ ];
+ function init(){
+  for(const [id,label] of sections){const section=document.getElementById(id);if(!section||section.querySelector(':scope > .ricoTidyDetails'))continue;
+   const d=document.createElement('details');d.className='ricoTidyDetails';d.dataset.tidyId=id;
+   const summary=document.createElement('summary');summary.textContent=label;
+   const body=document.createElement('div');body.className='ricoTidyBody';
+   while(section.firstChild)body.appendChild(section.firstChild);
+   d.append(summary,body);section.appendChild(d);
+   try{d.open=localStorage.getItem('rico-v44-open-'+id)==='1'}catch(e){}
+   d.addEventListener('toggle',()=>{try{localStorage.setItem('rico-v44-open-'+id,d.open?'1':'0')}catch(e){}});
+  }
+  const api=[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='API-log'&&b.style.position==='fixed');if(api){api.id='ricoweer-api-fab';api.title='Open API-diagnose';}
+  // Keep existing quick navigation functional when its destination is collapsed.
+  document.querySelectorAll('.quickJump [data-jump]').forEach(button=>{
+   button.addEventListener('click',()=>{const dest=document.getElementById(button.dataset.jump);const detail=dest?.querySelector(':scope > .ricoTidyDetails');if(detail)detail.open=true;},true);
+  });
+  // Opening any nested detail by browser find or focus reveals its parent section.
+  document.addEventListener('focusin',event=>{let node=event.target;while(node){if(node.classList?.contains('ricoTidyDetails')&&!node.open)node.open=true;node=node.parentElement}});
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();</script></body></html>
