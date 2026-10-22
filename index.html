@@ -413,7 +413,7 @@ body{min-width:0}
 <div class="field full"><label>Plaatsnaam</label><div style="display:grid;grid-template-columns:1fr auto;gap:8px"><input id="place" type="text" value="Houten" placeholder="Bijv. Houten, De Bilt of Amersfoort"><button class="ghost" id="findPlace" type="button">Zoek plaats</button></div><div class="ricoweer-place-picker"><label for="ricoPreset">Kies direct een plaats in Nederland</label><select id="ricoPreset"><option value="">— Kies een plaats —</option></select><div class="note">De volledige lokale modelmix en alle bestaande vergelijkingen worden voor de gekozen plaats geladen. Andere plaatsen kun je blijven zoeken.</div></div><div class="quickplaces" id="quickPlaces"><button class="placechip" data-place="Houten">Houten</button><button class="placechip hidden" id="homePlace" type="button">⌂ Thuis</button><button class="placechip" id="savePlace" type="button">☆ Bewaar plaats</button></div><div class="quickplaces"><button class="placechip" id="useGps" type="button">📍 Mijn locatie</button></div><details class="miniDetails"><summary>Locatie beheren</summary><div class="quickplaces"><button class="placechip" id="setHome" type="button">⌂ Maak thuisplaats</button><button class="placechip" id="clearRecent" type="button">Recent wissen</button></div></details><div class="quickplaces" id="recentPlaces"><span class="recentlabel">Recent:</span></div><div class="note" id="placeInfo">Houten · coördinaten worden automatisch gebruikt</div></div>
 <input id="lat" type="hidden" value="52.019260"><input id="lon" type="hidden" value="5.172830">
 </div><details class="modelSettings"><summary id="modelSettingsSummary">⚙ Mix beste modellen · nieuwste runs</summary><div class="grid modelSettingsGrid">
-<div class="field"><label>Model</label><select id="model"><option value="mix">Mix beste modellen</option><option value="gfs">GFS Global</option><option value="gem">GEM Global (Canada · in modelmix)</option><option value="ecmwf">ECMWF IFS</option><option value="aifs">ECMWF AIFS</option><option value="icon">ICON-EU</option><option value="icon_d2">ICON-D2 2 km</option><option value="ukmo">UKMO Global 10 km</option><option value="arome">AROME France</option><option value="arpege">ARPEGE Europe</option><option value="harmonie">KNMI HARMONIE NL 2 km</option><option value="harmonie_eu">KNMI HARMONIE Europe</option><option value="dmi_harmonie">DMI HARMONIE Europe</option></select></div>
+<div class="field"><label>Model</label><select id="model"><option value="mix">Mix beste modellen</option><option value="gfs">GFS Global</option><option value="ecmwf">ECMWF IFS</option><option value="aifs">ECMWF AIFS</option><option value="icon">ICON-EU</option><option value="icon_d2">ICON-D2 2 km</option><option value="ukmo">UKMO Global 10 km</option><option value="arome">AROME France</option><option value="arpege">ARPEGE Europe</option><option value="harmonie">KNMI HARMONIE NL 2 km</option><option value="harmonie_eu">KNMI HARMONIE Europe</option><option value="dmi_harmonie">DMI HARMONIE Europe</option></select></div>
 <div class="field"><label>Run (UTC)</label><select id="run"><option value="auto" selected>Auto · nieuwste runs</option><option>00</option><option>06</option><option>12</option><option>18</option></select></div>
 <div class="field full"><label>Datum modelrun</label><input id="date" type="date"></div>
 </div></details>
@@ -608,7 +608,7 @@ function withSlot(work){return new Promise((resolve,reject)=>{queue.push({work,r
    panel.querySelector('#ricoweer-api-close').onclick=()=>panel.hidden=true;
    panel.querySelector('#ricoweer-api-copy').onclick=()=>navigator.clipboard?.writeText(panel.querySelector('pre').textContent);
    panel.querySelector('#ricoweer-api-clear').onclick=()=>{entries=[];localStorage.removeItem(KEY);window.ricoweerApiLogRender()};
-   const retry=document.createElement('button');retry.type='button';retry.textContent='Controleer API opnieuw';retry.style.marginLeft='8px';retry.onclick=()=>{try{localStorage.removeItem('rico-api-block-until-v2');localStorage.removeItem('rw-forecast-rate-v112-core9');localStorage.removeItem('rw-ensemble-rate-limit-date-v1')}catch(e){}panel.hidden=true;const load=document.getElementById('load');if(load)load.click()};panel.append(retry);
+   const retry=document.createElement('button');retry.type='button';retry.textContent='Controleer API opnieuw';retry.style.marginLeft='8px';retry.onclick=()=>{try{localStorage.removeItem('rico-api-block-until-v2');localStorage.removeItem('rw-forecast-rate-v113-core8-nogem');localStorage.removeItem('rw-ensemble-rate-limit-date-v1')}catch(e){}panel.hidden=true;const load=document.getElementById('load');if(load)load.click()};panel.append(retry);
    window.ricoweerApiLogRender();
  });
 })();
@@ -693,7 +693,7 @@ function rwAutoCleanupOldRuns(){
  const read=k=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}};
  try{
   // Grote modelcaches: bewaar alleen records van vandaag en gisteren.
-  for(const k of ['rw-forecast-cache-v112-core9','rw-full-modelmix-cache-v104','rw-day-hourly-v106']){
+  for(const k of ['rw-forecast-cache-v113-core8-nogem','rw-full-modelmix-cache-v104','rw-day-hourly-v106']){
    const o=read(k);if(!o||Array.isArray(o)||typeof o!=='object')continue;let changed=false;
    for(const id of Object.keys(o)){const ts=o[id]?.savedAt||o[id]?.loadedAt;if(ts&&!rwKeepRecentTs(ts)){delete o[id];removed++;changed=true}}
    if(changed)put(k,o);
@@ -789,7 +789,6 @@ $('importSettings').onclick=()=>$('importSettingsFile').click();$('importSetting
 
 let lastRows=[]; let lastGfsRows=[];
 const MODELS={
- gem:{code:'gem_global',name:'GEM Global (Canada)',hours:240},
  gfs:{code:'ncep_gfs_global',name:'GFS Global',hours:384,aliases:['gfs_global','gfs013','gfs_seamless','ncep_gfs_seamless']},
  ecmwf:{code:'ecmwf_ifs',name:'ECMWF IFS',hours:241},
  aifs:{code:'ecmwf_aifs025_single',name:'ECMWF AIFS',hours:361},
@@ -802,16 +801,16 @@ const MODELS={
  harmonie_eu:{code:'knmi_harmonie_arome_europe',name:'KNMI HARMONIE Europe',hours:61},
  dmi_harmonie:{code:'dmi_harmonie_arome_europe',name:'DMI HARMONIE Europe',hours:61}
 }
-const CORE_MIX_MODELS=['harmonie','icon_d2','arome','icon','arpege','ecmwf','gfs','aifs','gem'];
+const CORE_MIX_MODELS=['harmonie','icon_d2','arome','icon','arpege','ecmwf','gfs','aifs'];
 const MODEL_TOTAL=CORE_MIX_MODELS.length;
-const FORECAST_CACHE_KEY='rw-forecast-cache-v112-core9',FORECAST_RATE_KEY='rw-forecast-rate-v112-core9';
-const FULL_MIX_CACHE_KEY='rw-full-modelmix-cache-v112-core9';
+const FORECAST_CACHE_KEY='rw-forecast-cache-v113-core8-nogem',FORECAST_RATE_KEY='rw-forecast-rate-v113-core8-nogem';
+const FULL_MIX_CACHE_KEY='rw-full-modelmix-cache-v113-core8-nogem';
 function mixLocationId(){const lat=Number($('lat').value),lon=Number($('lon').value);return `${Number.isFinite(lat)?lat.toFixed(3):$('lat').value},${Number.isFinite(lon)?lon.toFixed(3):$('lon').value}`}
 function cleanStoredRow(r){if(!r||typeof r!=='object')return null;return {date:r.date,max:r.max,min:r.min,precip:r.precip,dayPrecip:r.dayPrecip,sun:r.sun,snow:r.snow,pop:r.pop,dayPop:r.dayPop,uv:r.uv,gust:r.gust,wind:r.wind,windDir:r.windDir,cloud:r.cloud,humidity:r.humidity,dew:r.dew,pressure:r.pressure,cape:r.cape,thunder:r.thunder,hail:r.hail,complete:r.complete!==false,tempHourCount:r.tempHourCount,firstTempHour:r.firstTempHour,lastTempHour:r.lastTempHour,dayCodes:Array.isArray(r.dayCodes)?r.dayCodes:[],codes:Array.isArray(r.codes)?r.codes:[]}}
-function saveFullMixCache(data,mixRows){try{if($('model').value!=='mix'||!mixRows?.length)return;const all=JSON.parse(localStorage.getItem(FULL_MIX_CACHE_KEY)||'{}'),models={};for(const [k,rows] of Object.entries(data||{})){if(!rows?.length)continue;models[k]={runUsed:rows._runUsed||null,loadedAt:rows._loadedAt||Date.now(),rows:Array.from(rows,cleanStoredRow).filter(Boolean)}}all[mixLocationId()]={savedAt:Date.now(),place:$('place').value||'',models,mixRows:Array.from(mixRows,r=>({...cleanStoredRow(r),performanceTx:r.performanceTx,txLow:r.txLow,txHigh:r.txHigh,tnLow:r.tnLow,tnHigh:r.tnHigh,count:r.count,agreement:r.agreement,tempAgreement:r.tempAgreement,precipAgreementScore:r.precipAgreementScore,typeAgreement:r.typeAgreement,sunAgreement:r.sunAgreement,modelKeys:r.modelKeys,mixMode:r.mixMode,type:r.type,shortTermMix:r.shortTermMix,ensembleCount:r.ensembleCount||0,ensembleNames:r.ensembleNames||[],ensembleKeys:r.ensembleKeys||[]})).filter(Boolean)};const ids=Object.keys(all).sort((a,b)=>(all[b]?.savedAt||0)-(all[a]?.savedAt||0));for(const id of ids.slice(10))delete all[id];localStorage.setItem(FULL_MIX_CACHE_KEY,JSON.stringify(all))}catch(e){console.warn('Volledige modelmixcache opslaan mislukt',e)}}
+function saveFullMixCache(data,mixRows){try{if($('model').value!=='mix'||!mixRows?.length)return;const all=JSON.parse(localStorage.getItem(FULL_MIX_CACHE_KEY)||'{}'),models={};for(const [k,rows] of Object.entries(data||{})){if(k==='gem'||!rows?.length)continue;models[k]={runUsed:rows._runUsed||null,loadedAt:rows._loadedAt||Date.now(),rows:Array.from(rows,cleanStoredRow).filter(Boolean)}}all[mixLocationId()]={savedAt:Date.now(),place:$('place').value||'',models,mixRows:Array.from(mixRows,r=>({...cleanStoredRow(r),performanceTx:r.performanceTx,txLow:r.txLow,txHigh:r.txHigh,tnLow:r.tnLow,tnHigh:r.tnHigh,count:r.count,agreement:r.agreement,tempAgreement:r.tempAgreement,precipAgreementScore:r.precipAgreementScore,typeAgreement:r.typeAgreement,sunAgreement:r.sunAgreement,modelKeys:r.modelKeys,mixMode:r.mixMode,type:r.type,shortTermMix:r.shortTermMix,ensembleCount:r.ensembleCount||0,ensembleNames:r.ensembleNames||[],ensembleKeys:r.ensembleKeys||[]})).filter(Boolean)};const ids=Object.keys(all).sort((a,b)=>(all[b]?.savedAt||0)-(all[a]?.savedAt||0));for(const id of ids.slice(10))delete all[id];localStorage.setItem(FULL_MIX_CACHE_KEY,JSON.stringify(all))}catch(e){console.warn('Volledige modelmixcache opslaan mislukt',e)}}
 function cacheRowComplete(key,r,loadedAt){if(Number.isFinite(r?.tempHourCount))return r.tempHourCount>=23&&r.firstTempHour==='00'&&r.lastTempHour==='23';const h=MODELS[key]?.hours||0;if(!h||!loadedAt||!r?.date)return r?.complete===true;const dayEnd=new Date(r.date+'T23:00:00+02:00').getTime();const safeEnd=Number(loadedAt)+(h-12)*3600000;return r?.complete===true&&dayEnd<=safeEnd}
-function getFullMixCache(maxAge=72*60*60*1000){try{const all=JSON.parse(localStorage.getItem(FULL_MIX_CACHE_KEY)||'{}'),rec=all[mixLocationId()];if(!rec?.savedAt||Date.now()-rec.savedAt>maxAge)return null;const data={};for(const [k,m] of Object.entries(rec.models||{})){const rows=(m.rows||[]).map(r=>({...r,complete:cacheRowComplete(k,r,m.loadedAt||rec.savedAt)}));rows._modelUsed={...MODELS[k]};rows._runUsed=m.runUsed||'laatst opgeslagen run';rows._loadedAt=m.loadedAt||rec.savedAt;rows._fromCache=true;data[k]=rows}let mixRows=(rec.mixRows||[]).map(r=>({...r,_fromFullMixCache:true}));return {savedAt:rec.savedAt,data,mixRows,source:'volledige modelmixcache'}}catch(e){return null}}
-function legacyMixFromModelHistory(){try{const h=JSON.parse(localStorage.getItem(MODEL_HISTORY_KEY)||'{}'),vals=Object.values(h||{}).filter(x=>x&&x.key&&x.date&&Number.isFinite(x.max)&&Number.isFinite(x.min));if(!vals.length)return null;const issued=[...new Set(vals.map(x=>x.issued).filter(Boolean))].sort().reverse();for(const issue of issued){const rows=vals.filter(x=>x.issued===issue),keys=[...new Set(rows.map(x=>x.key))];if(keys.length<2)continue;const data={};for(const k of keys){const a=rows.filter(x=>x.key===k).sort((a,b)=>a.date.localeCompare(b.date)).map(x=>{const base=/^\d{4}-\d{2}-\d{2}$/.test(issue)?issue:nlToday(),lead=Math.round((new Date(x.date+'T12:00:00Z')-new Date(base+'T12:00:00Z'))/86400000),safeDays=Math.max(0,Math.floor(((MODELS[k]?.hours||0)-12)/24));return {date:x.date,max:x.max,min:x.min,precip:Number.isFinite(x.precip)?x.precip:0,sun:Number.isFinite(x.sun)?x.sun:0,complete:lead<=safeDays,codes:[],dayCodes:[]}});a._modelUsed={...MODELS[k]};a._runUsed=`lokale modelhistorie ${issue}`;a._loadedAt=Date.now();a._fromCache=true;data[k]=a}let mixRows=buildMix(data);if(!mixRows.length)continue;const snap=getPrevSnapshot?.();const today=nlToday();if(snap?.rows?.length&&!mixRows.some(r=>r.date===today)){const tr=snap.rows.find(r=>r.date===today);if(tr)mixRows.unshift({...tr,date:today,_aggregateOnly:true,_fromLegacyHistory:true,count:tr.count||0,type:tr.type||weatherType(tr)})}return {savedAt:Date.now(),data,mixRows,source:`lokale modelhistorie van ${issue}`,legacy:true}}return null}catch(e){console.warn('Modelmix uit historie herstellen mislukt',e);return null}}
+function getFullMixCache(maxAge=72*60*60*1000){try{const all=JSON.parse(localStorage.getItem(FULL_MIX_CACHE_KEY)||'{}'),rec=all[mixLocationId()];if(!rec?.savedAt||Date.now()-rec.savedAt>maxAge)return null;const data={};for(const [k,m] of Object.entries(rec.models||{})){if(k==='gem')continue;const rows=(m.rows||[]).map(r=>({...r,complete:cacheRowComplete(k,r,m.loadedAt||rec.savedAt)}));rows._modelUsed={...MODELS[k]};rows._runUsed=m.runUsed||'laatst opgeslagen run';rows._loadedAt=m.loadedAt||rec.savedAt;rows._fromCache=true;data[k]=rows}let mixRows=(rec.mixRows||[]).map(r=>({...r,_fromFullMixCache:true}));return {savedAt:rec.savedAt,data,mixRows,source:'volledige modelmixcache'}}catch(e){return null}}
+function legacyMixFromModelHistory(){try{const h=JSON.parse(localStorage.getItem(MODEL_HISTORY_KEY)||'{}'),vals=Object.values(h||{}).filter(x=>x&&x.key&&x.date&&Number.isFinite(x.max)&&Number.isFinite(x.min));if(!vals.length)return null;const issued=[...new Set(vals.map(x=>x.issued).filter(Boolean))].sort().reverse();for(const issue of issued){const rows=vals.filter(x=>x.issued===issue&&x.key!=='gem'),keys=[...new Set(rows.map(x=>x.key))];if(keys.length<2)continue;const data={};for(const k of keys){const a=rows.filter(x=>x.key===k).sort((a,b)=>a.date.localeCompare(b.date)).map(x=>{const base=/^\d{4}-\d{2}-\d{2}$/.test(issue)?issue:nlToday(),lead=Math.round((new Date(x.date+'T12:00:00Z')-new Date(base+'T12:00:00Z'))/86400000),safeDays=Math.max(0,Math.floor(((MODELS[k]?.hours||0)-12)/24));return {date:x.date,max:x.max,min:x.min,precip:Number.isFinite(x.precip)?x.precip:0,sun:Number.isFinite(x.sun)?x.sun:0,complete:lead<=safeDays,codes:[],dayCodes:[]}});a._modelUsed={...MODELS[k]};a._runUsed=`lokale modelhistorie ${issue}`;a._loadedAt=Date.now();a._fromCache=true;data[k]=a}let mixRows=buildMix(data);if(!mixRows.length)continue;const snap=getPrevSnapshot?.();const today=nlToday();if(snap?.rows?.length&&!mixRows.some(r=>r.date===today)){const tr=snap.rows.find(r=>r.date===today);if(tr)mixRows.unshift({...tr,date:today,_aggregateOnly:true,_fromLegacyHistory:true,count:tr.count||0,type:tr.type||weatherType(tr)})}return {savedAt:Date.now(),data,mixRows,source:`lokale modelhistorie van ${issue}`,legacy:true}}return null}catch(e){console.warn('Modelmix uit historie herstellen mislukt',e);return null}}
 function bestStoredMix(){return getFullMixCache()||legacyMixFromModelHistory()}
 
 // Een oude datumvlag mag niet een hele dag alle nieuwe runs blokkeren.
@@ -904,7 +903,7 @@ async function fetchModel(key,visual=true,runOverride=null){
    const mm={...m,code};
    try{
      // GFS: kern eerst licht houden. Visuele velden komen daarna in één gebundelde call.
-     let coreVisual = (key==='gfs'||key==='gem') ? false : visual;
+     let coreVisual = (key==='gfs') ? false : visual;
      let url=apiUrl(mm,coreVisual);
      if(runOverride&&!isAutoRun()) url=url.replace(encodeURIComponent(runIso()),encodeURIComponent(runOverride));
      let r=await fetch(url,{cache:'no-store'});let j=await r.json();
@@ -1074,22 +1073,22 @@ function mixKeysForOffset(off,date,maps){
   const available=list=>list.filter(k=>maps[k]?.[date]);
   // Compacte kernmix: overlap tussen HARMONIE-configuraties en UKMO is uit de
   // centrale mix gehaald. Ze blijven desgewenst handmatig selecteerbaar.
-  if(off<=2)return available(['harmonie','icon_d2','arome','icon','arpege','ecmwf','gfs','aifs','gem']);
-  if(off<=4)return available(['icon','arpege','ecmwf','gfs','aifs','gem']);
-  if(off<=7)return available(['ecmwf','gfs','aifs','arpege','icon','gem']);
-  return available(['ecmwf','gfs','aifs','gem']);
+  if(off<=2)return available(['harmonie','icon_d2','arome','icon','arpege','ecmwf','gfs','aifs']);
+  if(off<=4)return available(['icon','arpege','ecmwf','gfs','aifs']);
+  if(off<=7)return available(['ecmwf','gfs','aifs','arpege','icon']);
+  return available(['ecmwf','gfs','aifs']);
 }
 function modelWeight(key,off){
-  if(off<=2){return {harmonie:3.2,icon_d2:3.3,arome:3.0,icon:2.5,arpege:2.2,ecmwf:1.65,gfs:1.3,aifs:1.3,gem:1.5}[key]||1}
-  if(off<=4)return {icon:1.55,arpege:1.35,ecmwf:1.9,gfs:1.4,aifs:1.45,gem:1.55}[key]||1;
-  return {ecmwf:1.85,gfs:1.45,aifs:1.45,arpege:1.05,icon:1.05,gem:1.55}[key]||1;
+  if(off<=2){return {harmonie:3.2,icon_d2:3.3,arome:3.0,icon:2.5,arpege:2.2,ecmwf:1.65,gfs:1.3,aifs:1.3}[key]||1}
+  if(off<=4)return {icon:1.55,arpege:1.35,ecmwf:1.9,gfs:1.4,aifs:1.45}[key]||1;
+  return {ecmwf:1.85,gfs:1.45,aifs:1.45,arpege:1.05,icon:1.05}[key]||1;
 }
 // Indicatieve TX-prestatiegewichten, gebaseerd op Meteoproof De Bilt april–oktober 2026.
 // Geen operationele skillscore of biascorrectie; slechts een afzonderlijke vergelijking.
 const TX_VERIFY_WEIGHTS={
-  short:{icon:1.30,aifs:1.28,gem:1.22,gfs:0.98,ecmwf:0.95,arpege:1.00,harmonie:1.00,icon_d2:1.00,arome:1.00},
-  mid:{aifs:1.35,gem:1.30,icon:1.22,gfs:1.02,ecmwf:0.95,arpege:1.00},
-  long:{aifs:1.50,gem:1.30,ecmwf:1.10,gfs:0.90,icon:1.05,arpege:1.00}
+  short:{icon:1.30,aifs:1.28,gfs:0.98,ecmwf:0.95,arpege:1.00,harmonie:1.00,icon_d2:1.00,arome:1.00},
+  mid:{aifs:1.35,icon:1.22,gfs:1.02,ecmwf:0.95,arpege:1.00},
+  long:{aifs:1.50,ecmwf:1.10,gfs:0.90,icon:1.05,arpege:1.00}
 };
 function experimentalTx(items,off){
   const band=off<=3?'short':off<=6?'mid':'long',weights=TX_VERIFY_WEIGHTS[band];
@@ -2344,7 +2343,7 @@ $('load').onclick=async()=>{
   try{
     setStatus('Modelgegevens parallel ophalen…',10);
     if($('model').value==='mix'){
-      const order=['gfs','ecmwf','aifs','icon','icon_d2','arome','arpege','harmonie','gem'];
+      const order=['gfs','ecmwf','aifs','icon','icon_d2','arome','arpege','harmonie'];
       const storedMix=forecastRateLimitedToday()?bestStoredMix():null;
       if(storedMix?.mixRows?.length){
         const data=storedMix.data||{};lastMixData=data;lastRows=storedMix.mixRows.map(r=>({...r}));
