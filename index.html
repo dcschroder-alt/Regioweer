@@ -413,7 +413,7 @@ body{min-width:0}
 <div class="field full"><label>Plaatsnaam</label><div style="display:grid;grid-template-columns:1fr auto;gap:8px"><input id="place" type="text" value="Houten" placeholder="Bijv. Houten, De Bilt of Amersfoort"><button class="ghost" id="findPlace" type="button">Zoek plaats</button></div><div class="ricoweer-place-picker"><label for="ricoPreset">Kies direct een plaats in Nederland</label><select id="ricoPreset"><option value="">— Kies een plaats —</option></select><div class="note">De volledige lokale modelmix en alle bestaande vergelijkingen worden voor de gekozen plaats geladen. Andere plaatsen kun je blijven zoeken.</div></div><div class="quickplaces" id="quickPlaces"><button class="placechip" data-place="Houten">Houten</button><button class="placechip hidden" id="homePlace" type="button">⌂ Thuis</button><button class="placechip" id="savePlace" type="button">☆ Bewaar plaats</button></div><div class="quickplaces"><button class="placechip" id="useGps" type="button">📍 Mijn locatie</button></div><details class="miniDetails"><summary>Locatie beheren</summary><div class="quickplaces"><button class="placechip" id="setHome" type="button">⌂ Maak thuisplaats</button><button class="placechip" id="clearRecent" type="button">Recent wissen</button></div></details><div class="quickplaces" id="recentPlaces"><span class="recentlabel">Recent:</span></div><div class="note" id="placeInfo">Houten · coördinaten worden automatisch gebruikt</div></div>
 <input id="lat" type="hidden" value="52.019260"><input id="lon" type="hidden" value="5.172830">
 </div><details class="modelSettings"><summary id="modelSettingsSummary">⚙ Mix beste modellen · nieuwste runs</summary><div class="grid modelSettingsGrid">
-<div class="field"><label>Model</label><select id="model"><option value="mix">Mix beste modellen</option><option value="gfs">GFS Global</option><option value="ecmwf">ECMWF IFS</option><option value="aifs">ECMWF AIFS</option><option value="icon">ICON-EU</option><option value="icon_d2">ICON-D2 2 km</option><option value="ukmo">UKMO Global 10 km</option><option value="arome">AROME France</option><option value="arpege">ARPEGE Europe</option><option value="harmonie">KNMI HARMONIE NL 2 km</option><option value="harmonie_eu">KNMI HARMONIE Europe</option><option value="dmi_harmonie">DMI HARMONIE Europe</option></select></div>
+<div class="field"><label>Model</label><select id="model"><option value="mix">Mix beste modellen</option><option value="gfs">GFS Global</option><option value="gem">GEM Global (Canada · in modelmix)</option><option value="ecmwf">ECMWF IFS</option><option value="aifs">ECMWF AIFS</option><option value="icon">ICON-EU</option><option value="icon_d2">ICON-D2 2 km</option><option value="ukmo">UKMO Global 10 km</option><option value="arome">AROME France</option><option value="arpege">ARPEGE Europe</option><option value="harmonie">KNMI HARMONIE NL 2 km</option><option value="harmonie_eu">KNMI HARMONIE Europe</option><option value="dmi_harmonie">DMI HARMONIE Europe</option></select></div>
 <div class="field"><label>Run (UTC)</label><select id="run"><option value="auto" selected>Auto · nieuwste runs</option><option>00</option><option>06</option><option>12</option><option>18</option></select></div>
 <div class="field full"><label>Datum modelrun</label><input id="date" type="date"></div>
 </div></details>
@@ -431,7 +431,6 @@ body{min-width:0}
 <section class="panel climateStoriesPanel hidden" id="editorialDeskPanel"><div class="climateStoriesHead"><div><div class="climateStoriesTitle">✍️ Redactionele assistent</div><div class="note">Redactionele invalshoeken op basis van de sterkste klimaatsignalen; alleen extra informatie die helpt bij een artikel.</div></div><span class="climateStoryPill" id="editorialDeskStatus">wacht op modelmix</span></div><div id="editorialDeskLead" class="climateStoriesLead"><b>Nog geen artikelkans</b><span>Na de modelmix koppelt de app de interessantste verhalen aan de bijbehorende daggegevens.</span></div><div id="editorialDeskGrid" class="climateStoriesGrid"></div></section>
 <section class="panel hidden" id="smartBriefPanel"><div class="previewHead"><div><div style="font-weight:900;font-size:18px">📊 Meteorologische briefing · komende 10 dagen</div><div class="note">Omslag, afzonderlijke modelzekerheid en opvallende signalen · uitsluitend op basis van de geladen modelmix</div></div><div class="smallstatus" id="smartBriefStatus"></div></div><div id="smartBriefCards" class="smartBriefCards"></div><div id="smartBriefChart" class="smartBriefChart"></div><div class="note">De lijn toont de verwachte maxima; gekleurde markeringen geven betekenisvolle temperatuurveranderingen aan. Neerslag en onzekerheid blijven apart beoordeeld.</div></section>
 <section class="panel assistantPanel hidden" id="assistantPanel"><div class="previewHead"><div><div style="font-weight:900;font-size:18px">🧭 Meteorologische assistent</div><div class="note">Wat veranderde, waar zit de omslag en wat verdient nu aandacht? Alleen betekenisvolle signalen uit de modelmix.</div></div><div class="smallstatus" id="assistantStatus">wacht op modelmix</div></div><div class="assistantLead"><div class="assistantCard emphasis" id="assistantMorning"><b>🔄 Sinds de ochtendrun</b><span>Vergelijking wordt opgebouwd.</span></div><div class="assistantCard turn" id="assistantTurn"><b>⏱️ Omslagmoment</b><span>Wordt uit de komende dagen bepaald.</span></div></div><div class="assistantCard" style="margin-top:9px"><b>🎯 Verwachtingsvenster</b><span>Vanaf de middellange termijn toont de app liever bandbreedtes dan schijnprecisie.</span><div id="assistantWindows" class="assistantWindowGrid"></div></div><div class="assistantLead"><div class="assistantCard" id="assistantOutlier"><b>🧭 Model-afwijker</b><span>Geen duidelijke afwijker vastgesteld.</span></div><div class="assistantCard" id="assistantFollow"><b>📰 Dit zou ik vandaag volgen</b><span>De belangrijkste aandachtspunten verschijnen hier.</span></div></div></section>
-<section class="panel" id="depressionTrackPanel"><details><summary style="cursor:pointer;font-weight:900;font-size:18px">🌀 Depressiebanen &amp; weerbeeld · v49 experimenteel</summary><div style="padding:12px 0"><p class="note">Vergelijk ECMWF en GFS op basis van een luchtdrukraster met 48 punten boven de Noord-Atlantische Oceaan en Noordwest-Europa. Dit volgt <strong>lokale drukminima</strong> met controles op afstand en drukverandering. Het blijft experimenteel en is geen volledige meteorologische depressieanalyse. Het weerbeeld komt uit de bestaande landelijke weerscan.</p><button type="button" id="depressionLoadBtn">Bereken depressiebanen</button> <span class="smallstatus" id="depressionTrackStatus">Op aanvraag · geen extra API-verzoeken bij openen</span><div id="depressionTrackOutput" style="margin-top:12px"></div></div></details></section>
 <section class="panel hidden" id="nationalScanPanel"><div class="previewHead"><div><div style="font-weight:900;font-size:18px">🇳🇱 Landelijke weerscan</div><div class="note">Los van de gekozen plaats. Nederland + Randstad, 5/7/10/15 dagen vooruit. Dag 1–10 in dezelfde uitgebreide indeling: landelijk weerbeeld, vier regio’s, Randstad, extremen en modelovereenstemming. De gebruikte modellen verschillen per termijn: regionale modellen vooral in de eerste dagen, grotere modellen vanaf dag 6. Dag 11–15 is indicatiever.</div></div><div class="smallstatus" id="nationalScanStatus">wacht op scan</div></div><div class="nationalScanControls" id="nationalScanControls"><button type="button" data-nsdays="5">5 dagen</button><button type="button" data-nsdays="7">7 dagen</button><button type="button" data-nsdays="10">10 dagen</button><button type="button" data-nsdays="15">15 dagen</button></div><div class="ricomapPanel"><div class="ricomapHeader"><strong>🗺️ Temperatuurkaart Nederland</strong><small>Geografische kaart · echte modelmixwaarden per scanpunt</small></div><div class="ricomapControls"><label for="ricomapDay">Dag <select id="ricomapDay" aria-label="Dag temperatuurkaart"></select></label><label for="ricomapType">Temperatuur <select id="ricomapType"><option value="tx">Maximum (TX)</option><option value="tn">Minimum (TN)</option></select></label><button id="ricomapRefresh" type="button">Kaart vernieuwen</button></div><div id="ricomapStatus" class="note">Kaart verschijnt zodra de landelijke scan beschikbaar is.</div><div id="ricomapHint" class="note" style="margin:4px 0">Zoom in voor meer temperatuurwaarden.</div><div id="ricomapCanvas" role="img" aria-label="Nederlandse landkaart met modelmix temperaturen"></div><div class="note">Kaartondergrond © OpenStreetMap-bijdragers. Temperatuurpunten zijn de werkelijke modelmixwaarden; tussenliggende gebieden worden niet als gemeten of berekend voorgesteld. Voor de kaartondergrond is een internetverbinding nodig.</div></div><div id="nationalScanLead" class="assistantCard"><b>Landelijk weerbeeld</b><span>Dag 1–2 gebruiken vooral HARMONIE, ICON-D2 en AROME. Daarna nemen de grotere modellen het over.</span></div><div id="nationalScanDays"></div></section>
 
 <section class="panel longRangePanel hidden" id="longRangePanel"><div class="previewHead"><div><div style="font-weight:900;font-size:18px">🔭 6-wekenverwachting</div><div class="note">ECMWF EC46 · weekgemiddelden tot circa 46 dagen vooruit. Gericht op patroon, afwijking van normaal en mogelijke omslagen; geen dagverwachting.</div></div><div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><div class="smallstatus" id="longRangeStatus">wacht op lange termijn</div><button class="ghost" id="longRangeRefresh" type="button">↻ EC46</button></div></div><div id="longRangeLead" class="longRangeLead"><b>Lange termijn in één oogopslag</b><span>Na het ophalen verschijnt hier het belangrijkste patroon voor de komende zes weken.</span></div><div id="longRangeChanges" class="longRangeChanges hidden"></div><div id="ec46TrendVisual" class="rwPhase2"></div><div id="ec46RegimeVisual" class="rwPhase2"></div><div class="note" style="margin:8px 0 12px;padding:10px 13px;border:1px solid var(--line,#d5e0ed);border-radius:12px">🔎 <b>Controleer het officiële ensemble:</b> <a href="https://charts.ecmwf.int/products/opencharts_extended_meteogram?lat=52.11&amp;lon=5.18056&amp;station_name=De%20Bilt" target="_blank" rel="noopener noreferrer">ECMWF Extended Meteogram · De Bilt ↗</a>. De boxplot toont ensemblemediaan en spreiding t.o.v. ECMWF-modelklimaat; een losse dagelijkse afwijking is daarmee niet gelijk te stellen.</div><div id="longRangeWeeks" class="longRangeGrid"></div><div class="longRangeMeta" id="longRangeMeta">Temperatuur, neerslag en zon worden waar mogelijk vergeleken met het klimaatgemiddelde 1996–2025 uit de bestaande KNMI-klimaatreeks. Kanssignalen/EFI van EC46 zijn modelklimatologisch en worden alleen als aanvullende ensemble-indicatie gebruikt.</div></section>
@@ -608,7 +607,7 @@ function withSlot(work){return new Promise((resolve,reject)=>{queue.push({work,r
    panel.querySelector('#ricoweer-api-close').onclick=()=>panel.hidden=true;
    panel.querySelector('#ricoweer-api-copy').onclick=()=>navigator.clipboard?.writeText(panel.querySelector('pre').textContent);
    panel.querySelector('#ricoweer-api-clear').onclick=()=>{entries=[];localStorage.removeItem(KEY);window.ricoweerApiLogRender()};
-   const retry=document.createElement('button');retry.type='button';retry.textContent='Controleer API opnieuw';retry.style.marginLeft='8px';retry.onclick=()=>{try{localStorage.removeItem('rico-api-block-until-v2');localStorage.removeItem('rw-forecast-rate-v113-core8-nogem');localStorage.removeItem('rw-ensemble-rate-limit-date-v1')}catch(e){}panel.hidden=true;const load=document.getElementById('load');if(load)load.click()};panel.append(retry);
+   const retry=document.createElement('button');retry.type='button';retry.textContent='Controleer API opnieuw';retry.style.marginLeft='8px';retry.onclick=()=>{try{localStorage.removeItem('rico-api-block-until-v2');localStorage.removeItem('rw-forecast-rate-v112-core9');localStorage.removeItem('rw-ensemble-rate-limit-date-v1')}catch(e){}panel.hidden=true;const load=document.getElementById('load');if(load)load.click()};panel.append(retry);
    window.ricoweerApiLogRender();
  });
 })();
@@ -693,7 +692,7 @@ function rwAutoCleanupOldRuns(){
  const read=k=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}};
  try{
   // Grote modelcaches: bewaar alleen records van vandaag en gisteren.
-  for(const k of ['rw-forecast-cache-v113-core8-nogem','rw-full-modelmix-cache-v104','rw-day-hourly-v106']){
+  for(const k of ['rw-forecast-cache-v112-core9','rw-full-modelmix-cache-v104','rw-day-hourly-v106']){
    const o=read(k);if(!o||Array.isArray(o)||typeof o!=='object')continue;let changed=false;
    for(const id of Object.keys(o)){const ts=o[id]?.savedAt||o[id]?.loadedAt;if(ts&&!rwKeepRecentTs(ts)){delete o[id];removed++;changed=true}}
    if(changed)put(k,o);
@@ -789,6 +788,7 @@ $('importSettings').onclick=()=>$('importSettingsFile').click();$('importSetting
 
 let lastRows=[]; let lastGfsRows=[];
 const MODELS={
+ gem:{code:'gem_global',name:'GEM Global (Canada)',hours:240},
  gfs:{code:'ncep_gfs_global',name:'GFS Global',hours:384,aliases:['gfs_global','gfs013','gfs_seamless','ncep_gfs_seamless']},
  ecmwf:{code:'ecmwf_ifs',name:'ECMWF IFS',hours:241},
  aifs:{code:'ecmwf_aifs025_single',name:'ECMWF AIFS',hours:361},
@@ -801,16 +801,16 @@ const MODELS={
  harmonie_eu:{code:'knmi_harmonie_arome_europe',name:'KNMI HARMONIE Europe',hours:61},
  dmi_harmonie:{code:'dmi_harmonie_arome_europe',name:'DMI HARMONIE Europe',hours:61}
 }
-const CORE_MIX_MODELS=['harmonie','icon_d2','arome','icon','arpege','ecmwf','gfs','aifs'];
+const CORE_MIX_MODELS=['harmonie','icon_d2','arome','icon','arpege','ecmwf','gfs','aifs','gem'];
 const MODEL_TOTAL=CORE_MIX_MODELS.length;
-const FORECAST_CACHE_KEY='rw-forecast-cache-v113-core8-nogem',FORECAST_RATE_KEY='rw-forecast-rate-v113-core8-nogem';
-const FULL_MIX_CACHE_KEY='rw-full-modelmix-cache-v113-core8-nogem';
+const FORECAST_CACHE_KEY='rw-forecast-cache-v112-core9',FORECAST_RATE_KEY='rw-forecast-rate-v112-core9';
+const FULL_MIX_CACHE_KEY='rw-full-modelmix-cache-v112-core9';
 function mixLocationId(){const lat=Number($('lat').value),lon=Number($('lon').value);return `${Number.isFinite(lat)?lat.toFixed(3):$('lat').value},${Number.isFinite(lon)?lon.toFixed(3):$('lon').value}`}
 function cleanStoredRow(r){if(!r||typeof r!=='object')return null;return {date:r.date,max:r.max,min:r.min,precip:r.precip,dayPrecip:r.dayPrecip,sun:r.sun,snow:r.snow,pop:r.pop,dayPop:r.dayPop,uv:r.uv,gust:r.gust,wind:r.wind,windDir:r.windDir,cloud:r.cloud,humidity:r.humidity,dew:r.dew,pressure:r.pressure,cape:r.cape,thunder:r.thunder,hail:r.hail,complete:r.complete!==false,tempHourCount:r.tempHourCount,firstTempHour:r.firstTempHour,lastTempHour:r.lastTempHour,dayCodes:Array.isArray(r.dayCodes)?r.dayCodes:[],codes:Array.isArray(r.codes)?r.codes:[]}}
-function saveFullMixCache(data,mixRows){try{if($('model').value!=='mix'||!mixRows?.length)return;const all=JSON.parse(localStorage.getItem(FULL_MIX_CACHE_KEY)||'{}'),models={};for(const [k,rows] of Object.entries(data||{})){if(k==='gem'||!rows?.length)continue;models[k]={runUsed:rows._runUsed||null,loadedAt:rows._loadedAt||Date.now(),rows:Array.from(rows,cleanStoredRow).filter(Boolean)}}all[mixLocationId()]={savedAt:Date.now(),place:$('place').value||'',models,mixRows:Array.from(mixRows,r=>({...cleanStoredRow(r),performanceTx:r.performanceTx,txLow:r.txLow,txHigh:r.txHigh,tnLow:r.tnLow,tnHigh:r.tnHigh,count:r.count,agreement:r.agreement,tempAgreement:r.tempAgreement,precipAgreementScore:r.precipAgreementScore,typeAgreement:r.typeAgreement,sunAgreement:r.sunAgreement,modelKeys:r.modelKeys,mixMode:r.mixMode,type:r.type,shortTermMix:r.shortTermMix,ensembleCount:r.ensembleCount||0,ensembleNames:r.ensembleNames||[],ensembleKeys:r.ensembleKeys||[]})).filter(Boolean)};const ids=Object.keys(all).sort((a,b)=>(all[b]?.savedAt||0)-(all[a]?.savedAt||0));for(const id of ids.slice(10))delete all[id];localStorage.setItem(FULL_MIX_CACHE_KEY,JSON.stringify(all))}catch(e){console.warn('Volledige modelmixcache opslaan mislukt',e)}}
+function saveFullMixCache(data,mixRows){try{if($('model').value!=='mix'||!mixRows?.length)return;const all=JSON.parse(localStorage.getItem(FULL_MIX_CACHE_KEY)||'{}'),models={};for(const [k,rows] of Object.entries(data||{})){if(!rows?.length)continue;models[k]={runUsed:rows._runUsed||null,loadedAt:rows._loadedAt||Date.now(),rows:Array.from(rows,cleanStoredRow).filter(Boolean)}}all[mixLocationId()]={savedAt:Date.now(),place:$('place').value||'',models,mixRows:Array.from(mixRows,r=>({...cleanStoredRow(r),performanceTx:r.performanceTx,txLow:r.txLow,txHigh:r.txHigh,tnLow:r.tnLow,tnHigh:r.tnHigh,count:r.count,agreement:r.agreement,tempAgreement:r.tempAgreement,precipAgreementScore:r.precipAgreementScore,typeAgreement:r.typeAgreement,sunAgreement:r.sunAgreement,modelKeys:r.modelKeys,mixMode:r.mixMode,type:r.type,shortTermMix:r.shortTermMix,ensembleCount:r.ensembleCount||0,ensembleNames:r.ensembleNames||[],ensembleKeys:r.ensembleKeys||[]})).filter(Boolean)};const ids=Object.keys(all).sort((a,b)=>(all[b]?.savedAt||0)-(all[a]?.savedAt||0));for(const id of ids.slice(10))delete all[id];localStorage.setItem(FULL_MIX_CACHE_KEY,JSON.stringify(all))}catch(e){console.warn('Volledige modelmixcache opslaan mislukt',e)}}
 function cacheRowComplete(key,r,loadedAt){if(Number.isFinite(r?.tempHourCount))return r.tempHourCount>=23&&r.firstTempHour==='00'&&r.lastTempHour==='23';const h=MODELS[key]?.hours||0;if(!h||!loadedAt||!r?.date)return r?.complete===true;const dayEnd=new Date(r.date+'T23:00:00+02:00').getTime();const safeEnd=Number(loadedAt)+(h-12)*3600000;return r?.complete===true&&dayEnd<=safeEnd}
-function getFullMixCache(maxAge=72*60*60*1000){try{const all=JSON.parse(localStorage.getItem(FULL_MIX_CACHE_KEY)||'{}'),rec=all[mixLocationId()];if(!rec?.savedAt||Date.now()-rec.savedAt>maxAge)return null;const data={};for(const [k,m] of Object.entries(rec.models||{})){if(k==='gem')continue;const rows=(m.rows||[]).map(r=>({...r,complete:cacheRowComplete(k,r,m.loadedAt||rec.savedAt)}));rows._modelUsed={...MODELS[k]};rows._runUsed=m.runUsed||'laatst opgeslagen run';rows._loadedAt=m.loadedAt||rec.savedAt;rows._fromCache=true;data[k]=rows}let mixRows=(rec.mixRows||[]).map(r=>({...r,_fromFullMixCache:true}));return {savedAt:rec.savedAt,data,mixRows,source:'volledige modelmixcache'}}catch(e){return null}}
-function legacyMixFromModelHistory(){try{const h=JSON.parse(localStorage.getItem(MODEL_HISTORY_KEY)||'{}'),vals=Object.values(h||{}).filter(x=>x&&x.key&&x.date&&Number.isFinite(x.max)&&Number.isFinite(x.min));if(!vals.length)return null;const issued=[...new Set(vals.map(x=>x.issued).filter(Boolean))].sort().reverse();for(const issue of issued){const rows=vals.filter(x=>x.issued===issue&&x.key!=='gem'),keys=[...new Set(rows.map(x=>x.key))];if(keys.length<2)continue;const data={};for(const k of keys){const a=rows.filter(x=>x.key===k).sort((a,b)=>a.date.localeCompare(b.date)).map(x=>{const base=/^\d{4}-\d{2}-\d{2}$/.test(issue)?issue:nlToday(),lead=Math.round((new Date(x.date+'T12:00:00Z')-new Date(base+'T12:00:00Z'))/86400000),safeDays=Math.max(0,Math.floor(((MODELS[k]?.hours||0)-12)/24));return {date:x.date,max:x.max,min:x.min,precip:Number.isFinite(x.precip)?x.precip:0,sun:Number.isFinite(x.sun)?x.sun:0,complete:lead<=safeDays,codes:[],dayCodes:[]}});a._modelUsed={...MODELS[k]};a._runUsed=`lokale modelhistorie ${issue}`;a._loadedAt=Date.now();a._fromCache=true;data[k]=a}let mixRows=buildMix(data);if(!mixRows.length)continue;const snap=getPrevSnapshot?.();const today=nlToday();if(snap?.rows?.length&&!mixRows.some(r=>r.date===today)){const tr=snap.rows.find(r=>r.date===today);if(tr)mixRows.unshift({...tr,date:today,_aggregateOnly:true,_fromLegacyHistory:true,count:tr.count||0,type:tr.type||weatherType(tr)})}return {savedAt:Date.now(),data,mixRows,source:`lokale modelhistorie van ${issue}`,legacy:true}}return null}catch(e){console.warn('Modelmix uit historie herstellen mislukt',e);return null}}
+function getFullMixCache(maxAge=72*60*60*1000){try{const all=JSON.parse(localStorage.getItem(FULL_MIX_CACHE_KEY)||'{}'),rec=all[mixLocationId()];if(!rec?.savedAt||Date.now()-rec.savedAt>maxAge)return null;const data={};for(const [k,m] of Object.entries(rec.models||{})){const rows=(m.rows||[]).map(r=>({...r,complete:cacheRowComplete(k,r,m.loadedAt||rec.savedAt)}));rows._modelUsed={...MODELS[k]};rows._runUsed=m.runUsed||'laatst opgeslagen run';rows._loadedAt=m.loadedAt||rec.savedAt;rows._fromCache=true;data[k]=rows}let mixRows=(rec.mixRows||[]).map(r=>({...r,_fromFullMixCache:true}));return {savedAt:rec.savedAt,data,mixRows,source:'volledige modelmixcache'}}catch(e){return null}}
+function legacyMixFromModelHistory(){try{const h=JSON.parse(localStorage.getItem(MODEL_HISTORY_KEY)||'{}'),vals=Object.values(h||{}).filter(x=>x&&x.key&&x.date&&Number.isFinite(x.max)&&Number.isFinite(x.min));if(!vals.length)return null;const issued=[...new Set(vals.map(x=>x.issued).filter(Boolean))].sort().reverse();for(const issue of issued){const rows=vals.filter(x=>x.issued===issue),keys=[...new Set(rows.map(x=>x.key))];if(keys.length<2)continue;const data={};for(const k of keys){const a=rows.filter(x=>x.key===k).sort((a,b)=>a.date.localeCompare(b.date)).map(x=>{const base=/^\d{4}-\d{2}-\d{2}$/.test(issue)?issue:nlToday(),lead=Math.round((new Date(x.date+'T12:00:00Z')-new Date(base+'T12:00:00Z'))/86400000),safeDays=Math.max(0,Math.floor(((MODELS[k]?.hours||0)-12)/24));return {date:x.date,max:x.max,min:x.min,precip:Number.isFinite(x.precip)?x.precip:0,sun:Number.isFinite(x.sun)?x.sun:0,complete:lead<=safeDays,codes:[],dayCodes:[]}});a._modelUsed={...MODELS[k]};a._runUsed=`lokale modelhistorie ${issue}`;a._loadedAt=Date.now();a._fromCache=true;data[k]=a}let mixRows=buildMix(data);if(!mixRows.length)continue;const snap=getPrevSnapshot?.();const today=nlToday();if(snap?.rows?.length&&!mixRows.some(r=>r.date===today)){const tr=snap.rows.find(r=>r.date===today);if(tr)mixRows.unshift({...tr,date:today,_aggregateOnly:true,_fromLegacyHistory:true,count:tr.count||0,type:tr.type||weatherType(tr)})}return {savedAt:Date.now(),data,mixRows,source:`lokale modelhistorie van ${issue}`,legacy:true}}return null}catch(e){console.warn('Modelmix uit historie herstellen mislukt',e);return null}}
 function bestStoredMix(){return getFullMixCache()||legacyMixFromModelHistory()}
 
 // Een oude datumvlag mag niet een hele dag alle nieuwe runs blokkeren.
@@ -903,7 +903,7 @@ async function fetchModel(key,visual=true,runOverride=null){
    const mm={...m,code};
    try{
      // GFS: kern eerst licht houden. Visuele velden komen daarna in één gebundelde call.
-     let coreVisual = (key==='gfs') ? false : visual;
+     let coreVisual = (key==='gfs'||key==='gem') ? false : visual;
      let url=apiUrl(mm,coreVisual);
      if(runOverride&&!isAutoRun()) url=url.replace(encodeURIComponent(runIso()),encodeURIComponent(runOverride));
      let r=await fetch(url,{cache:'no-store'});let j=await r.json();
@@ -1073,22 +1073,22 @@ function mixKeysForOffset(off,date,maps){
   const available=list=>list.filter(k=>maps[k]?.[date]);
   // Compacte kernmix: overlap tussen HARMONIE-configuraties en UKMO is uit de
   // centrale mix gehaald. Ze blijven desgewenst handmatig selecteerbaar.
-  if(off<=2)return available(['harmonie','icon_d2','arome','icon','arpege','ecmwf','gfs','aifs']);
-  if(off<=4)return available(['icon','arpege','ecmwf','gfs','aifs']);
-  if(off<=7)return available(['ecmwf','gfs','aifs','arpege','icon']);
-  return available(['ecmwf','gfs','aifs']);
+  if(off<=2)return available(['harmonie','icon_d2','arome','icon','arpege','ecmwf','gfs','aifs','gem']);
+  if(off<=4)return available(['icon','arpege','ecmwf','gfs','aifs','gem']);
+  if(off<=7)return available(['ecmwf','gfs','aifs','arpege','icon','gem']);
+  return available(['ecmwf','gfs','aifs','gem']);
 }
 function modelWeight(key,off){
-  if(off<=2){return {harmonie:3.2,icon_d2:3.3,arome:3.0,icon:2.5,arpege:2.2,ecmwf:1.65,gfs:1.3,aifs:1.3}[key]||1}
-  if(off<=4)return {icon:1.55,arpege:1.35,ecmwf:1.9,gfs:1.4,aifs:1.45}[key]||1;
-  return {ecmwf:1.85,gfs:1.45,aifs:1.45,arpege:1.05,icon:1.05}[key]||1;
+  if(off<=2){return {harmonie:3.2,icon_d2:3.3,arome:3.0,icon:2.5,arpege:2.2,ecmwf:1.65,gfs:1.3,aifs:1.3,gem:1.5}[key]||1}
+  if(off<=4)return {icon:1.55,arpege:1.35,ecmwf:1.9,gfs:1.4,aifs:1.45,gem:1.55}[key]||1;
+  return {ecmwf:1.85,gfs:1.45,aifs:1.45,arpege:1.05,icon:1.05,gem:1.55}[key]||1;
 }
 // Indicatieve TX-prestatiegewichten, gebaseerd op Meteoproof De Bilt april–oktober 2026.
 // Geen operationele skillscore of biascorrectie; slechts een afzonderlijke vergelijking.
 const TX_VERIFY_WEIGHTS={
-  short:{icon:1.30,aifs:1.28,gfs:0.98,ecmwf:0.95,arpege:1.00,harmonie:1.00,icon_d2:1.00,arome:1.00},
-  mid:{aifs:1.35,icon:1.22,gfs:1.02,ecmwf:0.95,arpege:1.00},
-  long:{aifs:1.50,ecmwf:1.10,gfs:0.90,icon:1.05,arpege:1.00}
+  short:{icon:1.30,aifs:1.28,gem:1.22,gfs:0.98,ecmwf:0.95,arpege:1.00,harmonie:1.00,icon_d2:1.00,arome:1.00},
+  mid:{aifs:1.35,gem:1.30,icon:1.22,gfs:1.02,ecmwf:0.95,arpege:1.00},
+  long:{aifs:1.50,gem:1.30,ecmwf:1.10,gfs:0.90,icon:1.05,arpege:1.00}
 };
 function experimentalTx(items,off){
   const band=off<=3?'short':off<=6?'mid':'long',weights=TX_VERIFY_WEIGHTS[band];
@@ -1926,7 +1926,7 @@ function rainSummary(rows){
   if(g.length)groups.push(g);
   const fmtTime=t=>new Date(t).toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
   const fmtGroup=a=>{const p=Math.round(a.reduce((z,r)=>z+(Number(r.rainPct)||0),0)/a.length);const start=a[0].time.slice(11,16),end=fmtTime(new Date(a.at(-1).time).getTime()+3600000);return `${start}–${end} (${p}% modellen nat)`};
-  if(groups.length>3){return `Verspreide buien in ${groups.length} perioden: ${groups.slice(0,3).map(fmtGroup).join(' · ')} · …`}
+  if(groups.length>3){return `Verspreide buien in ${groups.length} perioden: ${groups.map(fmtGroup).join(' · ')}`}
   return groups.length>1?'Verspreide buien: '+groups.map(fmtGroup).join(' · '):groups.map(fmtGroup).join(' · ');
 }
 function dayPartSummary(rows,label,h0,h1,date=null){
@@ -2135,20 +2135,20 @@ function buildDayNarrative(date,dayMix,rows,arrays,wind,dir,gust,dew){
    const reasonText=why.length===1?why[0]:why.length===2?`${why[0]} en ${why[1]}`:`${why.slice(0,-1).join(', ')} en ${why.at(-1)}`;
    bits.push(`De ${sc<60?'lage':'redelijke'} modelovereenkomst komt vooral doordat ${reasonText}.`);
  }
- const narrativeRows=isToday?rows:rows.filter(r=>{const h=+String(r.time||'').slice(11,13);return h>=6&&h<24}),wet=narrativeRows.filter(r=>(r.precip||0)>=.05), rain=rainSummary(narrativeRows),scope=isToday?'de rest van de dag':'middag en avond';
+ const narrativeRows=rows,wet=narrativeRows.filter(r=>(r.precip||0)>=.05), rain=rainSummary(narrativeRows),scope=isToday?'de rest van de dag':'de volledige dag (00:00–24:00)';
  const remainPrec=narrativeRows.reduce((a,r)=>a+(Number(r.precip)||0),0),remainPop=Math.max(0,...narrativeRows.map(r=>Number(r.rainPct)||0));
  const dayMedian=Number.isFinite(dayMix.dayPrecip)?Number(dayMix.dayPrecip):Number(dayMix.precip)||0,dayPop=Number.isFinite(dayMix.dayPop)?Number(dayMix.dayPop):Number(dayMix.pop)||0;
  const rowDayPrec=narrativeRows.reduce((a,r)=>a+(Number(r.precip)||0),0);
  const rowDayPop=Math.max(0,...narrativeRows.map(r=>Number(r.rainPct)||0));
  const dryNow=remainPrec<.05&&remainPop<25&&dayMedian<.1&&dayPop<50;
  if(dryNow){
-   bits.push(`Het blijft ${isToday?'de rest van de dag':'in de middag en avond'} waarschijnlijk <strong>droog</strong>.`);
+   bits.push(`Het blijft ${isToday?'de rest van de dag':'de hele dag'} waarschijnlijk <strong>droog</strong>.`);
  } else if(wet.length||dayMedian>=.1){
-   const modelRain=arrays.map(a=>a.filter(r=>{if(String(r.time||'').slice(0,10)!==date)return false;if(isToday)return true;const h=+String(r.time||'').slice(11,13);return h>=6&&h<24}).reduce((z,r)=>z+(Number(r.precip)||0),0)).filter(Number.isFinite);
+   const modelRain=arrays.map(a=>a.filter(r=>{if(String(r.time||'').slice(0,10)!==date)return false;return true}).reduce((z,r)=>z+(Number(r.precip)||0),0)).filter(Number.isFinite);
    const rainMed=modelRain.length?medianNums(modelRain):Number(dayMix.precip),rainLo=modelRain.length?Math.min(...modelRain):null,rainHi=modelRain.length?Math.max(...modelRain):null;
    let amount='';
    if(Number.isFinite(rainMed)&&Number.isFinite(rainLo)&&Number.isFinite(rainHi))amount=` De neerslagmediaan ligt rond <strong>${rainMed.toFixed(1).replace('.',',')} mm</strong>, met een modelrange van <strong>${rainLo.toFixed(1).replace('.',',')}–${rainHi.toFixed(1).replace('.',',')} mm</strong>.`;
-   if(lead<=5)bits.push(`Neerslag in de middag en avond: ${rain}.${amount}`);
+   if(lead<=5)bits.push(`Neerslag over de volledige dag (inclusief 00:00–06:00): ${rain}.${amount}`);
    else bits.push(`${lead>=11?'Er is een neerslagsignaal':'Er is kans op neerslag of een bui'}, maar de precieze timing is op deze termijn nog onzeker.${amount}`);
  }
  if(isToday){
@@ -2343,7 +2343,7 @@ $('load').onclick=async()=>{
   try{
     setStatus('Modelgegevens parallel ophalen…',10);
     if($('model').value==='mix'){
-      const order=['gfs','ecmwf','aifs','icon','icon_d2','arome','arpege','harmonie'];
+      const order=['gfs','ecmwf','aifs','icon','icon_d2','arome','arpege','harmonie','gem'];
       const storedMix=forecastRateLimitedToday()?bestStoredMix():null;
       if(storedMix?.mixRows?.length){
         const data=storedMix.data||{};lastMixData=data;lastRows=storedMix.mixRows.map(r=>({...r}));
@@ -5225,75 +5225,4 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
   document.addEventListener('focusin',event=>{let node=event.target;while(node){if(node.classList?.contains('ricoTidyDetails')&&!node.open)node.open=true;node=node.parentElement}});
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-})();</script><script>
-/* v49: conservative multi-low tracking. Never join separate minima across distant grid cells. */
-(()=>{
- const LATS=[47,49.5,52,54.5,57,59.5],LONS=[-19,-15,-11,-7,-3,1,5,9];
- const P=LATS.flatMap(lat=>LONS.map(lon=>({lat,lon,name:lat.toFixed(1)+'°N '+lon+'°E'})));
- const MOD=[['ECMWF','ecmwf_ifs','#1679c5'],['GFS','ncep_gfs_global','#dd8527']];
- const $=id=>document.getElementById(id);
- const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
- const dist=(a,b)=>Math.hypot((a.lat-b.lat)*111,(a.lon-b.lon)*111*Math.cos((a.lat+b.lat)*Math.PI/360));
- function extract(json){
-  const arr=Array.isArray(json)?json:[json];if(arr.length!==P.length)throw Error('Onvolledig drukraster ('+arr.length+'/'+P.length+')');
-  const times=arr[0]?.hourly?.time||[];if(!times.length)throw Error('Geen luchtdrukgegevens');
-  const frames=[];
-  for(let t=0;t<Math.min(times.length,168);t+=6){
-   const values=arr.map(x=>Number(x?.hourly?.pressure_msl?.[t]));const lows=[];
-   for(let i=0;i<P.length;i++){
-    const v=values[i];if(!Number.isFinite(v)||v<870||v>1008)continue;
-    const row=Math.floor(i/LONS.length),col=i%LONS.length;
-    // Edge points are excluded: a local minimum cannot be confirmed there.
-    if(!row||row===LATS.length-1||!col||col===LONS.length-1)continue;
-    let local=true;for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++){
-     if(!dr&&!dc)continue;const n=values[(row+dr)*LONS.length+col+dc];
-     if(!Number.isFinite(n)||n<=v)local=false;
-    }
-    if(local)lows.push({...P[i],p:v,time:times[t],step:frames.length});
-   }
-   frames.push(lows);
-  }
-  const tracks=[];let active=[];
-  for(const frame of frames){const matches=[];
-   for(const tr of active)for(const p of frame){const prev=tr.points.at(-1),km=dist(prev,p);
-    // 6h motion gate: maximum 420 km, plus a modest pressure-change gate.
-    if(km<=420&&Math.abs(prev.p-p.p)<=22)matches.push({tr,p,km});
-   }
-   matches.sort((a,b)=>a.km-b.km);const usedTr=new Set(),usedP=new Set(),next=[];
-   for(const m of matches){if(usedTr.has(m.tr)||usedP.has(m.p))continue;m.tr.points.push(m.p);usedTr.add(m.tr);usedP.add(m.p);next.push(m.tr)}
-   for(const p of frame)if(!usedP.has(p)){const tr={points:[p]};tracks.push(tr);next.push(tr)}
-   active=next;
-  }
-  return tracks.filter(tr=>tr.points.length>=3).sort((a,b)=>b.points.length-a.points.length||Math.min(...a.points.map(p=>p.p))-Math.min(...b.points.map(p=>p.p))).slice(0,4);
- }
- async function fetchModel(model){const key='rico-v49-pressure-'+model,now=Date.now();try{const c=JSON.parse(localStorage.getItem(key)||'null');if(now-c.t<6*3600000&&Array.isArray(c.tracks))return {...c,cached:true}}catch(e){}
-  const url='https://api.open-meteo.com/v1/forecast?latitude='+encodeURIComponent(P.map(p=>p.lat).join(','))+'&longitude='+encodeURIComponent(P.map(p=>p.lon).join(','))+'&hourly=pressure_msl&models='+encodeURIComponent(model)+'&forecast_days=7&timezone=UTC';
-  const r=await fetch(url);if(!r.ok)throw Error('HTTP '+r.status);const j=await r.json();if(j?.error)throw Error(j.reason||'API-fout');const result={t:now,tracks:extract(j)};try{localStorage.setItem(key,JSON.stringify(result))}catch(e){}return result;
- }
- function plot(series){const W=700,H=360,x=lon=>35+(lon+20)/31*620,y=lat=>320-(lat-45)/17*285;
-  const grid=[47,52,57].map(v=>`<line x1="35" y1="${y(v)}" x2="655" y2="${y(v)}" stroke="#c5d4e1" stroke-dasharray="4 5"/><text x="6" y="${y(v)+4}" font-size="11" fill="#526779">${v}°</text>`).join('');
-  const lines=series.map(s=>s.tracks.map((tr,i)=>{const pts=tr.points;const color=s.color;return `<polyline points="${pts.map(p=>x(p.lon)+','+y(p.lat)).join(' ')}" fill="none" stroke="${color}" stroke-width="${i===0?3.5:2}" opacity="${i===0?1:.55}" stroke-linejoin="round"/><circle cx="${x(pts[0].lon)}" cy="${y(pts[0].lat)}" r="4" fill="white" stroke="${color}" stroke-width="2"/><circle cx="${x(pts.at(-1).lon)}" cy="${y(pts.at(-1).lat)}" r="5" fill="${color}"/><text x="${x(pts.at(-1).lon)+6}" y="${y(pts.at(-1).lat)-7}" font-size="11" fill="${color}">${esc(s.name)} ${i+1}</text>`}).join('')).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Voorzichtige depressietracks op een grof drukraster" style="width:100%;max-width:800px;background:#eaf2f8;border-radius:12px">${grid}<text x="45" y="23" font-size="13" fill="#30465b">Noord-Atlantische Oceaan → Noordwest-Europa · indicatieve banen</text>${lines}<circle cx="${x(5.1)}" cy="${y(52.1)}" r="5" fill="#e11d48"/><text x="${x(5.1)+7}" y="${y(52.1)-6}" font-size="12" fill="#a4143a">NL</text></svg>`;
- }
- function wx(date){const d=(typeof nationalScanLastPack!=='undefined'?nationalScanLastPack?.days:[])?.find(x=>x.date===date);if(!d)return 'Laad de landelijke scan om het weerbeeld te zien.';
-  const pts=(d.pts||[]).filter(p=>p.point&&Number.isFinite(p.tx));if(!pts.length)return 'Onvoldoende landelijke modelgegevens.';
-  const median=a=>{a=a.filter(Number.isFinite).sort((x,y)=>x-y);return a.length?a[Math.floor(a.length/2)]:null};
-  const t=median(pts.map(p=>p.tx)),rain=median(pts.map(p=>p.rain)),wind=median(pts.map(p=>p.wind)),gust=Math.max(...pts.map(p=>p.gust).filter(Number.isFinite),0);
-  const parts=[];if(Number.isFinite(t))parts.push('maximum rond '+Math.round(t)+'°C');if(Number.isFinite(rain))parts.push(rain>=8?'perioden met regen ('+Math.round(rain)+' mm)':rain>=2?'regen of buien ('+Math.round(rain)+' mm)':'overwegend droog');if(Number.isFinite(wind))parts.push('wind '+Math.round(wind)+' km/u');if(gust>=60)parts.push('zware windstoten mogelijk (hoogste scanwaarde '+Math.round(gust)+' km/u)');return parts.join(' · ')+'.';
- }
- async function load(){const b=$('depressionLoadBtn'),st=$('depressionTrackStatus'),out=$('depressionTrackOutput');b.disabled=true;st.textContent='Drukraster ophalen (2 aanvragen, '+P.length+' punten per model)…';try{
-  const settled=await Promise.allSettled(MOD.map(async m=>({...await fetchModel(m[1]),name:m[0],color:m[2]})));
-  const ok=settled.filter(x=>x.status==='fulfilled').map(x=>x.value),bad=settled.filter(x=>x.status==='rejected').map(x=>x.reason?.message||'onbekend');if(!ok.length)throw Error(bad.join(' / '));
-  let html=plot(ok);for(const s of ok){html+=`<div class="nationalCard" style="margin:10px 0;border-left:4px solid ${s.color}"><b>${esc(s.name)} ${s.cached?'· cache':''}</b>`;
-   if(!s.tracks.length)html+='<p>Geen voldoende betrouwbare depressiebaan gevonden. Losse lagedrukpunten worden niet verbonden.</p>';
-   for(const [i,tr] of s.tracks.entries()){const p=tr.points,min=p.reduce((a,b)=>a.p<b.p?a:b),first=p[0],last=p.at(-1),km=Math.round(dist(first,last));const dir=km>100?(last.lon>first.lon?'oostwaarts':'westwaarts')+' en '+(last.lat>first.lat?'noordwaarts':'zuidwaarts'):'nauwelijks netto verplaatsing';
-    html+=`<p><strong>Baan ${i+1}</strong> · ${esc(first.time.replace('T',' '))}–${esc(last.time.replace('T',' '))} UTC · laagste bemonsterde druk ${Math.round(min.p)} hPa · ${esc(min.name)} · ${esc(dir)} (${km} km netto).</p>`;
-   }html+='</div>';
-  }
-  const dates=[...new Set(ok.flatMap(s=>s.tracks.flatMap(t=>t.points.map(p=>p.time.slice(0,10)))))].slice(0,5);
-  html+=`<div class="nationalCard"><b>Weerbeeld Nederland (onafhankelijke landelijke modelmix)</b>${dates.length?dates.map(d=>`<p><strong>${esc(d)}</strong> · ${esc(wx(d))}</p>`).join(''):'<p>Geen gevolgde depressiebaan beschikbaar.</p>'}<small>Het weerbeeld is niet causaal gekoppeld aan een individuele depressiebaan. De kaart gebruikt een grof raster (${P.length} punten), sluit randminima uit en volgt alleen lokale minima die minstens drie tijdstappen aansluiten. Depressies kunnen tussen rasterpunten liggen; ontbreken van een baan betekent niet dat er geen depressie is. Geen operationele waarschuwing.</small></div>`;
-  if(bad.length)html+=`<p class="note">Niet geladen: ${esc(bad.join(' / '))}</p>`;out.innerHTML=html;st.textContent=ok.length+' van '+MOD.length+' modellen · '+P.length+' punten · 6-uursstappen · cache 6 uur';
- }catch(e){st.textContent='Geen depressiegegevens: '+e.message}finally{b.disabled=false}}
- function init(){$('depressionLoadBtn')?.addEventListener('click',load)}if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-})();
-</script></body></html>
+})();</script></body></html>
