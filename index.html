@@ -483,7 +483,7 @@ body{min-width:0}
 
 <section class="panel hidden" id="plumePanel"><div style="font-weight:850;font-size:17px">Pluim</div><div class="note">Actuele ensemblepluim voor de gekozen plaats. De pluim gebruikt de nieuwste beschikbare ensemble-run en staat los van de gekozen deterministische run hierboven.</div><div class="note"><b>Automatisch verversen aan?</b> Dan worden alle beschikbare pluimen op de achtergrond bijgewerkt en met hun vorige run vergeleken. De laatst succesvolle pluim blijft zichtbaar als een nieuwe run of de API tijdelijk niet beschikbaar is.</div><div class="plumecontrols"><select id="plumeModel"><option value="ecmwf_ifs025_ensemble">ECMWF ENS 0,25° (51 leden · 15 d)</option><option value="ecmwf_aifs025_ensemble">ECMWF AIFS ENS (51 leden · 15 d)</option><option value="ncep_gefs025">GEFS 0,25° (31 leden · 10 d)</option><option value="ncep_gefs05">GEFS 0,5° (31 leden · 35 d)</option><option value="dwd_icon_eu_eps">ICON-EPS Europe (40 leden · 5 d)</option></select><button class="primary" id="plumeLoad" type="button">Pluim ophalen</button></div><div class="status" id="plumeStatus">Kies een ensemble en tik op Pluim ophalen.</div><div class="plumeActions"><button class="ghost" id="plumeSave" type="button" disabled>⬇ Download pluim (PNG)</button></div><div class="plumewrap"><canvas id="plumeCanvas" width="1200" height="650"></canvas></div></section>
 <section class="panel hidden" id="riskPanel"><div style="font-weight:850;font-size:17px">Kansenpluim</div><div class="note">Ensemblekansen voor de gekozen plaats. Kies één ensemble of Modelmix kansen. Bij de modelmix is de mediaan de hoofdwaarde; gemiddelde, bandbreedte en consensus staan bij de dagdetails.</div><div class="note"><b>Automatisch verversen aan?</b> Dan worden ook de kansen van alle beschikbare ensembles en de modelmix bijgewerkt. De laatst succesvolle kansen blijven zichtbaar bij een fout of API-limiet.</div><div class="riskcontrols"><select id="riskModel"><option value="modelmix">🌐 Modelmix kansen</option><option value="ecmwf_ifs025_ensemble">ECMWF ENS 0,25° · 15 d</option><option value="ecmwf_aifs025_ensemble">ECMWF AIFS ENS · 15 d</option><option value="ncep_gefs025">GEFS 0,25° · 10 d</option><option value="ncep_gefs05">GEFS 0,5° · 35 d</option><option value="dwd_icon_eu_eps">ICON-EPS Europe · 5 d</option></select><button class="primary" id="riskLoad" type="button">Kansen ophalen</button></div><div class="status" id="riskStatus">Kies een ensemble en tik op Kansen ophalen.</div><div class="riskActions"><button class="ghost" id="riskSave" type="button" disabled>⬇ Download kansenpluim (PNG)</button></div><div id="ricoRiskMatrix"></div><div id="riskSummary" class="riskSummary hidden"></div><div id="riskDateStrip" class="riskDateStrip hidden"></div><div id="riskDayCard" class="riskDayCard hidden"></div><details class="riskAll"><summary>Toon alle kansen</summary><div class="riskwrap"><canvas id="riskCanvas" width="1500" height="760"></canvas></div></details><div class="note">Bij één ensemble is de kans het aandeel leden dat de drempel bereikt. Modelmix kansen combineert de beschikbare ensembles met de mediaan als hoofdwaarde en toont ook gemiddelde, min–max en consensus.</div></section>
-<section class="panel" id="gfsPanel"><div style="font-weight:850;font-size:17px">GFS 00/12 UTC · TX/TN voor Excel</div><div class="note">Altijd vaste locatie 52.019260 / 5.172830. In Auto gebruikt de app de nieuwste beschikbare 00/12 UTC-run. Kies je bovenaan handmatig een eerdere run, dan volgt dit blok de bijbehorende 00/12 UTC-run.</div><div class="fixedGfs">📍 52.019260 / 5.172830 · onafhankelijk van de gekozen plaats bovenaan</div><div id="gfsStatus" class="note" style="margin-top:6px">Nog niet opgehaald.</div><div id="gfsTable" class="gfsgrid"><div class="gfshead"><div class="gfscell">Datum</div><div class="gfscell">TX</div><div class="gfscell">TN</div></div></div><div class="gfsactions"><button class="ghost" id="refreshGfsTable" type="button">↻ GFS verversen</button><button class="ghost" id="copyTx" disabled>TX kopiëren</button><button class="ghost" id="copyTn" disabled>TN kopiëren</button></div></section>
+<section class="panel" id="gfsPanel"><div style="font-weight:850;font-size:17px">GFS 00/12 UTC · TX/TN voor Excel</div><div class="note">Altijd vaste locatie 52.019260 / 5.172830. In Auto gebruikt de app de nieuwste beschikbare 00/12 UTC-run. Kies je bovenaan handmatig een eerdere run, dan volgt dit blok de bijbehorende 00/12 UTC-run.</div><div class="fixedGfs">📍 52.019260 / 5.172830 · onafhankelijk van de gekozen plaats bovenaan</div><div id="gfsStatus" class="note" style="margin-top:6px">Nog niet opgehaald.</div><div id="gfsTable" class="gfsgrid"><div class="gfshead"><div class="gfscell">Datum</div><div class="gfscell">TX</div><div class="gfscell">TN</div></div></div><div class="gfsactions"><button class="ghost" id="refreshGfsTable" type="button">↻ GFS nieuwste run ophalen</button><button class="ghost" id="copyTx" disabled>TX kopiëren</button><button class="ghost" id="copyTn" disabled>TN kopiëren</button></div></section>
 <section class="panel"><div class="note"><b>Kernmodelmix:</b> TX/TN gebruikt een robuuste <b>gewogen mediaan</b>. Dag 1–3 bestaat de kern uit HARMONIE NL, ICON-D2, AROME, ICON-EU, ARPEGE, ECMWF, GFS en AIFS. HARMONIE EU, DMI-HARMONIE en UKMO tellen niet meer mee in de centrale mix, zodat vergelijkbare modellen de uitkomst niet onnodig dubbel beïnvloeden. Verder vooruit vallen de fijnmazige modellen automatisch weg en nemen ECMWF, GFS, AIFS en de beschikbare Europese modellen het over. <b>ECMWF ENS P50 en GEFS P50</b> tellen ieder als één extra temperatuuranker mee voor TX/TN. Neerslag en zon blijven op de mediaan van de beschikbare deterministische kernmodellen.</div></section>
 </div>
 <div id="shareMode" class="shareMode hidden"><div class="shareModeInner"><div class="shareTop"><div><div class="shareTitle">Ricoweer · meerdaagse</div><div class="shareSub" id="shareModeSub">Modelmix</div></div><button class="ghost" id="shareModeClose" type="button">Sluiten</button></div><div id="shareModeSignals" class="topBadges"></div><div id="shareModeGrid" class="shareForecast"></div><div class="note" style="margin-top:10px">Tik op Sluiten om terug te gaan. Deze weergave is geoptimaliseerd voor screenshotten en delen.</div></div></div>
@@ -2228,9 +2228,8 @@ function cycleIsoBack(hours){
 // Check vanaf 05:00/17:00 UTC: 07:00/19:00 CEST, 06:00/18:00 CET.
 // UTC is bewust gekozen zodat de overgang naar wintertijd automatisch klopt.
 const GFS_RELEASE_LEAD_HOURS=5;
-const GFS_RETRY_MS=15*60*1000;
-const GFS_MAX_ATTEMPTS=6;
-const GFS_NEGATIVE_KEY='rw-gfs0012-negative-v1';
+const GFS_RETRY_MS=10*60*1000;
+const GFS_NEGATIVE_KEY='rw-gfs0012-negative-v2'; // Oude permanente blokkades worden genegeerd
 let gfsTableLoading=false;
 function gfs0012Candidates(){
   const auto=isAutoRun();
@@ -2244,14 +2243,13 @@ function gfs0012Candidates(){
 }
 function gfsNegativeRead(){try{return JSON.parse(localStorage.getItem(GFS_NEGATIVE_KEY)||'{}')}catch(e){return {}}}
 function gfsCandidateAllowed(run,force=false){
+  if(force)return true; // Handmatig verversen probeert altijd opnieuw.
   const rec=gfsNegativeRead()[run];
-  if(!rec)return true;
-  // Handmatig verversen omzeilt alleen de pauze, niet het maximum van 6 pogingen.
-  return rec.attempts<GFS_MAX_ATTEMPTS&&(force||Date.now()-rec.last>=GFS_RETRY_MS);
+  return !rec||Date.now()-(rec.last||0)>=GFS_RETRY_MS;
 }
 function gfsRecordUnavailable(run){
-  try{const data=gfsNegativeRead(),prev=data[run]||{attempts:0};data[run]={attempts:prev.attempts+1,last:Date.now()};
-    for(const key of Object.keys(data))if(Date.now()-(data[key]?.last||0)>48*3600000)delete data[key];
+  try{const data=gfsNegativeRead();data[run]={last:Date.now()};
+    for(const key of Object.keys(data))if(Date.now()-(data[key]?.last||0)>6*3600000)delete data[key];
     localStorage.setItem(GFS_NEGATIVE_KEY,JSON.stringify(data));
   }catch(e){}
 }
@@ -2261,7 +2259,7 @@ async function fetchFixedGfs0012(candidate){
   for(const code of codes){try{const u=`https://single-runs-api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&run=${encodeURIComponent(run)}&models=${encodeURIComponent(code)}&hourly=temperature_2m&timezone=Europe%2FAmsterdam&forecast_hours=384`;const r=await fetch(u,{cache:'no-store'}),j=await r.json();if(!r.ok||j.error)throw new Error(j.reason||`HTTP ${r.status}`);if(!j.hourly?.time)throw new Error('Geen uurgegevens');const rows=hourlyToDaily(j.hourly);if(!rows.length)throw new Error('Geen dagwaarden');rows._fixedRun=run;return rows}catch(e){err=e}}
   throw err||new Error('GFS-run niet beschikbaar');
 }
-const GFS0012_CACHE_KEY='rw-gfs0012-cache-v104';
+const GFS0012_CACHE_KEY='rw-gfs0012-cache-v105';
 function gfsSelectionKey(){return isAutoRun()?'auto':`${$('date').value}|${$('run').value}`}
 function readGfs0012Cache(key=gfsSelectionKey()){
  try{
@@ -2293,7 +2291,7 @@ async function loadGfsRunTable(force=false){
  if(!force&&cached?.rows?.length&&cached.run===latestRun){showGfs0012Cache(cached,'nieuwste run uit lokale cache');return}
  if(forecastRateLimitedToday()){if(showGfs0012Cache(cached,'API-daglimiet bereikt; laatste goede run'))return;$('gfsStatus').textContent='API-daglimiet bereikt; nog geen GFS 00/12-run lokaal opgeslagen.';return}
  let lastErr=null,skipped=0;$('gfsStatus').textContent=isAutoRun()?'Nieuwste beschikbare 00/12 UTC GFS zoeken…':'Gekozen periode: bijbehorende 00/12 UTC GFS zoeken…';
- for(const cand of candidates.slice(0,3)){
+ for(const cand of candidates.slice(0,6)){
    const run=cand.toISOString().slice(0,16);
    if(!gfsCandidateAllowed(run,force)){skipped++;continue}
    try{const rows=await fetchFixedGfs0012(cand);gfsClearUnavailable(run);lastGfsRows=rows;saveGfs0012Cache(rows,selectionKey);renderGfs(lastGfsRows);const label=rows._fixedRun.replace('T',' ').replace(':00',' UTC');$('gfsStatus').textContent=`GFS ${label} · ${isAutoRun()?'nieuwste 00/12':'volgt gekozen run'} · vaste locatie 52.019260 / 5.172830 · ${rows.length} dagwaarden`;return}
@@ -2304,13 +2302,15 @@ async function loadGfsRunTable(force=false){
  }finally{gfsTableLoading=false}
 }
 // Alleen op een geopend tabblad en uitsluitend rond de verwachte nieuwe runs.
-// Eén poging per 15 minuten; negatieve cache voorkomt herhaald API-verbruik.
+// Tijdelijke pauze van 10 minuten; nooit een permanente blokkade.
 setInterval(()=>{
  if(document.visibilityState!=='visible'||!isAutoRun()||gfsTableLoading)return;
  const newest=gfs0012Candidates()[0]?.toISOString().slice(0,16);
  if(newest&&readGfs0012Cache('auto')?.run!==newest&&gfsCandidateAllowed(newest))loadGfsRunTable(false).catch(console.warn);
 },60*1000);
 $('refreshGfsTable').onclick=()=>loadGfsRunTable(true).catch(console.warn);
+// Controleer bij openen of een nieuwere 00/12-run bestaat; ook zonder handmatige knop.
+setTimeout(()=>{if(document.visibilityState==='visible'&&isAutoRun())loadGfsRunTable(false).catch(console.warn)},2500);
 $('copyTx').onclick=()=>copyGfs('max');
 
 $('copyTn').onclick=()=>copyGfs('min');
