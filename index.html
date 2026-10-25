@@ -275,6 +275,26 @@ body{min-width:0}
 .dark .ricoHistTable th{background:#1b2b3b;color:#e4edf6}
 .dark .ricoHistTable td{border-color:#34485a}
 @media(max-width:700px){.ricoHistTableWrap{display:none}.ricoHistMobile.ricoHistCards{display:grid}.ricoHistCardMeta{margin-left:45px}}
+
+/* v67: visual forecast, original meteorology untouched */
+#rv67Forecast{margin:12px 0 16px;padding:15px;border:1px solid var(--line,#dce5ee);border-radius:18px;background:var(--card,#fff);color:var(--text,inherit)}
+.rv67-head{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.rv67-head strong{font-size:17px}.rv67-sub{font-size:12px;opacity:.72}
+.rv67-graph{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;align-items:end}
+.rv67-day{min-width:0;text-align:center;border:1px solid transparent;border-radius:11px;padding:6px 2px;background:rgba(120,160,185,.07)}
+.rv67-day .rv67-date{font-size:11px;font-weight:750;white-space:nowrap}
+.rv67-day .rv67-icon{font-size:19px;margin:5px 0}
+.rv67-temp{height:94px;display:flex;align-items:end;justify-content:center;position:relative}
+.rv67-tempbar{width:70%;max-width:33px;min-height:6px;border-radius:9px 9px 3px 3px;background:linear-gradient(0deg,#2797cf,#f4b34c);position:relative}
+.rv67-tx{font-size:12px;font-weight:850;position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);white-space:nowrap}
+.rv67-tn{font-size:10px;opacity:.7;margin-top:4px}
+.rv67-rain{height:8px;background:rgba(120,160,185,.18);border-radius:9px;overflow:hidden;margin:7px 3px 3px}
+.rv67-rain>i{display:block;height:100%;background:#368dd4;border-radius:9px}
+.rv67-rainval{font-size:10px;white-space:nowrap}
+.rv67-legend{font-size:11px;opacity:.8;margin-top:9px;line-height:1.5}
+.rv67-actions{display:flex;gap:7px;align-items:center}.rv67-actions button{font-size:12px;padding:7px 9px;border-radius:9px}
+.rv67-visual-hidden #rv67Forecast{display:none}
+@media(max-width:420px){#rv67Forecast{padding:10px 6px}.rv67-graph{gap:2px}.rv67-day{padding:5px 0}.rv67-day .rv67-date{font-size:10px}.rv67-tx{font-size:11px}.rv67-rainval{font-size:9px}}
 </style></style>
 
 <style>
@@ -5563,6 +5583,54 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   var on=true;try{on=localStorage.getItem('ricoweer-v66-visual')!=='0'}catch(e){}
   btn.addEventListener('click',function(){set(!document.body.classList.contains('rv66-visual'))});
   bar.appendChild(info);bar.appendChild(btn);anchor.parentNode.insertBefore(bar,anchor);set(on);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script><script id="rv67-forecast-script">
+(function(){
+ 'use strict';
+ var host=null,prevKey='',raf=0;
+ function getRows(){
+  try {if(typeof lastRows==='undefined'||!Array.isArray(lastRows))return [];var rows=lastRows.filter(r=>r&&r.date&&Number.isFinite(Number(r.max)));return rows.slice(0,7)}catch(e){return []}
+ }
+ function num(v){return Number.isFinite(Number(v))?Number(v):null}
+ function safeDate(v){try{return new Date(String(v)+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'short',day:'numeric'})}catch(e){return String(v).slice(5)}}
+ function init(){
+  var results=document.getElementById('results');if(!results)return;
+  if(!document.getElementById('rv67Forecast')){
+   host=document.createElement('section');host.id='rv67Forecast';host.setAttribute('aria-label','Visuele zevendaagse modelmixverwachting');
+   host.innerHTML='<div class="rv67-head"><div><strong>📈 Modelmix in beeld · 7 dagen</strong><div class="rv67-sub">Temperatuur en neerslag in één grafiek</div></div><div class="rv67-actions"><button type="button" id="rv67Details">Dagdetails ↓</button></div></div><div id="rv67Graph" class="rv67-graph"></div><div class="rv67-legend">Balkhoogte = maximumtemperatuur (relatieve schaal). Onderin: minimum en verwachte neerslag. Exacte waarden en kansen staan in de dagkaarten.</div>';
+   results.parentNode.insertBefore(host,results);
+   document.getElementById('rv67Details').addEventListener('click',function(){results.scrollIntoView({behavior:'smooth',block:'start'})});
+  }else host=document.getElementById('rv67Forecast');
+  draw();
+  var obs=new MutationObserver(function(){if(raf)return;raf=requestAnimationFrame(function(){raf=0;draw()})});
+  obs.observe(results,{childList:true,subtree:false});
+  var tabs=document.getElementById('tgDayTabs');if(tabs)obs.observe(tabs,{childList:true,subtree:false});
+  document.addEventListener('click',function(e){if(e.target&&e.target.id==='rv66Mode')requestAnimationFrame(draw)});
+ }
+ function draw(){
+  if(!host)return;
+  var visual=document.body.classList.contains('rv66-visual');host.hidden=!visual;
+  if(!visual)return;
+  var rows=getRows();if(!rows.length){host.hidden=true;return}
+  var key=rows.map(r=>[r.date,r.max,r.min,r.precip,r.pop].join(':')).join('|');if(key===prevKey)return;prevKey=key;
+  var max=Math.max(1,...rows.map(r=>Math.max(0,num(r.max)||0)));var min=Math.min(0,...rows.map(r=>num(r.min)||0));var range=Math.max(4,max-min);
+  var rainMax=Math.max(1,...rows.map(r=>Math.max(0,num(r.precip)||0)));
+  var frag=document.createDocumentFragment();
+  rows.forEach(function(r){
+   var d=document.createElement('div');d.className='rv67-day';
+   var date=document.createElement('div');date.className='rv67-date';date.textContent=safeDate(r.date);d.appendChild(date);
+   var ico=document.createElement('div');ico.className='rv67-icon';ico.textContent=(num(r.precip)||0)>=5?'🌧️':(num(r.sun)||0)>=5?'☀️':(num(r.precip)||0)>=.3?'🌦️':'⛅';d.appendChild(ico);
+   var temp=document.createElement('div');temp.className='rv67-temp';var bar=document.createElement('div');bar.className='rv67-tempbar';bar.style.height=Math.max(7,Math.min(82,((num(r.max)-min)/range)*75+7))+'px';
+   var tx=document.createElement('span');tx.className='rv67-tx';tx.textContent=Math.round(num(r.max))+'°';bar.appendChild(tx);temp.appendChild(bar);d.appendChild(temp);
+   var tn=document.createElement('div');tn.className='rv67-tn';tn.textContent='min '+(num(r.min)===null?'–':Math.round(num(r.min))+'°');d.appendChild(tn);
+   var rain=document.createElement('div');rain.className='rv67-rain';var fill=document.createElement('i');fill.style.width=Math.max(0,Math.min(100,(num(r.precip)||0)/rainMax*100))+'%';rain.appendChild(fill);d.appendChild(rain);
+   var mm=document.createElement('div');mm.className='rv67-rainval';mm.textContent=(num(r.precip)||0).toLocaleString('nl-NL',{maximumFractionDigits:1})+' mm';d.appendChild(mm);
+   var pop=num(r.pop);d.title=safeDate(r.date)+': max '+Math.round(num(r.max))+'°, min '+(num(r.min)===null?'onbekend':Math.round(num(r.min))+'°')+', '+mm.textContent+(pop===null?'':', regenkans '+Math.round(pop)+'%');
+   frag.appendChild(d);
+  });
+  var graph=document.getElementById('rv67Graph');if(graph){graph.replaceChildren(frag);graph.style.gridTemplateColumns='repeat('+rows.length+',minmax(0,1fr))'}
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
