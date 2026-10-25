@@ -411,6 +411,27 @@ body{min-width:0}
 #rv57Panel .rv62ChanceBubble{display:flex;align-items:center;justify-content:center;width:36px;height:31px;border:2px solid #fff;border-radius:12px;box-shadow:0 1px 6px #0006;color:#172534;font-size:12px;font-weight:850;line-height:1}
 #rv57Panel .rv62Attribution{font-size:11px;color:#657482;margin:4px 0 8px}
 #rv57Panel #rv59MapCanvas .leaflet-control-attribution{display:none!important}
+</style><style>
+/* Ricoweer v64: presentation only; model and API calculations unchanged */
+:root{--rv64-border:#d9e5ed;--rv64-ink:#17354b;--rv64-muted:#617788}
+@media(max-width:760px){
+ .panel{border-radius:19px!important;box-shadow:0 3px 15px rgba(16,57,81,.045)}
+ .panel h2,.panel h3{line-height:1.22;letter-spacing:-.025em}
+ .panel p,.panel .note{line-height:1.5}
+ .panel summary{line-height:1.35;cursor:pointer}
+ .panel button,.panel select{max-width:100%}
+ .panel table{font-variant-numeric:tabular-nums}
+ .panel th{position:sticky;top:0;background:#f1f6fa;z-index:1}
+ #rv57Map .rv57box,#rv57Map .rv57note{max-width:100%}
+}
+.rv64-jump{display:flex;gap:7px;overflow-x:auto;scroll-snap-type:x proximity;padding:9px 3px 12px;margin:4px 0 14px;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.rv64-jump button{flex:0 0 auto;scroll-snap-align:start;background:#edf5fa;color:#16466a;border:1px solid #c9dce9;border-radius:999px;padding:9px 13px;font-weight:750;font-size:14px;box-shadow:none}
+.rv64-jump button:focus-visible{outline:3px solid #1673bc;outline-offset:2px}
+.rv64-jump button:active{transform:scale(.98)}
+.rv64-heading{font-size:13px;font-weight:800;color:var(--rv64-muted);margin:7px 0 0}
+.rv64-sectionhead{display:flex;align-items:center;gap:8px}
+.rv64-sectionhead::before{content:'';height:6px;width:6px;background:#1683b0;border-radius:50%;flex:0 0 auto}
+@media(prefers-reduced-motion:reduce){.rv64-jump{scroll-behavior:auto}}
 </style></head>
 <body><div class="wrap">
 <section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v1.0</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
@@ -5441,6 +5462,43 @@ const b=[...document.querySelectorAll('button')].find(x=>x.textContent.trim()===
 if(b&&!b.dataset.rv60Moved){let tools=document.getElementById('rv60Tools');if(!tools){tools=document.createElement('details');tools.id='rv60Tools';tools.className='rv60-tools';tools.innerHTML='<summary>⚙️ Techniek en API-diagnose</summary><p>Open de API-log alleen wanneer je verzoeken of fouten wilt controleren.</p>';document.body.appendChild(tools)}b.style.position='static';b.style.zIndex='auto';b.style.bottom='auto';b.style.right='auto';b.style.width='auto';b.style.display='inline-block';tools.appendChild(b);b.dataset.rv60Moved='1'}
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,250));else setTimeout(init,250);
+})();
+</script>
+
+<script>
+/* v64: compact visual navigation. No API calls, no data transformations. */
+(()=>{
+ const groups=[
+  ['🌤️ Vandaag','results'],['🗺️ Nederland','nationalScanPanel'],
+  ['🌊 Storm','ricoCoastStorm'],['📊 Kansen','rv57Panel'],
+  ['📈 Modellen','runPanel'],['⚙️ Techniek','rv60Tools']
+ ];
+ function init(){
+  if(document.getElementById('rv64Jump'))return;
+  const host=document.querySelector('main')||document.querySelector('#results')?.parentElement||document.body;
+  const nav=document.createElement('nav');nav.id='rv64Jump';nav.setAttribute('aria-label','Snel naar onderdelen');
+  nav.innerHTML='<div class="rv64-heading">SNEL NAAR</div>';
+  const bar=document.createElement('div');bar.className='rv64-jump';
+  for(const [label,id] of groups){
+   const target=document.getElementById(id);
+   if(!target)continue;
+   const btn=document.createElement('button');btn.type='button';btn.textContent=label;
+   btn.addEventListener('click',()=>{
+    const t=document.getElementById(id);if(!t)return;
+    let parent=t.closest('details');if(parent)parent.open=true;
+    if(t.tagName==='DETAILS')t.open=true;
+    const inner=t.querySelector(':scope > details');if(inner)inner.open=true;
+    if(t.classList.contains('hidden')){const opener=document.querySelector('[data-target="'+id+'"]');if(opener)opener.click()}
+    t.scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
+    setTimeout(()=>window.dispatchEvent(new Event('resize')),200);
+   });bar.appendChild(btn);
+  }
+  if(!bar.children.length)return;
+  nav.appendChild(bar);
+  const first=host.querySelector('.panel')||host.firstElementChild;
+  if(first)host.insertBefore(nav,first);else host.appendChild(nav);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,400));else setTimeout(init,400);
 })();
 </script>
 </body></html>
