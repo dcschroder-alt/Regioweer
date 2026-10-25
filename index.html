@@ -5370,7 +5370,7 @@ function map(){
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:12,attribution:'© OpenStreetMap-bijdragers'}).addTo(chanceMap);
   chanceLayer=L.layerGroup().addTo(chanceMap);
   chosen.forEach(p=>{const color=p.pc>=75?'#dc493d':p.pc>=50?'#f39c24':p.pc>=25?'#f4d34e':'#2689d2';
-   const icon=L.divIcon({className:'rv59-pin-wrap',html:`<div class="rv59-pin" style="background:${color}">${p.pc}%</div>`,iconSize:[45,36],iconAnchor:[22,18]});
+   const icon=L.divIcon({className:'rv60-chance-icon',html:`<div class="rv59-pin" style="background:${color}">${p.pc}%</div>`,iconSize:[34,30],iconAnchor:[17,15]});
    L.marker([p.point.lat,p.point.lon],{icon}).bindPopup(`<strong>${esc(p.point.n)}</strong><br>${esc(type[1])}: ${p.pc}%<br>${p.used} beschikbare modellen`).addTo(chanceLayer)
   });
   chanceMap.fitBounds([[50.73,3.25],[53.57,7.25]],{padding:[8,8],animate:false});setTimeout(()=>chanceMap?.invalidateSize(),120)
@@ -5379,4 +5379,45 @@ function map(){
 }
 function init(){if($('rv57Panel'))return;const section=document.createElement('section');section.id='rv57Panel';section.className='panel';section.innerHTML=`<details id="rv57Open" open><summary>🗺️ Ricoweer v59 · Modelmix runvergelijkingen & landelijke kansenkaart</summary><div class="rv57box"><h3>🔄 Modelmix · 00/12 UTC vergelijken</h3><div class="rv57controls"><label>Vergelijking <select id="rv57Mode"><option>00→12</option><option>12→00</option><option>00→00</option><option>12→12</option></select></label></div><div id="rv57Run"></div></div><div class="rv57box"><h3>🗺️ Kansenkaart Nederland · 25 scanpunten</h3><div id="rv57Map"></div></div><p class="rv57note">Voorspellingshistorie wordt lokaal maximaal 35 dagen bewaard (tot 120 verschillende snapshots per locatie). Er wordt geen automatische KNMI-verificatie geclaimd zonder gecontroleerde waarnemingsbron. Bestaande kuststormkansen blijven ongewijzigd.</p></details>`;const anchor=$('ricoV56Dashboard')||$('nationalScanPanel');anchor?.parentNode?.insertBefore(section,anchor);$('rv57Mode')?.addEventListener('change',run);run();map();const obs=new MutationObserver(()=>{if(!$('rv57Open')?.open)return;clearTimeout(window.__rv57Refresh);window.__rv57Refresh=setTimeout(()=>{run();map()},900)});['nationalScanStatus','runStatus'].forEach(id=>{if($(id))obs.observe($(id),{childList:true,subtree:true,characterData:true})});if(typeof renderNationalScan==='function'&&$('model')?.value==='mix'&&!((typeof nationalScanLastPack!=='undefined'&&nationalScanLastPack?.days?.length)||get('rico-national-scan-v15-oost-vensters')?.days?.length)){renderNationalScan(false).then(map).catch(()=>map())}}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-})();</script></body></html>
+})();</script>
+<style id="rv60-ui-style">
+#rv57Panel .rv59-pin{width:34px!important;height:30px!important;min-width:34px!important;min-height:30px!important;border-radius:16px!important;font-size:11px!important;padding:0!important;box-sizing:border-box!important}
+#rv57Panel .rv60-chance-icon{background:transparent!important;border:0!important;box-shadow:none!important;overflow:visible!important}
+#rv57Panel .leaflet-marker-icon:not(.rv60-chance-icon):not(.ricomapTemp){max-width:36px!important;max-height:36px!important}
+#rv57Panel .leaflet-popup-content-wrapper{max-width:240px}
+#rv57Panel #rv59MapCanvas.leaflet-container{height:310px!important;max-height:50vh!important}
+.rv60-fold{display:block;width:100%;margin:0}.rv60-fold>summary{cursor:pointer;list-style:revert;font-size:16px;font-weight:800;padding:5px 2px;color:var(--text,#172d40)}.rv60-fold[open]>summary{margin-bottom:12px}
+.rv60-fold>summary:focus-visible{outline:2px solid #1269c7;outline-offset:4px}
+.rv60-tools{margin:16px auto;max-width:1100px;padding:12px;border:1px solid #c8d5df;border-radius:14px;background:var(--panel,#fff)}
+.rv60-tools button{font:inherit;border-radius:8px;padding:8px 12px}
+@media(max-width:650px){#rv57Panel .rv59-pin{font-size:10px!important}#rv57Panel #rv59MapCanvas.leaflet-container{height:300px!important}}
+</style>
+<script id="rv60-ui-cleanup">
+(()=>{'use strict';
+const FOLDS={
+climateStoriesPanel:'📚 Klimaatverhaal',editorialDeskPanel:'✍️ Redactionele assistent',smartBriefPanel:'🧠 Meteorologische briefing',assistantPanel:'🗣️ Meteorologische assistent',
+weatherTextPanel:'📝 Uitgeschreven weerbericht',v95InsightPanel:'🧠 Slimme modelanalyse',v97Cockpit:'🛰️ Meteorologische cockpit',smartCockpit:'🧠 Analyse, timing en energie',
+stationStatsPanel:'📊 KNMI-stations en records',climatePanel:'🌡️ Klimaat en normaalwaarden',practicalPanel:'☂️ Praktische tips',changesPanel:'🔄 Veranderingen',
+comparePanel:'📍 Plaatsen vergelijken',fivePreviewPanel:'🗓️ Meerdaagse preview',smartOutlookPanel:'🔭 Handige vooruitblik',plumePanel:'📈 Temperatuurpluim',riskPanel:'🎯 Kansenpluim',
+gfsPanel:'📋 GFS TX/TN voor Excel',nationalScanPanel:'🗺️ Landelijke kaarten en scan',longRangePanel:'📅 EC46 en lange termijn',
+warningPanel:'⚠️ Waarschuwingen',signal10Panel:'🚦 Tien-daagse signalen',todayGlancePanel:'☀️ Vandaag in één oogopslag',overviewPanel:'📌 Overzicht modelmix',todayTomorrowPanel:'🌦️ Vandaag en morgen',
+modelStatusPanel:'⚙️ Modelstatus',favMiniPanel:'⭐ Favorieten',rv57Panel:'🗺️ Runvergelijkingen en kansenkaart'};
+function fold(id,title){const el=document.getElementById(id);if(!el||el.dataset.rv60Fold)return;
+// Do not nest details when a section already has a main details wrapper.
+const kids=[...el.children].filter(x=>x.nodeType===1);if(kids.length===1&&kids[0].tagName==='DETAILS'){kids[0].open=false;el.dataset.rv60Fold='existing';return}
+const d=document.createElement('details');d.className='rv60-fold';d.dataset.rv60Id=id;
+const summary=document.createElement('summary');summary.textContent=title;d.appendChild(summary);
+while(el.firstChild)d.appendChild(el.firstChild);el.appendChild(d);el.dataset.rv60Fold='yes';
+try{const saved=localStorage.getItem('rv60-fold-'+id);d.open=saved==='1'}catch(e){}
+d.addEventListener('toggle',()=>{try{localStorage.setItem('rv60-fold-'+id,d.open?'1':'0')}catch(e){};
+if(d.open){setTimeout(()=>{try{window.dispatchEvent(new Event('resize'));document.querySelectorAll('.leaflet-container').forEach(n=>{if(n._leaflet_id&&window.L){/* Leaflet resize is also handled by its map owner */}})}catch(e){}},120)}});
+}
+function init(){Object.entries(FOLDS).forEach(([id,title])=>fold(id,title));
+// Make the existing fixed API-log button an ordinary tool control, without replacing its event handler.
+const b=[...document.querySelectorAll('button')].find(x=>x.textContent.trim()==='API-log'&&x.style.position==='fixed');
+if(b&&!b.dataset.rv60Moved){let tools=document.getElementById('rv60Tools');if(!tools){tools=document.createElement('details');tools.id='rv60Tools';tools.className='rv60-tools';tools.innerHTML='<summary>⚙️ Techniek en API-diagnose</summary><p>Open de API-log alleen wanneer je verzoeken of fouten wilt controleren.</p>';document.body.appendChild(tools)}b.style.position='static';b.style.zIndex='auto';b.style.bottom='auto';b.style.right='auto';b.style.width='auto';b.style.display='inline-block';tools.appendChild(b);b.dataset.rv60Moved='1'}
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,250));else setTimeout(init,250);
+})();
+</script>
+</body></html>
