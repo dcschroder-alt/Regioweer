@@ -464,6 +464,24 @@ body{min-width:0}
  .rv65-visual-tip{font-size:12px}
 }
 @media(prefers-reduced-motion:no-preference){.rv65-fold,.overviewCard,#results .card{transition:box-shadow .18s ease}.rv65-fold[open]{box-shadow:0 5px 18px rgba(15,67,96,.07)}}
+</style><style id="rv66-visual-style">
+/* Visual mode: non-destructive presentation, all original data stays in DOM. */
+.rv66-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 15px;margin:10px 0 15px;border:1px solid #b8d7e5;border-radius:16px;background:linear-gradient(115deg,#e6f5fb,#f6fbff);color:#183d54}
+.rv66-toolbar strong{display:block;font-size:15px}.rv66-toolbar small{display:block;font-size:12px;opacity:.8;margin-top:2px}
+.rv66-toolbar button{flex-shrink:0;border:1px solid #1777a2;background:#0879ac;color:white;border-radius:12px;padding:10px 13px;font-weight:800;cursor:pointer}
+.rv66-visual .panel{scroll-margin-top:12px}
+.rv66-visual .panel>h2,.rv66-visual .panel>h3{letter-spacing:-.02em}
+.rv66-visual .rv65-fold>summary{background:linear-gradient(90deg,rgba(0,135,176,.09),transparent);border-left:4px solid #0b92b9}
+.rv66-visual .rv65-fold[open]>summary{border-bottom:1px solid rgba(60,110,140,.15)}
+.rv66-visual .rv65-foldbody .note{font-size:12px;line-height:1.5}
+.rv66-visual .todayGlanceMain,.rv66-visual .overviewCard,.rv66-visual .assistantCard,.rv66-visual .nationalDay,.rv66-visual .forecastCard{box-shadow:0 3px 12px rgba(20,70,100,.06)}
+.rv66-visual .weatherTextBox{font-size:15px;line-height:1.7;max-width:78ch}
+.rv66-visual .smallstatus{font-size:12px}
+.rv66-visual .quickJump button{background:#e9f5fb;border:1px solid #bddde9;color:#154765;font-weight:800}
+.rv66-visual .quickJump button:focus-visible,.rv66-toolbar button:focus-visible{outline:3px solid #f5a623;outline-offset:2px}
+.rv66-visual .ricomapPanel,.rv66-visual #nationalScanPanel,.rv66-visual #longRangePanel{border-radius:18px}
+@media(max-width:650px){.rv66-toolbar{padding:10px 12px}.rv66-toolbar button{font-size:12px;padding:9px 10px}.rv66-visual .panel{padding-left:12px;padding-right:12px}.rv66-visual .rv65-foldbody{padding-left:8px;padding-right:8px}.rv66-visual .quickJump{gap:5px}.rv66-visual .quickJump button{font-size:12px;white-space:nowrap}.rv66-visual .weatherTextBox{font-size:14px}}
+.dark .rv66-toolbar{background:linear-gradient(115deg,#17374a,#182a3b);border-color:#31566a;color:#e9f6ff}.dark .rv66-visual .quickJump button{background:#1b3849;color:#e5f4ff;border-color:#386075}
 </style></head>
 <body><div class="wrap">
 <section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v65</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
@@ -5533,4 +5551,19 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,400));else setTimeout(init,400);
 })();
 </script>
-</body></html>
+<script id="rv66-visual-script">
+(function(){
+ function init(){
+  if(document.getElementById('rv66Toolbar'))return;
+  var anchor=document.querySelector('.quickJump');if(!anchor)return;
+  var bar=document.createElement('div');bar.className='rv66-toolbar';bar.id='rv66Toolbar';
+  var info=document.createElement('div');info.innerHTML='<strong>🎨 Ricoweer · visuele weergave</strong><small>Meer nadruk op kaarten, cijfers en overzicht. Alle details blijven beschikbaar.</small>';
+  var btn=document.createElement('button');btn.type='button';btn.id='rv66Mode';
+  function set(on){document.body.classList.toggle('rv66-visual',on);btn.textContent=on?'Visueel ✓':'Standaard';btn.setAttribute('aria-pressed',String(on));try{localStorage.setItem('ricoweer-v66-visual',on?'1':'0')}catch(e){}}
+  var on=true;try{on=localStorage.getItem('ricoweer-v66-visual')!=='0'}catch(e){}
+  btn.addEventListener('click',function(){set(!document.body.classList.contains('rv66-visual'))});
+  bar.appendChild(info);bar.appendChild(btn);anchor.parentNode.insertBefore(bar,anchor);set(on);
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script></body></html>
