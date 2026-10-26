@@ -505,8 +505,8 @@ body{min-width:0}
 </style><style id="ricoMistV68">.ricoMistPart{margin:8px 0 1px;padding:6px 4px;border-radius:9px;background:#eaf3f7;color:#214f65;font-size:10px;font-weight:750;line-height:1.3}.ricoMistPart span:first-child{display:block}.ricoMistTrack{display:block;height:5px;background:#c7d7df;border-radius:8px;overflow:hidden;margin:5px 3px 3px}.ricoMistTrack i{display:block;height:100%;background:#527f98;border-radius:8px}.ricoMistPart small{font-size:9px;font-weight:500}.dark .ricoMistPart{background:#243c4a;color:#d3eaf6}.dark .ricoMistTrack{background:#415666}@media(max-width:620px){.ricoMistPart{font-size:9px;padding:5px 2px}.ricoMistPart small{font-size:8px}}</style>
 </head>
 <body><div class="wrap">
-<section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v65</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
-<nav class="quickJump" aria-label="Snel naar onderdelen"><span class="quickJumpLabel">Snel naar</span><button type="button" data-jump="todayGlancePanel">Vandaag</button><button type="button" data-jump="weatherTextPanel">Weerbericht</button><button type="button" data-jump="nationalScanPanel">Landelijk</button><button type="button" data-jump="longRangePanel">6 weken</button><button type="button" data-jump="climatePanel">Klimaat</button><button type="button" data-jump="editorialDeskPanel">Redactie</button><button type="button" data-jump="v97Cockpit">Cockpit</button><button type="button" data-jump="smartCockpit">Energie</button></nav>
+<section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v69</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
+<nav class="quickJump" aria-label="Snel naar onderdelen"><span class="quickJumpLabel">Snel naar</span><button type="button" data-jump="todayGlancePanel">Vandaag</button><button type="button" data-jump="weatherTextPanel">Weerbericht</button><button type="button" data-jump="nationalScanPanel">Landelijk</button><button type="button" data-jump="longRangePanel">6 weken</button><button type="button" data-jump="climatePanel">Klimaat</button><button type="button" data-jump="editorialDeskPanel">Redactie</button><button type="button" data-jump="v97Cockpit">Cockpit</button><button type="button" data-jump="ricoEnergyPanel">☀️ Energie</button></nav>
 <section class="panel">
 <div class="grid">
 <div class="field full"><label>Plaatsnaam</label><div style="display:grid;grid-template-columns:1fr auto;gap:8px"><input id="place" type="text" value="Houten" placeholder="Bijv. Houten, De Bilt of Amersfoort"><button class="ghost" id="findPlace" type="button">Zoek plaats</button></div><div class="ricoweer-place-picker"><label for="ricoPreset">Kies direct een plaats in Nederland</label><select id="ricoPreset"><option value="">— Kies een plaats —</option></select><div class="note">De volledige lokale modelmix en alle bestaande vergelijkingen worden voor de gekozen plaats geladen. Andere plaatsen kun je blijven zoeken.</div></div><div class="quickplaces" id="quickPlaces"><button class="placechip" data-place="Houten">Houten</button><button class="placechip hidden" id="homePlace" type="button">⌂ Thuis</button><button class="placechip" id="savePlace" type="button">☆ Bewaar plaats</button></div><div class="quickplaces"><button class="placechip" id="useGps" type="button">📍 Mijn locatie</button></div><details class="miniDetails"><summary>Locatie beheren</summary><div class="quickplaces"><button class="placechip" id="setHome" type="button">⌂ Maak thuisplaats</button><button class="placechip" id="clearRecent" type="button">Recent wissen</button></div></details><div class="quickplaces" id="recentPlaces"><span class="recentlabel">Recent:</span></div><div class="note" id="placeInfo">Houten · coördinaten worden automatisch gebruikt</div></div>
@@ -5648,4 +5648,33 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
-</script></body></html>
+</script>
+<style id="ricoEnergyV69Css">
+#ricoEnergyPanel{scroll-margin-top:16px;border:1px solid #c8e2eb;background:linear-gradient(145deg,#f6fbff,#fffdf4)}
+#ricoEnergyPanel .ricoEnergyHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+#ricoEnergyPanel .ricoEnergyHead h2{margin:0;font-size:22px;color:#174763}
+#ricoEnergyPanel .ricoEnergyHead p{margin:4px 0 0;color:#637786;font-size:13px}
+#ricoEnergyPanel #smartEnergyDetails{display:block!important;margin:0!important;border:0!important}
+#ricoEnergyPanel #smartEnergyDetails>summary{display:none}
+#ricoEnergyPanel #energyBox{display:block}
+.dark #ricoEnergyPanel{background:linear-gradient(145deg,#172f40,#28333a);border-color:#3a5b70}
+.dark #ricoEnergyPanel .ricoEnergyHead h2{color:#e4f5ff}
+@media(max-width:650px){#ricoEnergyPanel{padding:14px}#ricoEnergyPanel .ricoEnergyHead h2{font-size:19px}}
+</style>
+<script id="ricoEnergyV69">
+(function(){
+function init(){
+ var detail=document.getElementById('smartEnergyDetails'), old=document.getElementById('smartCockpit');
+ if(!detail||document.getElementById('ricoEnergyPanel'))return;
+ var section=document.createElement('section');section.id='ricoEnergyPanel';section.className='panel';
+ section.innerHTML='<div class="ricoEnergyHead"><div><h2>☀️ Energie & zonnepanelen</h2><p>PV-opbrengst · stroomprijzen · batterijplanning</p></div></div>';
+ section.appendChild(detail);detail.open=true;
+ var ref=document.getElementById('results');
+ if(ref)ref.insertAdjacentElement('afterend',section);else old.parentNode.insertBefore(section,old);
+ var btn=document.querySelector('.quickJump [data-jump="ricoEnergyPanel"]');
+ if(btn)btn.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();detail.open=true;section.scrollIntoView({behavior:'smooth',block:'start'});},true);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+</body></html>
