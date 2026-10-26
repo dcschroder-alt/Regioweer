@@ -502,7 +502,8 @@ body{min-width:0}
 .rv66-visual .ricomapPanel,.rv66-visual #nationalScanPanel,.rv66-visual #longRangePanel{border-radius:18px}
 @media(max-width:650px){.rv66-toolbar{padding:10px 12px}.rv66-toolbar button{font-size:12px;padding:9px 10px}.rv66-visual .panel{padding-left:12px;padding-right:12px}.rv66-visual .rv65-foldbody{padding-left:8px;padding-right:8px}.rv66-visual .quickJump{gap:5px}.rv66-visual .quickJump button{font-size:12px;white-space:nowrap}.rv66-visual .weatherTextBox{font-size:14px}}
 .dark .rv66-toolbar{background:linear-gradient(115deg,#17374a,#182a3b);border-color:#31566a;color:#e9f6ff}.dark .rv66-visual .quickJump button{background:#1b3849;color:#e5f4ff;border-color:#386075}
-</style></head>
+</style><style id="ricoMistV68">.ricoMistPart{margin:8px 0 1px;padding:6px 4px;border-radius:9px;background:#eaf3f7;color:#214f65;font-size:10px;font-weight:750;line-height:1.3}.ricoMistPart span:first-child{display:block}.ricoMistTrack{display:block;height:5px;background:#c7d7df;border-radius:8px;overflow:hidden;margin:5px 3px 3px}.ricoMistTrack i{display:block;height:100%;background:#527f98;border-radius:8px}.ricoMistPart small{font-size:9px;font-weight:500}.dark .ricoMistPart{background:#243c4a;color:#d3eaf6}.dark .ricoMistTrack{background:#415666}@media(max-width:620px){.ricoMistPart{font-size:9px;padding:5px 2px}.ricoMistPart small{font-size:8px}}</style>
+</head>
 <body><div class="wrap">
 <section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v65</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
 <nav class="quickJump" aria-label="Snel naar onderdelen"><span class="quickJumpLabel">Snel naar</span><button type="button" data-jump="todayGlancePanel">Vandaag</button><button type="button" data-jump="weatherTextPanel">Weerbericht</button><button type="button" data-jump="nationalScanPanel">Landelijk</button><button type="button" data-jump="longRangePanel">6 weken</button><button type="button" data-jump="climatePanel">Klimaat</button><button type="button" data-jump="editorialDeskPanel">Redactie</button><button type="button" data-jump="v97Cockpit">Cockpit</button><button type="button" data-jump="smartCockpit">Energie</button></nav>
@@ -2027,6 +2028,19 @@ function rainSummary(rows){
   if(groups.length>3){return `Verspreide buien in ${groups.length} perioden: ${groups.map(fmtGroup).join(' · ')}`}
   return groups.length>1?'Verspreide buien: '+groups.map(fmtGroup).join(' · '):groups.map(fmtGroup).join(' · ');
 }
+// v68: zichtgebaseerd mist-/nevelsignaal per dagdeel. Percentage is aandeel
+// beschikbare modelmix-uurwaarden met beperkt zicht, GEEN gekalibreerde mistkans.
+function mistPartIndicator(hours){
+ const valid=hours.filter(r=>Number.isFinite(r.visibility)&&r.visibility>0);
+ if(valid.length<2)return '';
+ const fog=valid.filter(r=>r.visibility<1000),haze=valid.filter(r=>r.visibility>=1000&&r.visibility<5000);
+ const affected=fog.length+haze.length,share=Math.round(100*affected/valid.length);
+ if(!affected)return '';
+ const persistent=fog.length>=2,kind=persistent?'Mist mogelijk':fog.length?'Mistindicatie':'Nevel mogelijk';
+ const lowest=Math.round(Math.min(...valid.map(r=>r.visibility)));
+ const title=`${kind}: ${affected}/${valid.length} uurwaarden met zicht onder 5 km; minimum ${lowest} m. Aandeel uurwaarden, geen voorspelde kans.`;
+ return `<div class="ricoMistPart" title="${title}"><span>🌫️ ${kind}</span><span class="ricoMistTrack"><i style="width:${share}%"></i></span><small>${share}% uren beperkt zicht</small></div>`;
+}
 function dayPartSummary(rows,label,h0,h1,date=null){
  const a=rows.filter(r=>{const h=+r.time.slice(11,13);return h>=h0&&h<h1});if(!a.length)return '';
  const temps=a.map(r=>r.temp).filter(Number.isFinite),p=a.reduce((x,r)=>x+(r.precip||0),0),pct=Math.max(0,...a.map(r=>r.rainPct||0)),codes=a.map(r=>r.code).filter(Number.isFinite);
@@ -2040,7 +2054,7 @@ function dayPartSummary(rows,label,h0,h1,date=null){
  if(label==='Avond'&&date){const ss=sunsetMinutesForDate(date),nightShare=Number.isFinite(ss)?Math.max(0,Math.min(360,1440-Math.max(1080,ss)))/360:0;if(nightShare>.5){if(p>=.05)wx='🌧️';else if(code<=1)wx='🌙';else if(code<=3)wx='☁️';else wx='☁️'}}
  const wind=winds.length?Math.round(winds.reduce((x,y)=>x+y,0)/winds.length):null,dir=circ(dirs),pressure=press.length?Math.round(press.reduce((x,y)=>x+y,0)/press.length):null,gust=gusts.length?Math.round(Math.max(...gusts)):null,cloud=clouds.length?Math.round(clouds.reduce((x,y)=>x+y,0)/clouds.length):null,dew=dews.length?Math.round(dews.reduce((x,y)=>x+y,0)/dews.length):null,vis=a.map(r=>r.visibility).filter(Number.isFinite),hum=a.map(r=>r.humidity).filter(Number.isFinite),minVis=vis.length?Math.min(...vis):null,maxHum=hum.length?Math.max(...hum):null,mist=!!date&&strictMistSignal(date)&&Number.isFinite(minVis)&&minVis>0&&minVis<1500; 
  const rain=p>=.05?`💧 ${p.toFixed(1).replace('.',',')} mm${pct?` · ${pct}% modellen nat`:''}`:'💧 droog';
- return `<div class="dayPart"><b>${label}</b><div class="partIcon">${wx}</div><div class="partTemp">${Number.isFinite(tfirst)?tfirst+'°':'—'}${Number.isFinite(tlast)&&tlast!==tfirst?' → '+tlast+'°':''}</div><div class="partMeta">${rain}<br>💨 ${Number.isFinite(wind)?bftText(wind):'—'} ${compass(dir)}<br>◉ ${Number.isFinite(pressure)?pressure+' hPa MSL':'—'}${Number.isFinite(gust)&&gust>=35?`<br>💨 stoten ${gust} km/u`:''}${Number.isFinite(cloud)?` · ☁️ ${cloud}%`:''}${Number.isFinite(dew)?`<br>💧 dauwpunt ${dew}°`:''}${mist?`<br>🌫️ mistsignaal`:''}</div></div>`;
+ return `<div class="dayPart"><b>${label}</b><div class="partIcon">${wx}</div><div class="partTemp">${Number.isFinite(tfirst)?tfirst+'°':'—'}${Number.isFinite(tlast)&&tlast!==tfirst?' → '+tlast+'°':''}</div><div class="partMeta">${rain}<br>💨 ${Number.isFinite(wind)?bftText(wind):'—'} ${compass(dir)}<br>◉ ${Number.isFinite(pressure)?pressure+' hPa MSL':'—'}${Number.isFinite(gust)&&gust>=35?`<br>💨 stoten ${gust} km/u`:''}${Number.isFinite(cloud)?` · ☁️ ${cloud}%`:''}${Number.isFinite(dew)?`<br>💧 dauwpunt ${dew}°`:''}${mist?`<br>🌫️ mistsignaal`:''}</div>${mistPartIndicator(a)}</div>`;
 }
 function dayAdviceCards(dayMix,rows,dew,gust,date=null){
  const isToday=date===nlToday(),temps=rows?.map(r=>r.temp).filter(Number.isFinite)||[];
