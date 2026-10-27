@@ -307,6 +307,12 @@ body{min-width:0}
 .rwMeteoTools button{border-radius:13px!important;padding:12px 15px!important;font-size:clamp(13px,3.4vw,17px)!important;min-height:44px}
 .rwMeteoNote{color:#58738c!important;font-size:14px!important;line-height:1.45}
 @media(max-width:440px){.rwMeteoIntro{gap:5px}.rwMeteoIntro span{padding:9px 6px;font-size:12px}.rwMeteoIntro small{font-size:10px}}
+
+/* v76: vorst duidelijk, compacte labels zonder geforceerde locatieverschuiving */
+.ricoWeatherPin.ricoFrostPin .ricoWeatherTemp{background:#dbeeff!important;border:2px solid #3a8dd4!important;box-shadow:0 2px 8px #164c8544!important}
+.ricoWeatherPin.ricoFrostPin .ricoTn{color:#004d9b!important;font-weight:950}
+.ricoWeatherPin.ricoFrostPin .ricoWeatherSymbol{filter:drop-shadow(0 1px 2px #e7f4ff)}
+@media(max-width:600px){.ricoWeatherPin .ricoWeatherTemp{font-size:14px!important;padding:3px 4px!important}.ricoWeatherPin .ricoWeatherSymbol{font-size:22px!important}}
 </style></style>
 
 <style>
@@ -4885,7 +4891,7 @@ function updateWeatherAtlas(){
   const mm=rain.length?rain.sort((a,b)=>a-b)[Math.floor(rain.length/2)]:null;
   const previous=atlasHistory();const signals=atlasSignals(d);const change=atlasDayChange(d,previous);
   const extra=`<div class="ricoAtlasExtra"><div><b>Verandering sinds vorige scan:</b> ${change}</div><div class="ricoChips">${signals.length?signals.slice(0,2).map(x=>`<span class="ricoChip">${x}</span>`).join(''):'<span class="ricoSmall">Geen bijzondere signalen uit de beschikbare dagwaarden</span>'}</div></div>`;
-  return `<article class="ricoWeatherCard"><div class="ricoWeatherTitle"><span>${safe(dayLabel(d.date))}</span><span>${good.length}/${NATIONAL_POINTS.length}</span></div><div class="ricoWeatherMap" id="ricoWeatherMap${i}" aria-label="Landelijk weerbeeld ${safe(dayLabel(d.date))}"></div><div class="ricoWeatherFoot">${mm!==null?'Landelijke neerslagmediaan '+mm.toFixed(1).replace('.',',')+' mm · ':''}temperaturen: modelmix · symbool: uurcache indien beschikbaar${i>=10?' · lange termijn, grotere onzekerheid':i>=7?' · langere termijn, grotere onzekerheid':''}</div>${extra}</article>`
+  return `<article class="ricoWeatherCard"><div class="ricoWeatherTitle"><span>${safe(dayLabel(d.date))}</span><span>${good.length}/${NATIONAL_POINTS.length}</span></div><div class="ricoWeatherMap" id="ricoWeatherMap${i}" aria-label="Landelijk weerbeeld ${safe(dayLabel(d.date))}"></div><div class="ricoWeatherFoot">${mm!==null?'Landelijke neerslagmediaan '+mm.toFixed(1).replace('.',',')+' mm · ':''}temperaturen: modelmix · symbool: uurcache indien beschikbaar · <b>blauw = vorst</b>${i>=10?' · lange termijn, grotere onzekerheid':i>=7?' · langere termijn, grotere onzekerheid':''}</div>${extra}</article>`
  }).join('');
  const rainHost=host.querySelector('.ricoAtlasRain');if(rainHost)rainHost.remove();host.querySelector('.ricoWeatherGrid').insertAdjacentHTML('afterend',atlasRainSummary(valid));
  // Alleen bestaande kaartbibliotheek en OSM-kaarttegels. Geen weer-API-calls.
@@ -4926,16 +4932,32 @@ function updateWeatherAtlas(){
      remaining.sort((a,b)=>Math.min(...chosen.map(x=>distance(b,x)))-Math.min(...chosen.map(x=>distance(a,x))));
      chosen.push(remaining[0]);used.add(remaining[0].point.n);
    }
-   chosen.forEach((p,j)=>{
+   // v76: voorkom botsende symbolen en temperatuurkaartjes op smalle schermen.
+   // Alle 35 locaties blijven in de landelijke berekening; alleen zichtbare labels
+   // worden op pixelafstand geselecteerd, met voorrang voor vorstsignalen.
+   const occupied=[];
+   const compact=el.clientWidth<650;
+   const candidates=chosen.slice().sort((a,b)=>{
+     const frostA=Number.isFinite(a.tn)&&a.tn<0?1:0;
+     const frostB=Number.isFinite(b.tn)&&b.tn<0?1:0;
+     return frostB-frostA;
+   });
+   const visible=candidates.filter(p=>{
+     const xy=map.latLngToContainerPoint([p.point.lat,p.point.lon]);
+     const width=compact?83:79,height=compact?76:69;
+     const rect={x:xy.x-width/2,y:xy.y-height/2,w:width,h:height};
+     if(occupied.some(q=>Math.abs(rect.x-q.x)<(rect.w+q.w)/2+2 && Math.abs(rect.y-q.y)<(rect.h+q.h)/2+2))return false;
+     occupied.push({x:xy.x,y:xy.y,w:width,h:height});return true;
+   });
+   // Plaatsing gebeurt op de echte geografische coördinaten: geen misleidende verschuiving.
+   visible.forEach((p,j)=>{
     const hourly=ricoCachedDaytime(p.point.n,d.date);
     const sym=hourly?(Number.isFinite(hourly.rain)&&hourly.rain>=1?(hourly.cloud<60?'🌦️':'🌧️'):(hourly.cloud<25?'☀️':hourly.cloud<60?'🌤️':hourly.cloud<85?'⛅':'☁️')):weatherSymbol(p);
     const max=Math.round(p.tx),min=Number.isFinite(p.tn)?Math.round(p.tn):null;
-    const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp"><span class="ricoTx">${max}°</span>${min!==null?`<span class="ricoSep">/</span><span class="ricoTn">${min}°</span>`:''}</span></div>`,iconSize:[70,52],iconAnchor:[35,26]});
+    const frost=min!==null&&min<0;
+    const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin${frost?' ricoFrostPin':''}"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp"><span class="ricoTx">${max}°</span>${min!==null?`<span class="ricoSep">/</span><span class="ricoTn">${min}°</span>`:''}</span></div>`,iconSize:[70,52],iconAnchor:[35,26]});
     const popup=`<b>${safe(p.point.n)}</b><br>${hourly?'Weersymbool: bewolking 05–17 uur (uurcache)':'Weersymbool: dagzonuren (geen uurcache)'}<br>Max ${max}°${min!==null?' · min '+min+'°':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen`;
-    // Kleine labelcorrecties voorkomen overlap; de echte bronlocatie blijft in de popup.
-    const offsets={Emmeloord:[0.03,0.07],Houten:[-0.09,-0.02],Apeldoorn:[0.04,0.12],IJmuiden:[0,0.02]};
-    const [dLat,dLon]=offsets[p.point.n]||[0,0];
-    L.marker([p.point.lat+dLat,p.point.lon+dLon],{icon}).bindPopup(popup).addTo(map);
+    L.marker([p.point.lat,p.point.lon],{icon}).bindPopup(popup).addTo(map);
    });
    // Windkracht op drie plekken: kust, midden en oosten. Alleen reeds opgehaalde
    // dagelijkse windmaxima en dominante windrichting van de 35 scanpunten.
@@ -4951,6 +4973,8 @@ function updateWeatherAtlas(){
     const src=spot.names.map(name=>all.find(p=>p.point.n===name&&Number.isFinite(p.wind))).find(Boolean);
     if(!src)return;
     const bft=beaufort(src.wind);
+    const windXY=map.latLngToContainerPoint([spot.lat,spot.lon]);
+    if(occupied.some(q=>Math.abs(windXY.x-q.x)<75&&Math.abs(windXY.y-q.y)<58))return;
     const arrow=Number.isFinite(src.dir)?`<span class="ricoWeatherWindArrow" style="transform:rotate(${(src.dir+180)%360}deg)" aria-hidden="true">↑</span>`:'';
     const html=`<div class="ricoWeatherWind" title="Wind ${safe(src.point.n)}: ${Math.round(src.wind)} km/u, ${bft} Bft">${arrow}<span>${bft} Bft</span></div>`;
     const windIcon=L.divIcon({className:'',html,iconSize:[78,27],iconAnchor:spot.anchor});
