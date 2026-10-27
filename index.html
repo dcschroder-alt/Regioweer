@@ -4706,10 +4706,17 @@ function ricoDrawMapMarkers(){
  const ordered=[];while(pts.length){ordered.push(pts.shift());if(pts.length)ordered.push(pts.pop())}
  for(const x of ordered){const xy=ricoLeafletMap.latLngToContainerPoint([x.point.lat,x.point.lon]);if(spacing>0&&selected.some(p=>Math.hypot(p.x-xy.x,p.y-xy.y)<spacing))continue;selected.push(xy);visible.push(x)}
  for(const x of visible){
-  const v=x[ricoMapType],s=ricoLayerStyle(ricoMapType,v),label=s.label;
-  const icon=L.divIcon({className:'',html:'<div class="ricomapTemp" style="background:'+s.color+';min-width:36px;width:auto;padding:0 5px">'+label+'</div>',iconSize:[43,29],iconAnchor:[21,14]});
+  const v=x[ricoMapType],s=ricoLayerStyle(ricoMapType,v);
+  // Open-Meteo daily wind_direction_10m_dominant: meteorological FROM direction.
+  // Arrow points where the air flows TO; compass letters state where it comes FROM.
+  const dir=Number(x.dir),hasDir=ricoMapType==='wind'&&Number.isFinite(dir)&&dir>=0&&dir<=360;
+  const dirs=['N','NO','O','ZO','Z','ZW','W','NW'];
+  const from=hasDir?dirs[Math.round(dir/45)%8]:'';
+  const toArrow=hasDir?['↓','↙','←','↖','↑','↗','→','↘'][Math.round(dir/45)%8]:'';
+  const label=hasDir?toArrow+' '+s.label:s.label;
+  const icon=L.divIcon({className:'',html:'<div class="ricomapTemp" style="background:'+s.color+';min-width:36px;width:max-content;white-space:nowrap;padding:0 6px">'+label+'</div>',iconSize:[hasDir?74:43,29],iconAnchor:[hasDir?37:21,14]});
   const name=String(x.point.n||'Locatie').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  L.marker([x.point.lat,x.point.lon],{icon}).bindPopup('<b>'+name+'</b><br>'+ricoLayerLabels[ricoMapType]+': '+(ricoMapType==='wind'?ricoWindBft(v)+' Bft ('+Math.round(v)+' km/u)':v.toFixed(1).replace('.',',')+' '+s.unit)+'<br>'+(x.models?.length||0)+' modellen').addTo(ricoLeafletLayer);
+  L.marker([x.point.lat,x.point.lon],{icon}).bindPopup('<b>'+name+'</b><br>'+ricoLayerLabels[ricoMapType]+': '+(ricoMapType==='wind'?ricoWindBft(v)+' Bft ('+Math.round(v)+' km/u)'+(hasDir?' · '+from+' ('+Math.round(dir)+'°) · waait naar '+toArrow:' · richting onbekend'):v.toFixed(1).replace('.',',')+' '+s.unit)+'<br>'+(x.models?.length||0)+' modellen').addTo(ricoLeafletLayer);
  }
  const hint=document.getElementById('ricomapHint');if(hint)hint.textContent=visible.length+' van '+ricoMapPoints.length+' punten zichtbaar · '+ricoLayerLabels[ricoMapType]+' · zoom in voor alle punten';
 }
@@ -5779,6 +5786,40 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  const btn=el('ricomapRefresh');if(btn&&!el('rico74Force')){btn.textContent='Kaart bijwerken (cache)';const hard=makeButton('↻ Nieuwe modelsccan',async()=>{hard.disabled=true;try{await renderNationalScan(true);if(typeof ricoMapSync==='function')ricoMapSync()}catch(e){const st=el('ricomapStatus');if(st)st.textContent='Nieuwe scan niet gelukt: '+e.message}finally{hard.disabled=false}},'Vraagt zo nodig nieuwe modeldata op');hard.id='rico74Force';btn.insertAdjacentElement('afterend',hard)}
  }
  document.addEventListener('DOMContentLoaded',()=>{init();const target=el('rv57Map');if(target){new MutationObserver(()=>{if(el('rv59MapCanvas'))bar('rv59MapCanvas','rv57MapDate',false)}).observe(target,{childList:true,subtree:false})}});
+})();
+</script>
+
+<style id="rico77FoldStyle">
+/* Entire summary is the touch target, with a clear open/closed state. */
+.rv65-fold>summary,.runDetails>summary,.panel>details>summary{touch-action:manipulation;-webkit-tap-highlight-color:transparent;min-height:44px;user-select:none}
+.rv65-fold>summary:focus-visible,.panel details>summary:focus-visible{outline:3px solid #0a8fae;outline-offset:-3px}
+.ricomapTemp{white-space:nowrap}
+</style>
+<script id="rico77FoldFix">
+(function(){
+ // A single click on a main fold opens its content and the first nested
+ // single-purpose details, so users do not have to open two wrappers.
+ function expandFirstNested(parent){
+   const body=parent.querySelector(':scope > .rv65-foldbody');
+   if(!body)return;
+   const nested=body.querySelector(':scope > details');
+   if(nested&&!nested.open)nested.open=true;
+ }
+ document.addEventListener('toggle',function(ev){
+   const d=ev.target;
+   if(d instanceof HTMLDetailsElement&&d.open&&d.classList.contains('rv65-fold'))expandFirstNested(d);
+ },true);
+ // Avoid nested interactive summary targets from consuming the same tap.
+ document.addEventListener('click',function(ev){
+   const s=ev.target.closest?.('summary');
+   if(!s)return;
+   const d=s.parentElement;
+   if(!(d instanceof HTMLDetailsElement))return;
+   // The browser performs the one and only toggle; do not dispatch clicks.
+   if(!d.open&&d.classList.contains('rv65-fold')){
+     requestAnimationFrame(()=>{if(d.open)expandFirstNested(d)});
+   }
+ },true);
 })();
 </script>
 </body></html>
