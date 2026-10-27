@@ -4939,24 +4939,14 @@ function updateWeatherAtlas(){
      remaining.sort((a,b)=>Math.min(...chosen.map(x=>distance(b,x)))-Math.min(...chosen.map(x=>distance(a,x))));
      chosen.push(remaining[0]);used.add(remaining[0].point.n);
    }
-   // v76: voorkom botsende symbolen en temperatuurkaartjes op smalle schermen.
-   // Alle 35 locaties blijven in de landelijke berekening; alleen zichtbare labels
-   // worden op pixelafstand geselecteerd, met voorrang voor vorstsignalen.
-   const occupied=[];
-   const compact=el.clientWidth<650;
-   const candidates=chosen.slice().sort((a,b)=>{
-     const frostA=Number.isFinite(a.tn)&&a.tn<0?1:0;
-     const frostB=Number.isFinite(b.tn)&&b.tn<0?1:0;
-     return frostB-frostA;
-   });
-   const visible=candidates.filter(p=>{
+   // v78: behoud alle tien geografisch gekozen daglocaties. De v76-filter
+   // verwijderde op kaartformaat onbedoeld de helft van de weerpunten.
+   // Voor windlabels gebruiken we wel de bezette gebieden als aparte controle.
+   const visible=chosen.slice(0,10);
+   const occupied=visible.map(p=>{
      const xy=map.latLngToContainerPoint([p.point.lat,p.point.lon]);
-     const width=compact?83:79,height=compact?76:69;
-     const rect={x:xy.x-width/2,y:xy.y-height/2,w:width,h:height};
-     if(occupied.some(q=>Math.abs(rect.x-q.x)<(rect.w+q.w)/2+2 && Math.abs(rect.y-q.y)<(rect.h+q.h)/2+2))return false;
-     occupied.push({x:xy.x,y:xy.y,w:width,h:height});return true;
+     return {x:xy.x,y:xy.y,w:70,h:55};
    });
-   // Plaatsing gebeurt op de echte geografische coördinaten: geen misleidende verschuiving.
    visible.forEach((p,j)=>{
     const hourly=ricoCachedDaytime(p.point.n,d.date);
     const sym=hourly?(Number.isFinite(hourly.rain)&&hourly.rain>=1?(hourly.cloud<60?'🌦️':'🌧️'):(hourly.cloud<25?'☀️':hourly.cloud<60?'🌤️':hourly.cloud<85?'⛅':'☁️')):weatherSymbol(p);
