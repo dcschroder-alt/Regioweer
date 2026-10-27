@@ -4727,7 +4727,7 @@ document.getElementById('ricomapType')?.addEventListener('change',ricoRenderMap)
 document.getElementById('ricomapRefresh')?.addEventListener('click',async()=>{
  const status=document.getElementById('ricomapStatus');
  if(status)status.textContent='Landelijke scan wordt opgehaald…';
- try{await renderNationalScan(true);if(!nationalScanLastPack?.days?.length&&status)status.textContent='Geen landelijke scangegevens beschikbaar. Controleer de API-log.';else ricoMapSync()}
+ try{await renderNationalScan(false);if(!nationalScanLastPack?.days?.length&&status)status.textContent='Geen landelijke scangegevens beschikbaar. Controleer de API-log.';else ricoMapSync()}
  catch(e){if(status)status.textContent='Vernieuwen mislukt: '+e.message}
 });
 const ricoOriginalNationalRender=renderNationalScanData;
@@ -5717,6 +5717,30 @@ function init(){
  if(btn)btn.addEventListener('click',function(e){e.preventDefault();e.stopImmediatePropagation();detail.open=true;section.scrollIntoView({behavior:'smooth',block:'start'});},true);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+<style id="rico74Style">
+.rico74bar{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:12px 0;padding:10px;background:#edf6fb;border:1px solid #c8dce9;border-radius:15px}
+.rico74bar button{border:1px solid #bed4e4;background:white;color:#17486a;border-radius:11px;padding:9px 11px;font-size:14px;font-weight:750;min-height:42px;cursor:pointer}
+.rico74bar button:focus-visible{outline:3px solid #2180d4}
+.rico74bar .rico74selected{background:#1663a8;color:#fff;border-color:#1663a8}
+.rico74bar .rico74hint{width:100%;font-size:12px;color:#536c7a}
+@media(max-width:500px){.rico74bar{gap:6px}.rico74bar button{flex:1 1 auto;padding:9px 8px}}
+</style>
+<script id="rico74Script">
+(function(){'use strict';
+ function el(id){return document.getElementById(id)}
+ function makeButton(label,fn,title){const b=document.createElement('button');b.type='button';b.textContent=label;if(title)b.title=title;b.addEventListener('click',fn);return b}
+ function moveDay(select,delta){if(!select||!select.options.length)return;const n=Math.max(0,Math.min(select.options.length-1,select.selectedIndex+delta));if(n===select.selectedIndex)return;select.selectedIndex=n;select.dispatchEvent(new Event('change',{bubbles:true}))}
+ function bar(id,selectId,withLayers){const host=el(id),select=el(selectId);if(!host||!select||el('rico74-'+id))return;const box=document.createElement('nav');box.id='rico74-'+id;box.className='rico74bar';box.setAttribute('aria-label','Snelle kaartnavigatie');
+ box.append(makeButton('◀ Vorige dag',()=>moveDay(select,-1)),makeButton('Volgende dag ▶',()=>moveDay(select,1)));
+ if(withLayers){const types=el('ricomapType');[['🌡️ Temperatuur','tx'],['🌧️ Neerslag','rain'],['☀️ Zon','sun'],['💨 Wind','wind']].forEach(([label,val])=>{const b=makeButton(label,()=>{if(types){types.value=val;types.dispatchEvent(new Event('change',{bubbles:true}));sync()}},'Kies weerlaag');b.dataset.layer=val;box.append(b)});const sync=()=>box.querySelectorAll('[data-layer]').forEach(b=>b.classList.toggle('rico74selected',b.dataset.layer===types?.value));types?.addEventListener('change',sync);sync()}
+ const hint=document.createElement('div');hint.className='rico74hint';hint.textContent='Wissel van dag of kaartlaag zonder nieuwe modelaanvraag; bestaande scangegevens worden gebruikt.';box.append(hint);host.parentNode.insertBefore(box,host);
+ }
+ function init(){bar('ricomapCanvas','ricomapDay',true);bar('rv59MapCanvas','rv57MapDate',false);
+ const btn=el('ricomapRefresh');if(btn&&!el('rico74Force')){btn.textContent='Kaart bijwerken (cache)';const hard=makeButton('↻ Nieuwe modelsccan',async()=>{hard.disabled=true;try{await renderNationalScan(true);if(typeof ricoMapSync==='function')ricoMapSync()}catch(e){const st=el('ricomapStatus');if(st)st.textContent='Nieuwe scan niet gelukt: '+e.message}finally{hard.disabled=false}},'Vraagt zo nodig nieuwe modeldata op');hard.id='rico74Force';btn.insertAdjacentElement('afterend',hard)}
+ }
+ document.addEventListener('DOMContentLoaded',()=>{init();const target=el('rv57Map');if(target){new MutationObserver(()=>{if(el('rv59MapCanvas'))bar('rv59MapCanvas','rv57MapDate',false)}).observe(target,{childList:true,subtree:false})}});
 })();
 </script>
 </body></html>
