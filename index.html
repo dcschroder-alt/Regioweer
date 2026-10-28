@@ -4933,6 +4933,8 @@ function updateWeatherAtlas(){
        return (ia<0?100:ia)-(ib<0?100:ib);
      });
      const occupied=[];
+     const windSites=['IJmuiden','Terschelling','Groningen','Rotterdam','Houten','Apeldoorn','Vlissingen','Enschede','Maastricht'];
+     let windShown=[];
      for(const p of ordered){
        const pt=map.latLngToContainerPoint([p.point.lat,p.point.lon]);
        if(pt.x<42||pt.y<42||pt.x>size.x-42||pt.y>size.y-42)continue;
@@ -4942,7 +4944,17 @@ function updateWeatherAtlas(){
        const sym=hourly?(Number.isFinite(hourly.rain)&&hourly.rain>=1?(hourly.cloud<60?'🌦️':'🌧️'):(hourly.cloud<25?'☀️':hourly.cloud<60?'🌤️':hourly.cloud<85?'⛅':'☁️')):weatherSymbol(p);
        const max=Math.round(p.tx),min=Number.isFinite(p.tn)?Math.round(p.tn):null;
        const frost=min!==null&&min<0;
-       const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin${frost?' ricoFrostPin':''}"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp"><span class="ricoTx">${max}°</span>${min!==null?`<span class="ricoSep">/</span><span class="ricoTn">${min}°</span>`:''}</span></div>`,iconSize:[76,60],iconAnchor:[38,30]});
+       // Wind op maximaal drie geografisch gespreide zichtbare locaties.
+       // In dezelfde marker, zodat geen extra labels of verbindingslijnen ontstaan.
+       const windAvailable=Number.isFinite(p.wind);
+       const eligible=windSites.includes(p.point.n) && windShown.length<(zoom>=9?5:3) &&
+         windShown.every(w=>Math.hypot(pt.x-w.x,pt.y-w.y)>(zoom>=9?125:165));
+       const showWind=windAvailable&&eligible;
+       if(showWind)windShown.push({x:pt.x,y:pt.y});
+       const windDir=Number.isFinite(p.dir)?p.dir:null;
+       const arrow=windDir===null?'➤':'➤';
+       const windHtml=showWind?`<span class="ricoWeatherWind ricoDailyWind"><span class="ricoWeatherWindArrow" style="transform:rotate(${windDir===null?0:(windDir+90)%360}deg)">${arrow}</span>${beaufort(p.wind)} Bft</span>`:'';
+       const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin${frost?' ricoFrostPin':''}"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp"><span class="ricoTx">${max}°</span>${min!==null?`<span class="ricoSep">/</span><span class="ricoTn">${min}°</span>`:''}</span>${windHtml}</div>`,iconSize:[82,showWind?84:60],iconAnchor:[41,showWind?42:30]});
        const popup=`<b>${safe(p.point.n)}</b><br>${hourly?'Weersymbool: bewolking 05–17 uur (uurcache)':'Weersymbool: dagzonuren (geen uurcache)'}<br>Max ${max}°${min!==null?' · min '+min+'°':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen`;
        L.marker([p.point.lat,p.point.lon],{icon}).bindPopup(popup).addTo(layer);
      }
@@ -5466,7 +5478,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script><style id="rico-v57-css">
 #rv57Panel{margin:12px 0}#rv57Panel .rv57box{background:var(--card,#fff);border:1px solid #d1dce5;border-radius:14px;padding:14px;margin:10px 0}#rv57Panel select{max-width:100%;padding:9px;border:1px solid #aabccc;border-radius:9px;background:var(--card,#fff);color:inherit}#rv57Panel .rv57controls{display:flex;gap:9px;flex-wrap:wrap;margin:10px 0}#rv57Panel .rv57item{display:flex;gap:10px;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e1e8ee}#rv57Panel .rv57item strong{text-align:right}#rv57Panel .rv57note{font-size:13px;color:var(--muted,#65758b);line-height:1.5}#rv57Panel svg{width:100%;height:auto;max-height:590px;background:#e9f3f7;border-radius:12px}#rv57Panel .rv57legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px}#rv57Panel summary{font-weight:750;cursor:pointer}#rv57Panel .rv57table{overflow-x:auto}#rv57Panel .rv57table table{width:100%;border-collapse:collapse;font-size:13px}#rv57Panel .rv57table td,#rv57Panel .rv57table th{padding:6px;border-bottom:1px solid #dde4e9;text-align:left}#rv57Panel .rv57point{cursor:pointer}#rv57Panel .rv57point:focus{outline:2px solid #156fc7}@media(max-width:650px){#rv57Panel .rv57controls{flex-direction:column}#rv57Panel select{width:100%}}
-</style><style id="rv59-map-style">#rv59MapCanvas{height:380px;max-height:65vh;border-radius:14px;overflow:hidden;background:#e7f0f5}#rv57Panel #rv59MapCanvas.leaflet-container{width:100%;height:380px;max-height:65vh;background:#e7f0f5}#rv57Panel .rv59top{margin:12px 0;padding:10px 12px;border-radius:10px;background:#e9f2f8;font-size:14px;color:#183e5c}#rv57Panel .rv59-pin{width:45px;height:36px;display:flex;align-items:center;justify-content:center;border:2px solid white;border-radius:18px;box-shadow:0 2px 7px #0007;font-size:12px;font-weight:800;color:#14283a}#rv57Panel .rv59details{margin-top:12px}#rv57Panel .rv59details summary{padding:10px;background:#edf3f8;border-radius:9px}@media(max-width:650px){#rv59MapCanvas,#rv57Panel #rv59MapCanvas.leaflet-container{height:330px}}</style><script id="rico-v57-features">
+</style><style id="rv80-wind-style">#ricoWeatherAtlas .ricoDailyWind{display:inline-flex;justify-content:center;margin-top:3px;padding:2px 5px;font-size:11px;line-height:16px;border-radius:8px;box-shadow:0 1px 3px #1c405844}#ricoWeatherAtlas .ricoDailyWind .ricoWeatherWindArrow{font-size:13px;margin-right:3px}</style><style id="rv59-map-style">#rv59MapCanvas{height:380px;max-height:65vh;border-radius:14px;overflow:hidden;background:#e7f0f5}#rv57Panel #rv59MapCanvas.leaflet-container{width:100%;height:380px;max-height:65vh;background:#e7f0f5}#rv57Panel .rv59top{margin:12px 0;padding:10px 12px;border-radius:10px;background:#e9f2f8;font-size:14px;color:#183e5c}#rv57Panel .rv59-pin{width:45px;height:36px;display:flex;align-items:center;justify-content:center;border:2px solid white;border-radius:18px;box-shadow:0 2px 7px #0007;font-size:12px;font-weight:800;color:#14283a}#rv57Panel .rv59details{margin-top:12px}#rv57Panel .rv59details summary{padding:10px;background:#edf3f8;border-radius:9px}@media(max-width:650px){#rv59MapCanvas,#rv57Panel #rv59MapCanvas.leaflet-container{height:330px}}</style><script id="rico-v57-features">
 (()=>{'use strict';
 const $=id=>document.getElementById(id),esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const get=k=>{try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}};
