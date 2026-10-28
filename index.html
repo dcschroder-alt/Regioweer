@@ -4921,7 +4921,7 @@ function updateWeatherAtlas(){
  ricoLeafletReady().then(()=>{
   valid.forEach((d,i)=>{
    const el=document.getElementById('ricoWeatherMap'+i);if(!el||!window.L)return;
-   const map=L.map(el,{zoomControl:false,scrollWheelZoom:false,dragging:false,doubleClickZoom:false,boxZoom:false,keyboard:false,touchZoom:false,attributionControl:false});
+   const map=L.map(el,{zoomControl:true,scrollWheelZoom:false,dragging:true,doubleClickZoom:true,boxZoom:true,keyboard:true,touchZoom:true,attributionControl:false});
    weatherMaps.push(map);
    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:10}).addTo(map);
    // Bij een hoge kaart vult Nederland de kaart zonder grote stroken Duitsland of Noordzee.
@@ -4935,8 +4935,8 @@ function updateWeatherAtlas(){
    function drawDailyMarkers(){
      layer.clearLayers();
      const zoom=map.getZoom(),size=map.getSize();
-     const gap=zoom<=7?67:zoom===8?63:zoom===9?59:54;
-     const ordered=[...all].filter(p=>preferred.includes(p.point.n)).sort((a,b)=>{
+     const gap=zoom<=7?62:zoom===8?57:zoom===9?52:45;
+     const ordered=[...all].filter(p=>zoom>=9||preferred.includes(p.point.n)).sort((a,b)=>{
        const ia=preferred.indexOf(a.point.n),ib=preferred.indexOf(b.point.n);
        return (ia<0?100:ia)-(ib<0?100:ib);
      });
@@ -4945,7 +4945,7 @@ function updateWeatherAtlas(){
      let windShown=[];
      for(const p of ordered){
        const pt=map.latLngToContainerPoint([p.point.lat,p.point.lon]);
-       if(pt.x<39||pt.y<41||pt.x>size.x-39||pt.y>size.y-41)continue;
+       if(pt.x<38||pt.y<46||pt.x>size.x-38||pt.y>size.y-46)continue;
        if(occupied.some(q=>Math.hypot(pt.x-q.x,pt.y-q.y)<gap))continue;
        occupied.push(pt);
        const hourly=ricoCachedDaytime(p.point.n,d.date);
@@ -4962,13 +4962,13 @@ function updateWeatherAtlas(){
        const windDir=Number.isFinite(p.dir)?p.dir:null;
        const arrow=windDir===null?'➤':'➤';
        const windHtml=showWind?`<span class="ricoWeatherWind ricoDailyWind"><span class="ricoWeatherWindArrow" style="transform:rotate(${windDir===null?0:(windDir+90)%360}deg)">${arrow}</span>${beaufort(p.wind)} Bft</span>`:'';
-       const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin${frost?' ricoFrostPin':''}"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp"><span class="ricoTx">${max}°</span>${min!==null?`<span class="ricoSep">/</span><span class="ricoTn">${min}°</span>`:''}</span>${windHtml}</div>`,iconSize:[82,showWind?84:60],iconAnchor:[41,showWind?42:30]});
+       const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin rico82Pin${frost?' ricoFrostPin':''}"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp"><span class="ricoTx">${max}°</span>${min!==null?`<span class="ricoSep">/</span><span class="ricoTn">${min}°</span>`:''}</span>${windHtml}</div>`,iconSize:[82,showWind?84:60],iconAnchor:[41,showWind?42:30]});
        const popup=`<b>${safe(p.point.n)}</b><br>${hourly?'Weersymbool: bewolking 05–17 uur (uurcache)':'Weersymbool: dagzonuren (geen uurcache)'}<br>Max ${max}°${min!==null?' · min '+min+'°':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen`;
        L.marker([p.point.lat,p.point.lon],{icon}).bindPopup(popup).addTo(layer);
      }
    }
    // Vast landelijk overzicht: geen zoom nodig op mobiel.
-   map.on('resize',drawDailyMarkers);
+   map.on('resize zoomend moveend',drawDailyMarkers);
    drawDailyMarkers();
    setTimeout(()=>map.invalidateSize(),100);
   });
@@ -4978,7 +4978,7 @@ function install(){
  const panel=document.getElementById('nationalScanPanel');if(!panel)return;
  if(!document.getElementById('ricoWeatherAtlas')){
   const section=document.createElement('section');section.id='ricoWeatherAtlas';
-  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 15 dagen</div><div class="note">Landelijk overzicht zonder inzoomen: weersymbolen, maximum- en minimumtemperatuur en wind op verspreide locaties. Tik op een symbool voor details. De aparte Weerkaart NL blijft interactief. Temperaturen uit de landelijke modelmix. Weersymbolen volgen waar beschikbaar de reeds geladen uurbewolking van 05–17 uur, anders dagzonuren. Bij ontbrekende zichtgegevens wordt mist niet als zeker voorspeld. Dagdeelkaarten en dagkaart kunnen verschillende modelbronnen gebruiken.</div><div class="ricoWeatherGrid"></div>';
+  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 15 dagen</div><div class="note">Interactieve landelijke kaart in de stijl van Weerkaart NL: direct meerdere locaties, bij inzoomen meer van de 35 scanpunten. Weersymbolen, maximum- en minimumtemperatuur en wind. Tik op een symbool voor details. De aparte Weerkaart NL blijft interactief. Temperaturen uit de landelijke modelmix. Weersymbolen volgen waar beschikbaar de reeds geladen uurbewolking van 05–17 uur, anders dagzonuren. Bij ontbrekende zichtgegevens wordt mist niet als zeker voorspeld. Dagdeelkaarten en dagkaart kunnen verschillende modelbronnen gebruiken.</div><div class="ricoWeatherGrid"></div>';
   const map=panel.querySelector('.ricomapPanel');if(map)map.insertAdjacentElement('beforebegin',section);else panel.appendChild(section);
  }
  // Koppel aan bestaande landelijke scanweergave, inclusief cacheherstel.
@@ -5772,4 +5772,15 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 </body></html>
-<!-- Ricoweer v81 rustige landelijke dagkaarten -->
+<style id="rico-v82-map-style">
+/* Weerkaart NL-style compact, coloured readings, preserving symbols and wind. */
+#ricoWeatherAtlas .rico82Pin .ricoWeatherTemp{background:#a9d98b!important;border:2px solid #fff!important;border-radius:15px!important;box-shadow:0 2px 7px #163a4c66!important;padding:4px 6px!important;gap:2px!important}
+#ricoWeatherAtlas .rico82Pin .ricoTx{color:#132e23!important;font-weight:900}
+#ricoWeatherAtlas .rico82Pin .ricoTn{color:#225c9d!important;font-weight:850}
+#ricoWeatherAtlas .rico82Pin.ricoFrostPin .ricoWeatherTemp{background:#dbeeff!important}
+#ricoWeatherAtlas .rico82Pin .ricoWeatherSymbol{font-size:20px!important;line-height:23px!important;height:24px!important;filter:drop-shadow(0 1px 2px #fff)!important}
+#ricoWeatherAtlas .rico82Pin .ricoDailyWind{background:#fff!important;color:#124563!important;font-size:10px!important;padding:1px 5px!important;margin-top:2px!important}
+#ricoWeatherAtlas .ricoWeatherMap .leaflet-control-zoom{border:2px solid #a1b4bb!important;box-shadow:0 1px 3px #0003!important}
+@media(max-width:550px){#ricoWeatherAtlas .ricoWeatherMap{height:460px!important}#ricoWeatherAtlas .rico82Pin .ricoWeatherTemp{font-size:12px!important;padding:3px 4px!important}}
+</style>
+<!-- Ricoweer v82 interactieve landelijke dagkaarten in Weerkaart NL-stijl -->
