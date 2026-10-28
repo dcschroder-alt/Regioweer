@@ -5860,6 +5860,55 @@ function init(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,200));else setTimeout(init,200);
 })();
 </script>
+
+<style id="rico-v88-rain-style">
+#ricoRain14{margin:18px 0;padding:15px;border:1px solid #c6dce8;border-radius:17px;background:#f5faff;color:#16344e}
+#ricoRain14 .r88head{font-weight:850;font-size:19px;margin-bottom:6px}
+#ricoRain14 .r88ctrl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
+#ricoRain14 button{border:1px solid #a7c4d6;background:white;color:#144866;border-radius:9px;padding:9px 12px;font-weight:750}
+#ricoRain14 .r88legend{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;margin:9px 0}
+#ricoRain14 .r88legend span:before{content:'';display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--c);margin-right:5px}
+#ricoRain14 .r88scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+#ricoRain14 .r88plot{display:flex;align-items:flex-end;gap:5px;min-width:590px;height:225px;border-bottom:1px solid #8eaec4;padding:10px 3px 0;background:repeating-linear-gradient(to top,transparent 0,transparent calc(25% - 1px),#d9e7ef 25%)}
+#ricoRain14 .r88day{flex:1;min-width:37px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:4px}
+#ricoRain14 .r88bars{height:174px;display:flex;align-items:flex-end;justify-content:center;gap:2px;width:100%}
+#ricoRain14 .r88bar{width:28%;min-height:0;border-radius:3px 3px 0 0;position:relative}
+#ricoRain14 .r88bar[data-p]:hover:after{content:attr(data-p);position:absolute;bottom:100%;left:0;background:#173d59;color:white;font-size:11px;padding:3px 5px;border-radius:4px;z-index:2;white-space:nowrap}
+#ricoRain14 .r88label{font-size:11px;white-space:nowrap;color:#385e76}
+#ricoRain14 .r88note{font-size:12px;line-height:1.5;color:#536b7c;margin-top:12px}
+</style>
+<script id="rico-v88-rain-script">
+(function(){'use strict';
+const ID='ricoRain14';
+const MODELS=['ecmwf_ifs025_ensemble','ncep_gefs05'];
+const THRESH=[1,3,10];
+const COLORS=['#2476bd','#42a6d9','#e4a32d'];
+let last=null;
+function root(){return document.getElementById(ID)}
+function dateNL(s){const d=new Date(s+'T12:00:00');return ['zo','ma','di','wo','do','vr','za'][d.getDay()]+' '+d.getDate()}
+function render(data,notes){const r=root();if(!r)return;const plot=r.querySelector('.r88plot');if(!data.length){plot.innerHTML='<p>Geen bruikbare ensemble-neerslaggegevens beschikbaar.</p>';return}
+ plot.innerHTML=data.map(day=>`<div class="r88day"><div class="r88bars">${THRESH.map((t,j)=>{const p=day.values[j];return p===null?'<div class="r88bar" title="Geen gegevens"></div>':`<div class="r88bar" data-p="≥${t} mm: ${p}%" title="${dateNL(day.date)}: ≥${t} mm ${p}%" style="height:${Math.max(p>0?2:0,p)}%;background:${COLORS[j]}"></div>`}).join('')}</div><span class="r88label">${dateNL(day.date)}</span></div>`).join('');
+ r.querySelector('.r88status').textContent=notes;
+ r.querySelector('.r88note').textContent='Percentage = gemiddeld aandeel ensembleleden per beschikbaar ensemblesysteem (ECMWF ENS en GEFS), voor de gekozen plaats. Geen gekalibreerde kans. Ontbrekende waarden zijn niet als 0% geteld. Horizontaal schuiven voor alle 14 dagen.';
+}
+async function load(allowNetwork){const r=root();if(!r)return;const b=r.querySelector('.r88load');b.disabled=true;r.querySelector('.r88status').textContent='Ensemblegegevens '+(allowNetwork?'ophalen':'uit cache lezen')+'…';
+ try{const results=await Promise.allSettled(MODELS.map(m=>getEnsembleDataset(m,{allowNetwork,days:ensembleForecastDays(m)})));
+ const usable=[];const issues=[];
+ results.forEach((res,i)=>{if(res.status!=='fulfilled'){issues.push(MODELS[i]+' niet beschikbaar');return}const d=res.value,h=d.h||{},times=d.times||h.time||[],keys=ensembleKeys(h,'precipitation');if(!keys.length){issues.push(MODELS[i]+' zonder neerslagleden');return}const groups=dailyGroups(times),daily=memberDailyValues(h,keys,groups,'sum');usable.push({model:MODELS[i],daily,source:d.source,savedAt:d.savedAt});});
+ if(!usable.length){render([], 'Geen neerslagensemble in de cache. Tik op Vernieuwen om gegevens op te halen. '+issues.join('; '));return}
+ const today=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Amsterdam'});
+ const dates=[...new Set(usable.flatMap(u=>Object.keys(u.daily)))].filter(d=>d>=today).sort().slice(0,14);
+ const data=dates.map(date=>({date,values:THRESH.map(th=>{const vals=usable.map(u=>{const members=(u.daily[date]||[]).filter(Number.isFinite);return members.length?100*members.filter(v=>v>=th).length/members.length:null}).filter(Number.isFinite);return vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):null})}));
+ last=data;render(data,usable.map(u=>(u.model.startsWith('ecmwf')?'ECMWF ENS':'GEFS')+' ('+(u.source||'cache')+')').join(' · ')+(issues.length?' · '+issues.join('; '):''));
+ }catch(e){r.querySelector('.r88status').textContent='Niet beschikbaar: '+String(e.message||e)}finally{b.disabled=false}}
+function init(){if(root())return;const panel=document.getElementById('riskPanel');if(!panel)return;const div=document.createElement('section');div.id=ID;div.innerHTML=`<div class="r88head">🌧️ Neerslagkansen · 14 dagen</div><div>Dagkans op minstens 1, 3 of 10 mm, op basis van ensembleleden.</div><div class="r88ctrl"><button type="button" class="r88load">↻ Vernieuwen</button><button type="button" class="r88cache">Opgeslagen gegevens</button></div><div class="r88status" aria-live="polite">Tik op Vernieuwen om de ensemblekansen te berekenen voor de gekozen plaats.</div><div class="r88legend">${THRESH.map((t,i)=>`<span style="--c:${COLORS[i]}">≥ ${t} mm</span>`).join('')}</div><div class="r88scroll"><div class="r88plot"></div></div><div class="r88note">De grafiek gebruikt echte ensembleleden; ontbrekende gegevens worden niet verzonnen.</div>`;
+ const anchor=panel.querySelector('.riskcontrols');anchor?.parentNode?.insertBefore(div,anchor);
+ div.querySelector('.r88load').addEventListener('click',()=>load(true));div.querySelector('.r88cache').addEventListener('click',()=>load(false));
+ const place=document.getElementById('place');place?.addEventListener('change',()=>{last=null;div.querySelector('.r88plot').innerHTML='';div.querySelector('.r88status').textContent='Locatie gewijzigd: laad de neerslagkansen opnieuw.'});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
 </body></html>
 <style id="rico-v82-map-style">
 /* Weerkaart NL-style compact, coloured readings, preserving symbols and wind. */
