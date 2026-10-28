@@ -4747,9 +4747,14 @@ function ricoDrawMapMarkers(){
  for(const x of ordered){const xy=ricoLeafletMap.latLngToContainerPoint([x.point.lat,x.point.lon]);if(spacing>0&&selected.some(p=>Math.hypot(p.x-xy.x,p.y-xy.y)<spacing))continue;selected.push(xy);visible.push(x)}
  for(const x of visible){
   const v=x[ricoMapType],s=ricoLayerStyle(ricoMapType,v),label=s.label;
-  const icon=L.divIcon({className:'',html:'<div class="ricomapTemp" style="background:'+s.color+';min-width:36px;width:auto;padding:0 5px">'+label+'</div>',iconSize:[43,29],iconAnchor:[21,14]});
+  // Meteorological direction is where the wind comes FROM; the arrow points where it blows TO.
+  // An east-pointing glyph rotated by direction + 90 degrees yields north wind -> south.
+  const hasDir=ricoMapType==='wind'&&Number.isFinite(x.dir);
+  const windArrow=hasDir?'<span aria-hidden="true" style="display:inline-block;transform:rotate('+((x.dir+90)%360)+'deg);font-size:16px;line-height:1;margin-right:4px;color:#0b5879">➤</span>':'';
+  const markerHtml='<div class="ricomapTemp" style="background:'+s.color+';min-width:'+(hasDir?'64':'36')+'px;width:auto;padding:0 6px;white-space:nowrap">'+windArrow+label+'</div>';
+  const icon=L.divIcon({className:'',html:markerHtml,iconSize:[hasDir?76:43,29],iconAnchor:[hasDir?38:21,14]});
   const name=String(x.point.n||'Locatie').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  L.marker([x.point.lat,x.point.lon],{icon}).bindPopup('<b>'+name+'</b><br>'+ricoLayerLabels[ricoMapType]+': '+(ricoMapType==='wind'?ricoWindBft(v)+' Bft ('+Math.round(v)+' km/u)':v.toFixed(1).replace('.',',')+' '+s.unit)+'<br>'+(x.models?.length||0)+' modellen').addTo(ricoLeafletLayer);
+  L.marker([x.point.lat,x.point.lon],{icon}).bindPopup('<b>'+name+'</b><br>'+ricoLayerLabels[ricoMapType]+': '+(ricoMapType==='wind'?ricoWindBft(v)+' Bft ('+Math.round(v)+' km/u)'+(Number.isFinite(x.dir)?' · wind uit '+Math.round(x.dir)+'°':''):v.toFixed(1).replace('.',',')+' '+s.unit)+'<br>'+(x.models?.length||0)+' modellen').addTo(ricoLeafletLayer);
  }
  const hint=document.getElementById('ricomapHint');if(hint)hint.textContent=visible.length+' van '+ricoMapPoints.length+' punten zichtbaar · '+ricoLayerLabels[ricoMapType]+' · zoom in voor alle punten';
 }
