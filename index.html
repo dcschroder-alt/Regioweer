@@ -4913,96 +4913,42 @@ function updateWeatherAtlas(){
  ricoLeafletReady().then(()=>{
   valid.forEach((d,i)=>{
    const el=document.getElementById('ricoWeatherMap'+i);if(!el||!window.L)return;
-   const map=L.map(el,{zoomControl:false,scrollWheelZoom:false,dragging:false,doubleClickZoom:false,boxZoom:false,keyboard:false,touchZoom:false,attributionControl:false});
+   const map=L.map(el,{zoomControl:true,scrollWheelZoom:false,dragging:true,doubleClickZoom:true,boxZoom:false,keyboard:true,touchZoom:true,attributionControl:false});
    weatherMaps.push(map);
    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:10}).addTo(map);
    // Bij een hoge kaart vult Nederland de kaart zonder grote stroken Duitsland of Noordzee.
    // Gebruik de echte geografische uitersten; Leaflet past de zoom aan de kaartverhouding aan.
    map.fitBounds([[50.75,3.35],[53.52,7.15]],{padding:[10,10],animate:false});
-   // Tien bewust gespreide weerlocaties, rechtstreeks uit de bestaande 35 scanpunten.
-   // Midden-Nederland heeft Houten en Apeldoorn, Flevoland Emmeloord.
-   // Geen aanvullende API-verzoeken; bij ontbrekende waarden geografisch aanvullen.
-   const preferredGroups=[
-    ['Terschelling','Texel','Den Helder'],
-    ['Groningen','Leeuwarden','Emmen'],
-    ['IJmuiden','Den Helder','Amsterdam'],
-    ['Emmeloord','Lelystad','Almere'],
-    ['Enschede','Winterswijk','Emmen'],
-    ['Rotterdam','Scheveningen','Leiden'],
-    ['Houten','Gouda','Almere'],
-    ['Apeldoorn','Arnhem','Lelystad'],
-    ['Vlissingen','Breda'],
-    ['Maastricht','Venlo','Eindhoven']
-   ];
+   // v79: interactieve, zoomafhankelijke dagkaart; geen verplaatste labels of lijnen.
+   // De modelmix en de bestaande 35 scanpunten blijven de bron.
    const all=d.pts.filter(p=>Number.isFinite(p.tx)&&Number.isFinite(p.point?.lat)&&Number.isFinite(p.point?.lon));
-   const used=new Set();
-   const chosen=preferredGroups.map(group=>{
-     const found=group.map(name=>all.find(p=>p.point.n===name&&!used.has(p.point.n))).find(Boolean);
-     if(found)used.add(found.point.n);
-     return found;
-   }).filter(Boolean);
-   while(chosen.length<Math.min(10,all.length)){
-     const remaining=all.filter(p=>!used.has(p.point.n));if(!remaining.length)break;
-     remaining.sort((a,b)=>Math.min(...chosen.map(x=>distance(b,x)))-Math.min(...chosen.map(x=>distance(a,x))));
-     chosen.push(remaining[0]);used.add(remaining[0].point.n);
+   const layer=L.layerGroup().addTo(map);
+   const preferred=['Terschelling','Groningen','IJmuiden','Emmeloord','Enschede','Rotterdam','Houten','Apeldoorn','Vlissingen','Maastricht'];
+   function drawDailyMarkers(){
+     layer.clearLayers();
+     const zoom=map.getZoom(),size=map.getSize();
+     const gap=zoom<=7?92:zoom===8?76:zoom===9?61:zoom===10?48:32;
+     const ordered=[...all].sort((a,b)=>{
+       const ia=preferred.indexOf(a.point.n),ib=preferred.indexOf(b.point.n);
+       return (ia<0?100:ia)-(ib<0?100:ib);
+     });
+     const occupied=[];
+     for(const p of ordered){
+       const pt=map.latLngToContainerPoint([p.point.lat,p.point.lon]);
+       if(pt.x<42||pt.y<42||pt.x>size.x-42||pt.y>size.y-42)continue;
+       if(occupied.some(q=>Math.hypot(pt.x-q.x,pt.y-q.y)<gap))continue;
+       occupied.push(pt);
+       const hourly=ricoCachedDaytime(p.point.n,d.date);
+       const sym=hourly?(Number.isFinite(hourly.rain)&&hourly.rain>=1?(hourly.cloud<60?'🌦️':'🌧️'):(hourly.cloud<25?'☀️':hourly.cloud<60?'🌤️':hourly.cloud<85?'⛅':'☁️')):weatherSymbol(p);
+       const max=Math.round(p.tx),min=Number.isFinite(p.tn)?Math.round(p.tn):null;
+       const frost=min!==null&&min<0;
+       const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin${frost?' ricoFrostPin':''}"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp"><span class="ricoTx">${max}°</span>${min!==null?`<span class="ricoSep">/</span><span class="ricoTn">${min}°</span>`:''}</span></div>`,iconSize:[76,60],iconAnchor:[38,30]});
+       const popup=`<b>${safe(p.point.n)}</b><br>${hourly?'Weersymbool: bewolking 05–17 uur (uurcache)':'Weersymbool: dagzonuren (geen uurcache)'}<br>Max ${max}°${min!==null?' · min '+min+'°':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen`;
+       L.marker([p.point.lat,p.point.lon],{icon}).bindPopup(popup).addTo(layer);
+     }
    }
-   // v78: tien daglabels zoals op de zesuurskaarten. Plaats labels adaptief
-   // in schermpixels, met beperkte verplaatsing en een verbindingslijn.
-   // Alle waarden blijven afkomstig uit de bestaande dagelijkse modelmix.
-   const occupied=[];
-   const offsets=[[0,0],[-45,0],[45,0],[0,-58],[0,58],[-52,-44],[52,-44],[-52,44],[52,44],[-88,0],[88,0],[0,-90],[0,90]];
-   const W=76,H=60;
-   const mapSize=map.getSize();
-   const placed=[];
-   // Eerst de noord-zuid spreiding; hiermee blijft het hele land vertegenwoordigd.
-   chosen.forEach(p=>{
-     const origin=map.latLngToContainerPoint([p.point.lat,p.point.lon]);
-     let best=null,score=Infinity;
-     for(const [dx,dy] of offsets){
-       const x=origin.x+dx,y=origin.y+dy;
-       const overflow=Math.max(0,W/2+4-x)+Math.max(0,x+W/2+4-mapSize.x)+Math.max(0,H/2+4-y)+Math.max(0,y+H/2+4-mapSize.y);
-       const collision=occupied.reduce((sum,q)=>sum+Math.max(0,W+5-Math.abs(x-q.x))*Math.max(0,H+5-Math.abs(y-q.y)),0);
-       const cost=collision*20+overflow*200+Math.hypot(dx,dy);
-       if(cost<score){score=cost;best={x,y,dx,dy,collision,overflow}}
-       if(!collision&&!overflow)break;
-     }
-     if(!best)return;
-     occupied.push({x:best.x,y:best.y});placed.push({p,...best,origin});
-   });
-   placed.forEach(({p,x,y,dx,dy,origin})=>{
-     const hourly=ricoCachedDaytime(p.point.n,d.date);
-     const sym=hourly?(Number.isFinite(hourly.rain)&&hourly.rain>=1?(hourly.cloud<60?'🌦️':'🌧️'):(hourly.cloud<25?'☀️':hourly.cloud<60?'🌤️':hourly.cloud<85?'⛅':'☁️')):weatherSymbol(p);
-     const max=Math.round(p.tx),min=Number.isFinite(p.tn)?Math.round(p.tn):null;
-     const frost=min!==null&&min<0;
-     const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin${frost?' ricoFrostPin':''}"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp"><span class="ricoTx">${max}°</span>${min!==null?`<span class="ricoSep">/</span><span class="ricoTn">${min}°</span>`:''}</span></div>`,iconSize:[W,H],iconAnchor:[W/2,H/2]});
-     const popup=`<b>${safe(p.point.n)}</b><br>${hourly?'Weersymbool: bewolking 05–17 uur (uurcache)':'Weersymbool: dagzonuren (geen uurcache)'}<br>Max ${max}°${min!==null?' · min '+min+'°':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen`;
-     const labelPos=map.containerPointToLatLng([x,y]);
-     if(Math.hypot(dx,dy)>25){
-       L.polyline([[p.point.lat,p.point.lon],labelPos],{color:'#477c91',weight:1.4,opacity:.65,interactive:false}).addTo(map);
-     }
-     L.marker(labelPos,{icon}).bindPopup(popup).addTo(map);
-   });
-   // Windkracht op drie plekken: kust, midden en oosten. Alleen reeds opgehaalde
-   // dagelijkse windmaxima en dominante windrichting van de 35 scanpunten.
-   // Plaats de windvakjes in rustige kaartzones, niet op de weerpictogrammen.
-   // anchor: coast links uitlijnen, oost rechts uitlijnen, midden centreren.
-   const windSpots=[
-    {lat:52.65,lon:3.35,anchor:[0,13],names:['Den Helder','IJmuiden','Texel','Terschelling']},
-    {lat:51.43,lon:5.45,anchor:[39,13],names:['Emmeloord','Lelystad','Arnhem','Amersfoort']},
-    {lat:52.78,lon:7.20,anchor:[78,13],names:['Enschede','Winterswijk','Emmen','Groningen']}
-   ];
-   function beaufort(kmh){const m=kmh/3.6;return [0.3,1.6,3.4,5.5,8.0,10.8,13.9,17.2,20.8,24.5,28.5,32.7].findIndex(x=>m<x)===-1?12:[0.3,1.6,3.4,5.5,8.0,10.8,13.9,17.2,20.8,24.5,28.5,32.7].findIndex(x=>m<x)}
-   windSpots.forEach(spot=>{
-    const src=spot.names.map(name=>all.find(p=>p.point.n===name&&Number.isFinite(p.wind))).find(Boolean);
-    if(!src)return;
-    const bft=beaufort(src.wind);
-    const windXY=map.latLngToContainerPoint([spot.lat,spot.lon]);
-    if(occupied.some(q=>Math.abs(windXY.x-q.x)<80&&Math.abs(windXY.y-q.y)<65))return;
-    const arrow=Number.isFinite(src.dir)?`<span class="ricoWeatherWindArrow" style="transform:rotate(${(src.dir+180)%360}deg)" aria-hidden="true">↑</span>`:'';
-    const html=`<div class="ricoWeatherWind" title="Wind ${safe(src.point.n)}: ${Math.round(src.wind)} km/u, ${bft} Bft">${arrow}<span>${bft} Bft</span></div>`;
-    const windIcon=L.divIcon({className:'',html,iconSize:[78,27],iconAnchor:spot.anchor});
-    L.marker([spot.lat,spot.lon],{icon:windIcon,interactive:false,keyboard:false}).addTo(map);
-   });
+   map.on('zoomend moveend',drawDailyMarkers);
+   drawDailyMarkers();
    setTimeout(()=>map.invalidateSize(),100);
   });
  }).catch(e=>console.warn('Landelijke weerkaarten:',e));
@@ -5011,7 +4957,7 @@ function install(){
  const panel=document.getElementById('nationalScanPanel');if(!panel)return;
  if(!document.getElementById('ricoWeatherAtlas')){
   const section=document.createElement('section');section.id='ricoWeatherAtlas';
-  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 15 dagen</div><div class="note">Tien geografisch gespreide daglocaties, met maximaal en minimaal en een weersymbool. Labels kunnen iets verschoven zijn om overlap te voorkomen. Temperaturen uit de landelijke modelmix. Weersymbolen volgen waar beschikbaar de reeds geladen uurbewolking van 05–17 uur, anders dagzonuren. Bij ontbrekende zichtgegevens wordt mist niet als zeker voorspeld. Dagdeelkaarten en dagkaart kunnen verschillende modelbronnen gebruiken.</div><div class="ricoWeatherGrid"></div>';
+  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 15 dagen</div><div class="note">Interactieve dagkaarten: zoom in en verschuif de kaart om meer van de 35 scanpunten te zien. Tik op een symbool voor details. Temperaturen uit de landelijke modelmix. Weersymbolen volgen waar beschikbaar de reeds geladen uurbewolking van 05–17 uur, anders dagzonuren. Bij ontbrekende zichtgegevens wordt mist niet als zeker voorspeld. Dagdeelkaarten en dagkaart kunnen verschillende modelbronnen gebruiken.</div><div class="ricoWeatherGrid"></div>';
   const map=panel.querySelector('.ricomapPanel');if(map)map.insertAdjacentElement('beforebegin',section);else panel.appendChild(section);
  }
  // Koppel aan bestaande landelijke scanweergave, inclusief cacheherstel.
@@ -5805,3 +5751,4 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 </body></html>
+<!-- Ricoweer v79 interactieve landelijke dagkaarten -->
