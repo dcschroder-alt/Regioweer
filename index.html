@@ -4740,16 +4740,19 @@ function ricoLayerStyle(key,v){
 function ricoDrawMapMarkers(){
  if(!ricoLeafletMap||!ricoLeafletLayer)return;
  ricoLeafletLayer.clearLayers();
- const zoom=ricoLeafletMap.getZoom(),spacing=zoom<=7?47:zoom===8?39:zoom===9?31:0;
+ const zoom=ricoLeafletMap.getZoom(),spacing=ricoMapType==='wind'?(zoom<=7?95:zoom===8?80:zoom===9?65:0):(zoom<=7?47:zoom===8?39:zoom===9?31:0);
  const selected=[],visible=[];
  const pts=[...ricoMapPoints].sort((a,b)=>b.point.lat-a.point.lat);
  const ordered=[];while(pts.length){ordered.push(pts.shift());if(pts.length)ordered.push(pts.pop())}
  for(const x of ordered){const xy=ricoLeafletMap.latLngToContainerPoint([x.point.lat,x.point.lon]);if(spacing>0&&selected.some(p=>Math.hypot(p.x-xy.x,p.y-xy.y)<spacing))continue;selected.push(xy);visible.push(x)}
  for(const x of visible){
-  const v=x[ricoMapType],s=ricoLayerStyle(ricoMapType,v),label=s.label;
-  const icon=L.divIcon({className:'',html:'<div class="ricomapTemp" style="background:'+s.color+';min-width:36px;width:auto;padding:0 5px">'+label+'</div>',iconSize:[43,29],iconAnchor:[21,14]});
+  const v=x[ricoMapType],s=ricoLayerStyle(ricoMapType,v);
+  const dir=Number.isFinite(x.dir)?((x.dir%360)+360)%360:null;
+  const compass=dir===null?'':(['N','NO','O','ZO','Z','ZW','W','NW'][Math.round(dir/45)%8]);
+  const label=ricoMapType==='wind'?(compass?compass+' · ':'')+s.label:s.label;
+  const icon=L.divIcon({className:'',html:'<div class="ricomapTemp" style="background:'+s.color+';min-width:36px;width:auto;padding:0 5px;white-space:nowrap">'+label+'</div>',iconSize:[ricoMapType==='wind'?92:43,29],iconAnchor:[ricoMapType==='wind'?46:21,14]});
   const name=String(x.point.n||'Locatie').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  L.marker([x.point.lat,x.point.lon],{icon}).bindPopup('<b>'+name+'</b><br>'+ricoLayerLabels[ricoMapType]+': '+(ricoMapType==='wind'?ricoWindBft(v)+' Bft ('+Math.round(v)+' km/u)':v.toFixed(1).replace('.',',')+' '+s.unit)+'<br>'+(x.models?.length||0)+' modellen').addTo(ricoLeafletLayer);
+  L.marker([x.point.lat,x.point.lon],{icon}).bindPopup('<b>'+name+'</b><br>'+ricoLayerLabels[ricoMapType]+': '+(ricoMapType==='wind'?(compass?compass+' ('+Math.round(dir)+'°) · ':'richting onbekend · ')+ricoWindBft(v)+' Bft ('+Math.round(v)+' km/u)':v.toFixed(1).replace('.',',')+' '+s.unit)+'<br>'+(x.models?.length||0)+' modellen').addTo(ricoLeafletLayer);
  }
  const hint=document.getElementById('ricomapHint');if(hint)hint.textContent=visible.length+' van '+ricoMapPoints.length+' punten zichtbaar · '+ricoLayerLabels[ricoMapType]+' · zoom in voor alle punten';
 }
