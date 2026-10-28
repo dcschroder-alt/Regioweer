@@ -1762,16 +1762,16 @@ async function renderFivePreview(){
 function wholeMm(v){v=Number(v)||0;if(v>0&&v<1)return 'minder dan 1';return String(Math.round(v))}
 function wholeHours(v){return String(Math.max(0,Math.round(Number(v)||0)))}
 function naturalWeatherDesc(r){
- const sun=Number(r.sun)||0,pr=Number(r.precip)||0,pop=Number.isFinite(r.pop)?Math.round(r.pop):null;
- if(pr<0.3&&pop<35&&sun>=7)return'zonnig';
- if(pr<0.3&&pop<35&&sun>=4)return'vrij zonnig';
- if(pr<0.3&&pop<35&&sun>=1.5)return'perioden met zon';
- if(pr<0.3&&pop<35)return'vrij veel bewolking';
- if(pr>=5&&sun<2)return'regenachtig';
- if(sun>=6)return'zonnig met kans op een bui';
- if(sun>=2.5)return'zon en enkele buien';
+ const sun=Number.isFinite(r.sun)?r.sun:null,pr=Number.isFinite(r.precip)?r.precip:null,pop=Number.isFinite(r.pop)?Math.round(r.pop):null,daylight=possibleDaylightHours(r.date),sunFrac=Number.isFinite(sun)&&Number.isFinite(daylight)&&daylight>0?sun/daylight:null;
+ if(pr!==null&&pr<0.3&&pop!==null&&pop<35&&sunFrac!==null&&sunFrac>=.8)return'zonnig';
+ if(pr!==null&&pr<0.3&&pop!==null&&pop<35&&sunFrac!==null&&sunFrac>=.6)return'vrij zonnig';
+ if(pr!==null&&pr<0.3&&pop!==null&&pop<35&&sunFrac!==null&&sunFrac>=.2)return'perioden met zon';
+ if(pr!==null&&pr<0.3&&pop!==null&&pop<35)return sun===null?'overwegend droog, zon onzeker':'vrij veel bewolking';
+ if(pr!==null&&pr>=5&&(sun===null||sun<2))return'regenachtig';
+ if(sunFrac!==null&&sunFrac>=.8)return'zonnig met kans op een bui';
+ if(sunFrac!==null&&sunFrac>=.3)return'zon en enkele buien';
  if(pop!==null&&pop>=60)return'bewolkt met regen of buien';
- return'bewolkt met af en toe regen';
+ return sun===null?'wisselend weer, zon onzeker':'bewolkt met af en toe regen';
 }
 function buildWeatherHeadline(rows){
  if(!rows.length)return'';const wet=rows.filter(r=>(r.precip||0)>=0.5||(r.pop||0)>=40).length,avgSun=rows.reduce((a,r)=>a+(r.sun||0),0)/rows.length,delta=rows.at(-1).max-rows[0].max;
@@ -1784,7 +1784,7 @@ function buildWeatherHeadline(rows){
  return'Afwisseling van droge perioden en wat neerslag';
 }
 function weatherPhrase(d){
- if(d==='zonnig')return'is het zonnig';if(d==='vrij zonnig')return'is het vrij zonnig';if(d==='perioden met zon')return'zijn er perioden met zon';if(d==='vrij veel bewolking')return'is er vrij veel bewolking';if(d==='regenachtig')return'is het regenachtig';if(d==='zonnig met kans op een bui')return'is het vrij zonnig';if(d==='zon en enkele buien')return'wisselen zon en enkele buien elkaar af';if(d==='bewolkt met regen of buien')return'is het bewolkt met regen of buien';if(d==='bewolkt met af en toe regen')return'is het bewolkt en valt af en toe regen';return'is het '+d;
+ if(d==='overwegend droog, zon onzeker')return'is het overwegend droog; zonneschijn onzeker';if(d==='wisselend weer, zon onzeker')return'is het weerbeeld wisselend; zonneschijn onzeker';if(d==='zonnig')return'is het zonnig';if(d==='vrij zonnig')return'is het vrij zonnig';if(d==='perioden met zon')return'zijn er perioden met zon';if(d==='vrij veel bewolking')return'is er vrij veel bewolking';if(d==='regenachtig')return'is het regenachtig';if(d==='zonnig met kans op een bui')return'is het vrij zonnig';if(d==='zon en enkele buien')return'wisselen zon en enkele buien elkaar af';if(d==='bewolkt met regen of buien')return'is het bewolkt met regen of buien';if(d==='bewolkt met af en toe regen')return'is het bewolkt en valt af en toe regen';return'is het '+d;
 }
 function repeatWeatherPhrase(d){return weatherPhrase(d).replace(/^is /,'blijft ').replace(/^zijn /,'blijven ').replace(/^wisselen /,'blijven ')}
 function nlHourNow(){return Number(new Intl.DateTimeFormat('nl-NL',{timeZone:'Europe/Amsterdam',hour:'2-digit',hour12:false}).format(new Date()))}
@@ -3849,10 +3849,28 @@ function nsNationalTimingText(t){
  const cm=nsHourMean(h,'cloud',6,12),ca=nsHourMean(h,'cloud',12,18);if(Number.isFinite(cm)&&Number.isFinite(ca)&&Math.abs(ca-cm)>=20)bits.push(ca<cm?'In de middag breekt de zon duidelijk vaker door.':'In de middag neemt de bewolking duidelijk toe.');
  const maxG=nsMax(h.map(x=>x.gust));if(Number.isFinite(maxG)&&maxG>=50)bits.push(`De zwaarste windstoten liggen rond ${Math.round(maxG)} km/u.`);return bits.join(' ')
 }
+// v84: Check zon-dagwaarden against existing hourly cloud observations.
+// Different model sources are not silently forced to agree; discrepancies are labelled.
+function rwSunConsistency(date, sunHours, timing=null){
+ let clouds=[];
+ if(timing?.hours?.length)clouds=timing.hours.filter(h=>h.hour>=6&&h.hour<18).map(h=>Number(h.cloud)).filter(v=>Number.isFinite(v)&&v>=0&&v<=100);
+ if(clouds.length<6){
+  for(const name of ['Houten','De Bilt','Utrecht','Amsterdam','Groningen','Enschede','Eindhoven']){
+   const cached=typeof ricoCachedDaytime==='function'?ricoCachedDaytime(name,date):null;
+   if(cached&&Number.isFinite(cached.cloud)){clouds.push(cached.cloud);if(clouds.length>=3)break}
+  }
+ }
+ if(!clouds.length)return {status:'unknown',note:'Uurbewolking niet beschikbaar voor controle met de zonuren.'};
+ const cloud=clouds.reduce((a,b)=>a+b,0)/clouds.length;
+ const dayLength=typeof possibleDaylightHours==='function'?possibleDaylightHours(date):null;
+ const fraction=Number.isFinite(dayLength)&&dayLength>0&&Number.isFinite(sunHours)?sunHours/dayLength:null;
+ const conflict=Number.isFinite(fraction)&&fraction>=.65&&cloud>=65;
+ return {status:conflict?'conflict':'checked',cloud,note:conflict?'Let op: dagzonuren en uurbewolking spreken elkaar tegen; het zonnige dagbeeld is onzeker.':'Dagzonuren en beschikbare uurbewolking zijn afzonderlijke modelbronnen.'};
+}
 function nsNationalDuiding(d,timing=null){
- const w=nsRegion(d,['Wadden']),n=nsRegion(d,['Noord']),m=nsRegion(d,['Midden']),z=nsRegion(d,['Zuid']),valid=d.pts.filter(x=>Number.isFinite(x.tx)||Number.isFinite(x.tn)),rain=nsRainScope(d),cf=nsConfidence(d,true),sun=nsMedian(valid.map(x=>x.sun)),wx=nsWx(rain.mix,sun),top=nsTopModelSignal(d,'tx');
+ const w=nsRegion(d,['Wadden']),n=nsRegion(d,['Noord']),m=nsRegion(d,['Midden']),z=nsRegion(d,['Zuid']),valid=d.pts.filter(x=>Number.isFinite(x.tx)||Number.isFinite(x.tn)),rain=nsRainScope(d),cf=nsConfidence(d,true),sun=nsMedian(valid.map(x=>x.sun)),sunCheck=rwSunConsistency(d.date,sun,timing),wx=sunCheck.status==='conflict'?'🌥️ wisselend bewolkt (zon onzeker)':nsWx(rain.mix,sun),top=nsTopModelSignal(d,'tx');
  let a=`${wx.charAt(0).toUpperCase()+wx.slice(1)}. `+nsTempRangeSentence([n?.tx,m?.tx,z?.tx],'Landinwaarts');const expected=nsMax([n?.tx,m?.tx,z?.tx]);if(top&&Number.isFinite(expected)&&Math.round(top.value)>=Math.round(expected)+1)a+=` Lokaal is in ${nsArea({point:top.point})} ${Math.round(top.value)} graden mogelijk; het hoogste signaal komt van ${top.model}.`;
- const tt=nsNationalTimingText(timing);if(tt)a+=` ${tt}`;
+ const tt=nsNationalTimingText(timing);if(tt)a+=` ${tt}`;if(sunCheck.status==='conflict')a+=` ${sunCheck.note}`;
  if(Number.isFinite(rain.mix)){if(rain.lo===0&&rain.hi===0)a+=' Het blijft volgens alle gebruikte modellen droog.';else a+=` De landelijke neerslagmediaan ligt rond ${nsFmt(rain.mix)} mm, met een modelrange van ${nsFmt(rain.lo)}–${nsFmt(rain.hi)} mm.`}
  const txs=[['Wadden',w],['Noord',n],['Midden',m],['Zuid',z]].filter(([,r])=>Number.isFinite(r?.tx)).sort((a,b)=>b[1].tx-a[1].tx);if(txs.length>=2&&txs[0][1].tx-txs.at(-1)[1].tx>=3)a+=` Het ${txs[0][0].toLowerCase()} is het warmst; in ${txs.at(-1)[0].toLowerCase()} blijft het duidelijk koeler.`;
  if(cf.spread!=null)a+=` De temperatuurverwachting is ${cf.label==='hoog'?'vrij zeker':cf.label==='matig'?'redelijk zeker':'nog onzeker'}; de TX-spreiding buiten de Wadden bedraagt circa ${nsFmt(cf.spread,1)}°.`;return a
