@@ -540,7 +540,7 @@ body{min-width:0}
 #ricoWeatherAtlas .ricoWeatherPin .ricoWeatherTemp{font-size:13px!important;gap:2px!important;padding:2px 4px!important}
 #ricoWeatherAtlas .ricoDailyWind{font-size:10px!important;line-height:14px!important;margin-top:2px!important;padding:1px 4px!important}
 @media(max-width:550px){#ricoWeatherAtlas .ricoWeatherMap{height:520px!important}}
-</style></head>
+</style><style id="rico-v86-style">.rico86Layers{display:flex;flex-wrap:wrap;gap:5px;justify-content:center;margin:5px 0 9px}.rico86Layers button{font-size:12px;padding:6px 8px;border:1px solid #a7bdca;border-radius:12px;background:#eef4f7;color:#16394c;font-weight:650}.rico86Layers button.active{background:#146c87;color:white;border-color:#146c87}.rico86Value{display:inline-flex;align-items:center;justify-content:center;min-width:56px;padding:6px 5px;border-radius:16px;border:2px solid white;box-shadow:0 2px 6px #0005;font-size:13px;font-weight:800;white-space:nowrap}.rico86Temp{background:#a7e6a1;color:#123b1a}.rico86Rain{background:#cceaff;color:#123b71}.rico86Wind{background:#fff3cd;color:#4c3b0a}.rico86FogRisk{display:block;font-size:10px;color:#4b4b4b;background:#fff9c8;border-radius:5px}.ricoPartMapCanvas{height:340px!important}@media(max-width:600px){.ricoPartMapCanvas{height:390px!important}}</style></head>
 <body><div class="wrap">
 <section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v69</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
 <nav class="quickJump" aria-label="Snel naar onderdelen"><span class="quickJumpLabel">Snel naar</span><button type="button" data-jump="todayGlancePanel">Vandaag</button><button type="button" data-jump="weatherTextPanel">Weerbericht</button><button type="button" data-jump="nationalScanPanel">Landelijk</button><button type="button" data-jump="longRangePanel">6 weken</button><button type="button" data-jump="climatePanel">Klimaat</button><button type="button" data-jump="editorialDeskPanel">Redactie</button><button type="button" data-jump="v97Cockpit">Cockpit</button><button type="button" data-jump="ricoEnergyPanel">☀️ Energie</button></nav>
@@ -3795,7 +3795,7 @@ const nsTimingMemo=new Map();
 async function nsFetchTimingPoints(date,points,key){
  const memoKey=`${key}|${date}|${points.map(p=>p.n+':'+p.lat+','+p.lon).join(';')}`;if(nsTimingMemo.has(memoKey))return nsTimingMemo.get(memoKey);
  const lat=points.map(x=>x.lat).join(','),lon=points.map(x=>x.lon).join(',');
- const vars='temperature_2m,precipitation,precipitation_probability,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m';
+ const vars='temperature_2m,precipitation,precipitation_probability,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m,visibility,relative_humidity_2m,dew_point_2m,weather_code';
  const u=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=${vars}&timezone=Europe%2FAmsterdam&start_date=${date}&end_date=${date}&wind_speed_unit=kmh`;
  const r=await fetch(u,{cache:'default'}),j=await r.json();if(!r.ok||j?.error)throw new Error(j?.reason||'uurdata niet beschikbaar');
  const arr=Array.isArray(j)?j:[j],loc=[];
@@ -3804,7 +3804,7 @@ async function nsFetchTimingPoints(date,points,key){
   const h=x?.hourly||{},times=h.time||[];
   const rows=times.filter(t=>typeof t==='string'&&t.slice(0,10)===date).map(t=>{
    const i=times.indexOf(t);
-   return {hour:Number(t.slice(11,13)),temp:num(h.temperature_2m?.[i]),rain:num(h.precipitation?.[i]),pop:num(h.precipitation_probability?.[i]),cloud:num(h.cloud_cover?.[i]),wind:num(h.wind_speed_10m?.[i]),dir:num(h.wind_direction_10m?.[i]),gust:num(h.wind_gusts_10m?.[i])};
+   return {hour:Number(t.slice(11,13)),temp:num(h.temperature_2m?.[i]),rain:num(h.precipitation?.[i]),pop:num(h.precipitation_probability?.[i]),cloud:num(h.cloud_cover?.[i]),wind:num(h.wind_speed_10m?.[i]),dir:num(h.wind_direction_10m?.[i]),gust:num(h.wind_gusts_10m?.[i]),visibility:num(h.visibility?.[i]),humidity:num(h.relative_humidity_2m?.[i]),dew:num(h.dew_point_2m?.[i]),code:num(h.weather_code?.[i])};
   }).filter(v=>Number.isInteger(v.hour)&&v.hour>=0&&v.hour<24);
   loc.push({name:points[idx]?.n||`regio ${idx+1}`,rows});
  });
@@ -4936,7 +4936,7 @@ function updateWeatherAtlas(){
   const mm=rain.length?rain.sort((a,b)=>a-b)[Math.floor(rain.length/2)]:null;
   const previous=atlasHistory();const signals=atlasSignals(d);const change=atlasDayChange(d,previous);
   const extra=`<div class="ricoAtlasExtra"><div><b>Verandering sinds vorige scan:</b> ${change}</div><div class="ricoChips">${signals.length?signals.slice(0,2).map(x=>`<span class="ricoChip">${x}</span>`).join(''):'<span class="ricoSmall">Geen bijzondere signalen uit de beschikbare dagwaarden</span>'}</div></div>`;
-  return `<article class="ricoWeatherCard"><div class="ricoWeatherTitle"><span>${safe(dayLabel(d.date))}</span><span>${good.length}/${NATIONAL_POINTS.length}</span></div><div class="ricoWeatherMap" id="ricoWeatherMap${i}" aria-label="Landelijk weerbeeld ${safe(dayLabel(d.date))}"></div><div class="ricoWeatherFoot">${mm!==null?'Landelijke neerslagmediaan '+mm.toFixed(1).replace('.',',')+' mm · ':''}temperaturen: modelmix · symbool: uurcache indien beschikbaar · <b>blauw = vorst</b>${i>=10?' · lange termijn, grotere onzekerheid':i>=7?' · langere termijn, grotere onzekerheid':''}</div>${extra}</article>`
+  return `<article class="ricoWeatherCard"><div class="ricoWeatherTitle"><span>${safe(dayLabel(d.date))}</span><span>${good.length}/${NATIONAL_POINTS.length}</span></div><div class="rico86Layers" role="group" aria-label="Kaartlaag"><button class="active" data-layer="weer">Weer</button><button data-layer="temp">Temperatuur</button><button data-layer="regen">Neerslag</button><button data-layer="wind">Wind</button></div><div class="ricoWeatherMap" id="ricoWeatherMap${i}" aria-label="Landelijk weerbeeld ${safe(dayLabel(d.date))}"></div><div class="ricoWeatherFoot">${mm!==null?'Landelijke neerslagmediaan '+mm.toFixed(1).replace('.',',')+' mm · ':''}temperaturen: modelmix · symbool: uurcache indien beschikbaar · <b>blauw = vorst</b>${i>=10?' · lange termijn, grotere onzekerheid':i>=7?' · langere termijn, grotere onzekerheid':''}</div>${extra}</article>`
  }).join('');
  const rainHost=host.querySelector('.ricoAtlasRain');if(rainHost)rainHost.remove();host.querySelector('.ricoWeatherGrid').insertAdjacentHTML('afterend',atlasRainSummary(valid));
  // Alleen bestaande kaartbibliotheek en OSM-kaarttegels. Geen weer-API-calls.
@@ -4954,6 +4954,7 @@ function updateWeatherAtlas(){
    // De modelmix en de bestaande 35 scanpunten blijven de bron.
    const all=d.pts.filter(p=>Number.isFinite(p.tx)&&Number.isFinite(p.point?.lat)&&Number.isFinite(p.point?.lon));
    const layer=L.layerGroup().addTo(map);
+   let mode='weer';
    const preferred=['Terschelling','Groningen','IJmuiden','Emmeloord','Enschede','Rotterdam','Houten','Eindhoven','Vlissingen','Maastricht'];
    function drawDailyMarkers(){
      layer.clearLayers();
@@ -4988,11 +4989,18 @@ function updateWeatherAtlas(){
        const arrow=windDir===null?'➤':'➤';
        const windHtml=showWind?`<span class="ricoWeatherWind ricoDailyWind"><span class="ricoWeatherWindArrow" style="transform:rotate(${windDir===null?0:(windDir+90)%360}deg)">${arrow}</span>${beaufort(p.wind)} Bft</span>`:'';
        const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin rico82Pin${frost?' ricoFrostPin':''}"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp"><span class="ricoTx">${max}°</span>${min!==null?`<span class="ricoSep">/</span><span class="ricoTn">${min}°</span>`:''}</span>${windHtml}</div>`,iconSize:[82,showWind?84:60],iconAnchor:[41,showWind?42:30]});
+       if(mode!=='weer'){
+        const windArrow=Number.isFinite(p.dir)?`<span style="display:inline-block;transform:rotate(${(p.dir+180)%360}deg)">↑</span>`:'·';
+        const val=mode==='temp'?`${max}° / ${min===null?'—':min+'°'}`:mode==='regen'?(Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm':'—'):windArrow+' '+(Number.isFinite(p.wind)?beaufort(p.wind)+' Bft':'—');
+        icon.options.html=`<div class="rico86Value ${mode==='temp'?'rico86Temp':mode==='regen'?'rico86Rain':'rico86Wind'}">${val}</div>`;
+        icon.options.iconSize=[82,46];icon.options.iconAnchor=[41,23];
+       }
        const popup=`<b>${safe(p.point.n)}</b><br>${hourly?'Weersymbool: bewolking 05–17 uur (uurcache)':'Weersymbool: indicatie uit dagwaarden (geen uurcache)'}<br>Max ${max}°${min!==null?' · min '+min+'°':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen`;
        L.marker([p.point.lat,p.point.lon],{icon}).bindPopup(popup).addTo(layer);
      }
    }
    // v83: overview remains uncluttered; zooming east reveals local points instead of an empty map.
+   const card=el.closest('.ricoWeatherCard');card.querySelector('.rico86Layers').addEventListener('click',e=>{const b=e.target.closest('button[data-layer]');if(!b)return;mode=b.dataset.layer;card.querySelectorAll('.rico86Layers button').forEach(x=>x.classList.toggle('active',x===b));drawDailyMarkers()});
    map.on('resize zoomend moveend',drawDailyMarkers);
    drawDailyMarkers();
    setTimeout(()=>map.invalidateSize(),100);
@@ -5306,7 +5314,7 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
    let slot=HOUR_SLOTS.filter(h=>h<=base.getUTCHours()).pop();
    if(slot===undefined){base.setUTCDate(base.getUTCDate()-1);slot=23}
    base.setUTCHours(slot,0,0,0);
-   return Array.from({length:9},(_,i)=>{
+   return Array.from({length:6},(_,i)=>{
      const start=new Date(base.getTime()+i*6*3600000),end=new Date(start.getTime()+6*3600000);
      return {start,end,name:NAMES[HOUR_SLOTS.indexOf(start.getUTCHours())],date:dateStr(start)};
    });
@@ -5314,7 +5322,13 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
  function med(v){v=v.filter(Number.isFinite).sort((a,b)=>a-b);return v.length?(v.length%2?v[(v.length-1)/2]:(v[v.length/2-1]+v[v.length/2])/2):null}
  function fmt(v,d=0){return Number.isFinite(v)?v.toFixed(d).replace('.',','):'—'}
  function bft(kmh){if(!Number.isFinite(kmh))return '—';const ms=kmh/3.6;return [0.3,1.6,3.4,5.5,8,10.8,13.9,17.2,20.8,24.5,28.5,32.7].findIndex(x=>ms<x)===-1?12:[0.3,1.6,3.4,5.5,8,10.8,13.9,17.2,20.8,24.5,28.5,32.7].findIndex(x=>ms<x)}
- function summarize(rows){const temps=rows.map(x=>x.temp).filter(Number.isFinite),cloud=med(rows.map(x=>x.cloud)),wind=med(rows.map(x=>x.wind)),rain=rows.map(x=>x.rain).filter(Number.isFinite),pop=med(rows.map(x=>x.pop));if(!temps.length)return null;const mm=rain.length?rain.reduce((a,b)=>a+b,0):null;const wet=(mm!==null&&mm>=.2)||(Number.isFinite(pop)&&pop>=50);const icon=wet?(cloud!==null&&cloud<60?'🌦️':'🌧️'):(cloud===null?'🌤️':cloud<25?'☀️':cloud<60?'🌤️':cloud<85?'⛅':'☁️');return {lo:Math.min(...temps),hi:Math.max(...temps),cloud,wind,mm,pop,icon}}
+ function fogSignal(rows){
+   const measured=rows.filter(r=>r.code===45||r.code===48||(Number.isFinite(r.visibility)&&r.visibility>=0&&r.visibility<1000));
+   if(measured.length>=2)return 'fog';
+   const near=rows.filter(r=>Number.isFinite(r.humidity)&&r.humidity>=95&&Number.isFinite(r.dew)&&Number.isFinite(r.temp)&&r.temp-r.dew<=1&&Number.isFinite(r.wind)&&r.wind<=11);
+   return near.length>=3?'risk':null;
+ }
+ function summarize(rows){const temps=rows.map(x=>x.temp).filter(Number.isFinite),cloud=med(rows.map(x=>x.cloud)),wind=med(rows.map(x=>x.wind)),rain=rows.map(x=>x.rain).filter(Number.isFinite),pop=med(rows.map(x=>x.pop));if(!temps.length)return null;const mm=rain.length?rain.reduce((a,b)=>a+b,0):null;const wet=(mm!==null&&mm>=.2)||(Number.isFinite(pop)&&pop>=50);const icon=wet?(cloud!==null&&cloud<60?'🌦️':'🌧️'):(cloud===null?'🌤️':cloud<25?'☀️':cloud<60?'🌤️':cloud<85?'⛅':'☁️');return {lo:Math.min(...temps),hi:Math.max(...temps),cloud,wind,dir:med(rows.map(x=>x.dir)),mm,pop,icon:fogSignal(rows)==='fog'?'🌫️':icon,fog:fogSignal(rows)}}
  // v35: nachtelijke pictogrammen als een enkel scherp SVG-symbool; geen losse emoji's.
  function nightIcon(dayIcon){
    const rain=dayIcon==='🌧️'||dayIcon==='🌦️';
@@ -5325,6 +5339,7 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
    const drops='<path d="M21 48l-3 7M34 48l-3 7M47 48l-3 7" stroke="#278fc7" stroke-width="3.5" stroke-linecap="round"/>';
    const svg=(content)=>`<svg class="ricoNightSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 64" width="34" height="34" role="img" aria-label="${rain?'Regen in de nacht':heavyCloud?'Bewolkt in de nacht':partly?'Wolken en opklaringen in de nacht':'Heldere nacht'}">${content}</svg>`;
    if(rain)return svg((partly?moon:'')+cloud+drops);
+   if(dayIcon==='🌫️')return '<span role="img" aria-label="Mist">🌫️</span>';
    if(heavyCloud)return svg(cloud);
    if(partly)return svg(moon+cloud);
    return svg(moon);
@@ -5334,11 +5349,60 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
    // Nacht 23-05 is altijd donker. Ochtend en middag behouden dagsymbolen.
    return (slot.name==='Nacht'||slot.name==='Avond')?nightIcon(dayIcon):dayIcon;
  }
- async function fetchDate(date){const key='rico-v51-civil-dayparts-'+date;try{const old=JSON.parse(localStorage.getItem(key)||'null');if(old?.saved&&Date.now()-old.saved<90*60000&&old.data?.loc?.length)return old.data}catch(e){}const data=await nsFetchTimingPoints(date,points(),'rico-v34-atlas');try{localStorage.setItem(key,JSON.stringify({saved:Date.now(),data}))}catch(e){}return data}
+ async function fetchDate(date){const key='rico-v86-civil-dayparts-'+date;try{const old=JSON.parse(localStorage.getItem(key)||'null');if(old?.saved&&Date.now()-old.saved<90*60000&&old.data?.loc?.length)return old.data}catch(e){}const data=await nsFetchTimingPoints(date,points(),'rico-v34-atlas');try{localStorage.setItem(key,JSON.stringify({saved:Date.now(),data}))}catch(e){}return data}
  function sixHours(slot,byDate){const result=[];for(const p of points()){const rows=[];for(let k=0;k<6;k++){const hour=new Date(slot.start.getTime()+k*3600000);const data=byDate[dateStr(hour)];const loc=data?.loc?.find(x=>x.name===p.n);const value=loc?.rows?.find(x=>x.hour===hour.getUTCHours());if(value)rows.push(value)}result.push({point:p,data:rows.length>=4?summarize(rows):null})}return result}
  function cleanMaps(){maps.forEach(m=>{try{m.remove()}catch(e){}});maps=[]}
- async function render(){const target=document.getElementById('ricoDaypartMaps');if(!target||busy)return;const s=slots(),signature=s.map(x=>x.start.toISOString()).join('|');if(signature===loadedKey&&target.querySelector('.ricoPartMapCard'))return;busy=true;target.innerHTML='<p class="ricoDaypartNote">Uurverwachtingen laden voor 35 landelijke scanpunten…</p>';try{const dates=[...new Set(s.flatMap(x=>[dateStr(x.start),dateStr(new Date(x.end.getTime()-3600000))]))];const byDate={};for(const date of dates)byDate[date]=await fetchDate(date);cleanMaps();const dateLabel=x=>x.toLocaleDateString('nl-NL',{timeZone:'UTC',weekday:'short',day:'numeric',month:'short'});target.innerHTML='<div class="ricoDaypartGrid">'+s.map((x,i)=>`<article class="ricoPartMapCard"><div class="ricoPartMapTitle"><span>${dateLabel(x.start)} · ${x.name}</span><span>${String(x.start.getUTCHours()).padStart(2,'0')}:00–${String(x.end.getUTCHours()).padStart(2,'0')}:00</span></div><div id="ricoPartMap${i}" class="ricoPartMapCanvas"></div><div id="ricoPartFoot${i}" class="ricoPartMapFoot"></div></article>`).join('')+'</div>';await ricoLeafletReady();s.forEach((slot,i)=>{const data=sixHours(slot,byDate),allUsable=data.filter(x=>x.data),usable=allUsable.filter(x=>displayPoints().some(p=>p.n===x.point.n)),el=document.getElementById('ricoPartMap'+i);if(!el||!window.L)return;const map=L.map(el,{zoomControl:false,scrollWheelZoom:false,dragging:false,doubleClickZoom:false,boxZoom:false,keyboard:false,touchZoom:false,attributionControl:false});maps.push(map);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:10}).addTo(map);map.fitBounds([[50.75,3.35],[53.52,7.15]],{padding:[10,10],animate:false});usable.forEach(({point,data:d})=>{const isLow=slot.name==='Avond'||slot.name==='Nacht';const temp=Math.round(isLow?d.lo:d.hi);const symbol=daypartIcon(d.icon,slot);const label=`${slot.name} ${temp}°`;const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin ricoPartMapPin"><span class="ricoWeatherSymbol">${symbol}</span><span class="ricoWeatherTemp ${isLow?'ricoTn':'ricoTx'}">${temp}°</span></div>`,iconSize:[76,58],iconAnchor:[38,29]});L.marker([point.lat+({Emmeloord:.03,Houten:-.09,Apeldoorn:.04}[point.n]||0),point.lon+({Emmeloord:.07,Houten:-.02,Apeldoorn:.12,IJmuiden:.02}[point.n]||0)],{icon}).bindPopup(`<b>${point.n}</b><br>${label}<br>Neerslag ${fmt(d.mm,1)} mm (6 uur)<br>Neerslagkans indicatie ${fmt(d.pop)}%<br>Wind ${bft(d.wind)} Bft`).addTo(map)});const rain=med(allUsable.map(x=>x.data.mm)),wet=allUsable.filter(x=>(x.data.mm||0)>=.2).length;document.getElementById('ricoPartFoot'+i).textContent=usable.length?`Regionale neerslagmediaan ${fmt(rain,1)} mm · ${wet}/${allUsable.length} scanpunten met neerslag · zesuursamenvatting`:'Geen volledige uurgegevens voor dit tijdvak';setTimeout(()=>map.invalidateSize(),80)});loadedKey=signature;window.dispatchEvent(new Event('rico:dayparts-loaded'))}catch(e){target.innerHTML='<p class="ricoDaypartNote">Dagdeelkaarten niet beschikbaar: '+String(e.message||e).replace(/[<>]/g,'')+'. Dagkaarten blijven beschikbaar.</p>'}finally{busy=false}}
- function install(){const atlas=document.getElementById('ricoWeatherAtlas');if(!atlas||document.getElementById('ricoMapMode'))return;const controls=document.createElement('div');controls.className='ricoMapMode';controls.id='ricoMapMode';controls.innerHTML='<button type="button" data-mode="daily" aria-pressed="true">Dagkaarten</button><button type="button" data-mode="parts" aria-pressed="false">Dagdelen · 54 uur</button>';const holder=document.createElement('div');holder.id='ricoDaypartMaps';holder.className='ricoDaypartHidden';const grid=atlas.querySelector('.ricoWeatherGrid');if(!grid)return;grid.before(controls,holder);const note=document.createElement('div');note.className='ricoDaypartNote';note.textContent='Dagdelen: 05–11, 11–17, 17–23 en 23–05 uur. Elk symbool vat zes uur samen. 35 landelijke scanpunten voor de uurgegevens; tien geografisch gespreide locaties zichtbaar op de kaart. Uurverwachting uit Open-Meteo, geen afleiding uit dagwaarden. Gecachet per datum (90 minuten).';holder.before(note);note.classList.add('ricoDaypartHidden');controls.addEventListener('click',e=>{const b=e.target.closest('button[data-mode]');if(!b)return;const parts=b.dataset.mode==='parts';controls.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));holder.classList.toggle('ricoDaypartHidden',!parts);grid.classList.toggle('ricoDaypartHidden',parts);note.classList.toggle('ricoDaypartHidden',!parts);const rain=atlas.querySelector('.ricoAtlasRain');if(rain)rain.classList.toggle('ricoDaypartHidden',parts);if(parts)render()})}
+ async function render(){
+  const target=document.getElementById('ricoDaypartMaps');if(!target||busy)return;
+  const s=slots(),signature=s.map(x=>x.start.toISOString()).join('|');
+  if(signature===loadedKey&&target.querySelector('.ricoPartMapCard'))return;
+  busy=true;target.innerHTML='<p class="ricoDaypartNote">36-uursverwachting laden…</p>';
+  try{
+   const dates=[...new Set(s.flatMap(x=>[dateStr(x.start),dateStr(new Date(x.end.getTime()-3600000))]))];
+   const byDate={};for(const date of dates)byDate[date]=await fetchDate(date);
+   cleanMaps();const dateLabel=x=>x.toLocaleDateString('nl-NL',{timeZone:'UTC',weekday:'short',day:'numeric',month:'short'});
+   target.innerHTML='<div class="ricoDaypartGrid">'+s.map((x,i)=>`<article class="ricoPartMapCard"><div class="ricoPartMapTitle"><span>${dateLabel(x.start)} · ${x.name}</span><span>${String(x.start.getUTCHours()).padStart(2,'0')}:00–${String(x.end.getUTCHours()).padStart(2,'0')}:00</span></div><div class="rico86Layers" role="group" aria-label="Kaartlaag"><button class="active" data-layer="weer">Weer</button><button data-layer="temp">Temperatuur</button><button data-layer="regen">Neerslag</button><button data-layer="wind">Wind</button></div><div id="ricoPartMap${i}" class="ricoPartMapCanvas"></div><div id="ricoPartFoot${i}" class="ricoPartMapFoot"></div></article>`).join('')+'</div>';
+   await ricoLeafletReady();
+   s.forEach((slot,i)=>{
+    const data=sixHours(slot,byDate),allUsable=data.filter(x=>x.data),el=document.getElementById('ricoPartMap'+i);
+    if(!el||!window.L)return;
+    const map=L.map(el,{zoomControl:true,scrollWheelZoom:false,dragging:true,doubleClickZoom:true,boxZoom:true,keyboard:true,touchZoom:true,attributionControl:false});maps.push(map);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:11}).addTo(map);
+    map.fitBounds([[50.75,3.35],[53.52,7.15]],{padding:[10,10],animate:false});
+    const layer=L.layerGroup().addTo(map);let mode='weer';
+    const preferred=displayPoints().map(p=>p.n);
+    function draw(){
+     layer.clearLayers();const occupied=[],size=map.getSize(),zoom=map.getZoom();
+     const ordered=[...allUsable].sort((a,b)=>(preferred.indexOf(a.point.n)<0?100:preferred.indexOf(a.point.n))-(preferred.indexOf(b.point.n)<0?100:preferred.indexOf(b.point.n)));
+     for(const {point,data:d} of ordered){
+      const xy=map.latLngToContainerPoint([point.lat,point.lon]);
+      if(xy.x<37||xy.y<40||xy.x>size.x-37||xy.y>size.y-40)continue;
+      if(occupied.some(q=>Math.hypot(xy.x-q.x,xy.y-q.y)<(zoom<=7?67:zoom===8?57:48)))continue;
+      occupied.push(xy);
+      const low=slot.name==='Avond'||slot.name==='Nacht',temp=Math.round(low?d.lo:d.hi);
+      const iconSymbol=daypartIcon(d.icon,slot);
+      const fogRisk=d.fog==='risk'?' · mistkans (indicatief)':'';
+      const windArrow=Number.isFinite(d.dir)?`<span style="display:inline-block;transform:rotate(${(d.dir+180)%360}deg)">↑</span>`:'·';
+      let html;
+      if(mode==='weer')html=`<div class="ricoWeatherPin ricoPartMapPin"><span class="ricoWeatherSymbol">${iconSymbol}</span><span class="ricoWeatherTemp ${low?'ricoTn':'ricoTx'}">${temp}°</span>${d.fog==='risk'?'<small class="rico86FogRisk">mist?</small>':''}</div>`;
+      else if(mode==='temp')html=`<div class="rico86Value rico86Temp">${temp}°</div>`;
+      else if(mode==='regen')html=`<div class="rico86Value rico86Rain">${fmt(d.mm,1)} mm</div>`;
+      else html=`<div class="rico86Value rico86Wind">${windArrow} ${bft(d.wind)} Bft</div>`;
+      const icon=L.divIcon({className:'',html,iconSize:[76,58],iconAnchor:[38,29]});
+      L.marker([point.lat,point.lon],{icon}).bindPopup(`<b>${point.n}</b><br>${slot.name}: ${temp}°<br>Neerslag ${fmt(d.mm,1)} mm (6 uur)<br>Wind ${bft(d.wind)} Bft${fogRisk}${d.fog==='fog'?'<br>Mist volgens zicht/weercode':''}`).addTo(layer);
+     }
+    }
+    map.on('zoomend moveend resize',draw);draw();
+    const card=el.closest('.ricoPartMapCard');card.querySelector('.rico86Layers').addEventListener('click',e=>{const b=e.target.closest('button[data-layer]');if(!b)return;mode=b.dataset.layer;card.querySelectorAll('.rico86Layers button').forEach(x=>x.classList.toggle('active',x===b));draw()});
+    const rain=med(allUsable.map(x=>x.data.mm)),wet=allUsable.filter(x=>(x.data.mm||0)>=.2).length;
+    document.getElementById('ricoPartFoot'+i).textContent=allUsable.length?`Neerslagmediaan ${fmt(rain,1)} mm · ${wet}/${allUsable.length} punten met neerslag · mist alleen bij zicht/weercode, anders mistkans`:'Geen volledige uurgegevens voor dit tijdvak';
+    setTimeout(()=>map.invalidateSize(),100);
+   });
+   loadedKey=signature;window.dispatchEvent(new Event('rico:dayparts-loaded'));
+  }catch(e){target.innerHTML='<p class="ricoDaypartNote">Dagdeelkaarten niet beschikbaar: '+String(e.message||e).replace(/[<>]/g,'')+'.</p>'}finally{busy=false}
+ }
+
+ function install(){const atlas=document.getElementById('ricoWeatherAtlas');if(!atlas||document.getElementById('ricoMapMode'))return;const controls=document.createElement('div');controls.className='ricoMapMode';controls.id='ricoMapMode';controls.innerHTML='<button type="button" data-mode="daily" aria-pressed="true">Dagkaarten</button><button type="button" data-mode="parts" aria-pressed="false">Dagdelen · 36 uur</button>';const holder=document.createElement('div');holder.id='ricoDaypartMaps';holder.className='ricoDaypartHidden';const grid=atlas.querySelector('.ricoWeatherGrid');if(!grid)return;grid.before(controls,holder);const note=document.createElement('div');note.className='ricoDaypartNote';note.textContent='Dagdelen: 05–11, 11–17, 17–23 en 23–05 uur. Elk symbool vat zes uur samen. 35 landelijke scanpunten voor de uurgegevens; bij inzoomen meer van de 35 locaties zichtbaar op de kaart. Uurverwachting uit Open-Meteo, geen afleiding uit dagwaarden. Gecachet per datum (90 minuten).';holder.before(note);note.classList.add('ricoDaypartHidden');controls.addEventListener('click',e=>{const b=e.target.closest('button[data-mode]');if(!b)return;const parts=b.dataset.mode==='parts';controls.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));holder.classList.toggle('ricoDaypartHidden',!parts);grid.classList.toggle('ricoDaypartHidden',parts);note.classList.toggle('ricoDaypartHidden',!parts);const rain=atlas.querySelector('.ricoAtlasRain');if(rain)rain.classList.toggle('ricoDaypartHidden',parts);if(parts)render()})}
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
 })();
 </script>
