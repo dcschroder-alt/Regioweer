@@ -4927,7 +4927,7 @@ function updateWeatherAtlas(){
    // Bij een hoge kaart vult Nederland de kaart zonder grote stroken Duitsland of Noordzee.
    // Gebruik de echte geografische uitersten; Leaflet past de zoom aan de kaartverhouding aan.
    map.fitBounds([[50.75,3.35],[53.52,7.15]],{padding:[10,10],animate:false});
-   // v79: interactieve, zoomafhankelijke dagkaart; geen verplaatste labels of lijnen.
+   // v83: use all 35 scanpoints as zoom candidates, even outside the original preferred 10.
    // De modelmix en de bestaande 35 scanpunten blijven de bron.
    const all=d.pts.filter(p=>Number.isFinite(p.tx)&&Number.isFinite(p.point?.lat)&&Number.isFinite(p.point?.lon));
    const layer=L.layerGroup().addTo(map);
@@ -4935,8 +4935,8 @@ function updateWeatherAtlas(){
    function drawDailyMarkers(){
      layer.clearLayers();
      const zoom=map.getZoom(),size=map.getSize();
-     const gap=zoom<=7?62:zoom===8?57:zoom===9?52:45;
-     const ordered=[...all].filter(p=>zoom>=9||preferred.includes(p.point.n)).sort((a,b)=>{
+     const gap=zoom<=7?74:zoom===8?67:zoom===9?59:52;
+     const ordered=[...all].sort((a,b)=>{
        const ia=preferred.indexOf(a.point.n),ib=preferred.indexOf(b.point.n);
        return (ia<0?100:ia)-(ib<0?100:ib);
      });
@@ -4945,11 +4945,13 @@ function updateWeatherAtlas(){
      let windShown=[];
      for(const p of ordered){
        const pt=map.latLngToContainerPoint([p.point.lat,p.point.lon]);
-       if(pt.x<38||pt.y<46||pt.x>size.x-38||pt.y>size.y-46)continue;
+       if(pt.x<45||pt.y<52||pt.x>size.x-45||pt.y>size.y-52)continue;
        if(occupied.some(q=>Math.hypot(pt.x-q.x,pt.y-q.y)<gap))continue;
        occupied.push(pt);
        const hourly=ricoCachedDaytime(p.point.n,d.date);
-       const sym=hourly?(Number.isFinite(hourly.rain)&&hourly.rain>=1?(hourly.cloud<60?'🌦️':'🌧️'):(hourly.cloud<25?'☀️':hourly.cloud<60?'🌤️':hourly.cloud<85?'⛅':'☁️')):weatherSymbol(p);
+       // Prefer the actual 05-17 cloud and precipitation summary where available.
+       // Where hourly cache is absent, avoid a definitive full-sun icon inferred from daily sunshine alone.
+       const sym=hourly?(Number.isFinite(hourly.rain)&&hourly.rain>=1?(hourly.cloud<60?'🌦️':'🌧️'):(hourly.cloud<25?'☀️':hourly.cloud<60?'🌤️':hourly.cloud<85?'⛅':'☁️')):(weatherSymbol(p)==='☀️'?'🌤️':weatherSymbol(p));
        const max=Math.round(p.tx),min=Number.isFinite(p.tn)?Math.round(p.tn):null;
        const frost=min!==null&&min<0;
        // Wind op maximaal drie geografisch gespreide zichtbare locaties.
@@ -4963,11 +4965,11 @@ function updateWeatherAtlas(){
        const arrow=windDir===null?'➤':'➤';
        const windHtml=showWind?`<span class="ricoWeatherWind ricoDailyWind"><span class="ricoWeatherWindArrow" style="transform:rotate(${windDir===null?0:(windDir+90)%360}deg)">${arrow}</span>${beaufort(p.wind)} Bft</span>`:'';
        const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin rico82Pin${frost?' ricoFrostPin':''}"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp"><span class="ricoTx">${max}°</span>${min!==null?`<span class="ricoSep">/</span><span class="ricoTn">${min}°</span>`:''}</span>${windHtml}</div>`,iconSize:[82,showWind?84:60],iconAnchor:[41,showWind?42:30]});
-       const popup=`<b>${safe(p.point.n)}</b><br>${hourly?'Weersymbool: bewolking 05–17 uur (uurcache)':'Weersymbool: dagzonuren (geen uurcache)'}<br>Max ${max}°${min!==null?' · min '+min+'°':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen`;
+       const popup=`<b>${safe(p.point.n)}</b><br>${hourly?'Weersymbool: bewolking 05–17 uur (uurcache)':'Weersymbool: indicatie uit dagwaarden (geen uurcache)'}<br>Max ${max}°${min!==null?' · min '+min+'°':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen`;
        L.marker([p.point.lat,p.point.lon],{icon}).bindPopup(popup).addTo(layer);
      }
    }
-   // Vast landelijk overzicht: geen zoom nodig op mobiel.
+   // v83: overview remains uncluttered; zooming east reveals local points instead of an empty map.
    map.on('resize zoomend moveend',drawDailyMarkers);
    drawDailyMarkers();
    setTimeout(()=>map.invalidateSize(),100);
@@ -4978,7 +4980,7 @@ function install(){
  const panel=document.getElementById('nationalScanPanel');if(!panel)return;
  if(!document.getElementById('ricoWeatherAtlas')){
   const section=document.createElement('section');section.id='ricoWeatherAtlas';
-  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 15 dagen</div><div class="note">Interactieve landelijke kaart in de stijl van Weerkaart NL: direct meerdere locaties, bij inzoomen meer van de 35 scanpunten. Weersymbolen, maximum- en minimumtemperatuur en wind. Tik op een symbool voor details. De aparte Weerkaart NL blijft interactief. Temperaturen uit de landelijke modelmix. Weersymbolen volgen waar beschikbaar de reeds geladen uurbewolking van 05–17 uur, anders dagzonuren. Bij ontbrekende zichtgegevens wordt mist niet als zeker voorspeld. Dagdeelkaarten en dagkaart kunnen verschillende modelbronnen gebruiken.</div><div class="ricoWeatherGrid"></div>';
+  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 15 dagen</div><div class="note">Interactieve landelijke kaart in de stijl van Weerkaart NL: direct meerdere locaties; bij inzoomen verschijnen ook regionale punten in oost en zuid. Weersymbolen, maximum- en minimumtemperatuur en wind. Tik op een symbool voor details. De aparte Weerkaart NL blijft interactief. Temperaturen uit de landelijke modelmix. Weersymbolen volgen waar beschikbaar de reeds geladen uurbewolking van 05–17 uur, anders een voorzichtige indicatie uit dagwaarden. Bij ontbrekende zichtgegevens wordt mist niet als zeker voorspeld. Dagdeelkaarten en dagkaart kunnen verschillende modelbronnen gebruiken.</div><div class="ricoWeatherGrid"></div>';
   const map=panel.querySelector('.ricomapPanel');if(map)map.insertAdjacentElement('beforebegin',section);else panel.appendChild(section);
  }
  // Koppel aan bestaande landelijke scanweergave, inclusief cacheherstel.
@@ -5784,3 +5786,5 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 @media(max-width:550px){#ricoWeatherAtlas .ricoWeatherMap{height:460px!important}#ricoWeatherAtlas .rico82Pin .ricoWeatherTemp{font-size:12px!important;padding:3px 4px!important}}
 </style>
 <!-- Ricoweer v82 interactieve landelijke dagkaarten in Weerkaart NL-stijl -->
+
+<!-- Ricoweer v83: zoom candidate fix + conservative daily icons -->
