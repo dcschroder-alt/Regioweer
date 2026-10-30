@@ -5769,6 +5769,9 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #rv67Graph .rv67-rainval{font-size:11px}
 @media(max-width:650px){#rv67Graph.rv67-graph{grid-auto-columns:74px!important}#rv67Graph .rv67-day{min-width:70px}#rv67Graph .rv67-tn{font-size:15px}#rv67Graph .rv67-tx{font-size:14px}}
 </style>
+<style id="rico-v94-map-framing">
+@media(min-width:900px){#ricoDaypartMaps .ricoDaypartGrid{max-width:1000px;margin-inline:auto}#ricoDaypartMaps .ricoPartMapCanvas{height:510px}}
+</style>
 <script id="rv67-forecast-script">
 (function(){
  'use strict';
@@ -5777,7 +5780,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  function getRows(){
   try{
    if(typeof lastRows==='undefined'||!Array.isArray(lastRows))return [];
-   var now=new Date(),cut=new Date(now.getFullYear(),now.getMonth(),now.getDate()+(now.getHours()>=18?1:0));
+   var now=new Date(),cut=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1);
    var from=localISO(cut);
    return lastRows.filter(r=>r&&r.date&&r.date>=from&&Number.isFinite(Number(r.max))).slice(0,dayCount);
   }catch(e){return []}
@@ -5789,7 +5792,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   host=document.getElementById('rv67Forecast');
   if(!host){
    host=document.createElement('section');host.id='rv67Forecast';host.setAttribute('aria-label','Visuele meerdaagse modelmixverwachting');
-   host.innerHTML='<div class="rv67-head"><div><strong id="rv89Title">📈 Modelmix in beeld · 10 dagen</strong><div class="rv67-sub">Temperatuur en neerslag · vanaf vandaag, na 18 uur vanaf morgen</div></div><div class="rv67-actions"><button type="button" id="rv89Days" aria-label="Wissel tussen 10 en 15 dagen">15 dagen tonen</button><button type="button" id="rv67Details">Dagdetails ↓</button></div></div><div id="rv67Graph" class="rv67-graph" tabindex="0" aria-label="Horizontaal schuifbare weersverwachting"></div><div class="rv67-legend">Boven de balk: maximumtemperatuur. Onder de balk: minimumtemperatuur. De neerslag staat onderaan. Schuif horizontaal voor meer dagen; vanaf dag 11 is de verwachting indicatiever.</div>';
+   host.innerHTML='<div class="rv67-head"><div><strong id="rv89Title">📈 Modelmix in beeld · 10 dagen</strong><div class="rv67-sub">Temperatuur en neerslag · altijd vanaf morgen</div></div><div class="rv67-actions"><button type="button" id="rv89Days" aria-label="Wissel tussen 10 en 15 dagen">15 dagen tonen</button><button type="button" id="rv67Details">Dagdetails ↓</button></div></div><div id="rv67Graph" class="rv67-graph" tabindex="0" aria-label="Horizontaal schuifbare weersverwachting"></div><div class="rv67-legend">Boven de balk: maximumtemperatuur. Onder de balk: minimumtemperatuur. De neerslag staat onderaan. Schuif horizontaal voor meer dagen; vanaf dag 11 is de verwachting indicatiever.</div>';
    results.parentNode.insertBefore(host,results);
    var randHost=document.createElement('section');randHost.id='rv91Randstad';randHost.className=host.className;randHost.setAttribute('aria-label','Modelmix in beeld voor de Randstad');randHost.innerHTML='<div class="rv67-head"><div><strong id="rv91RandstadTitle">🏙️ Randstad · modelmix in beeld</strong><div class="rv67-sub">Regionale medianen van Randstad-kust, -west en -oost · alleen beschikbare scanwaarden</div></div></div><div class="rv67-actions"><button type="button" id="rv93RandstadDownload">⬇ Download Randstadgrafiek (PNG)</button></div><div id="rv93RandstadStatus" class="rv67-sub" aria-live="polite"></div><div id="rv91RandstadGraph" class="rv67-graph" tabindex="0" aria-label="Randstad temperatuur en neerslag"></div><div class="rv67-legend">Regionale modelmix · maxima, minima en neerslag. Ontbrekende dagen worden niet ingevuld.</div>';
    host.insertAdjacentElement('afterend',randHost);
@@ -5806,7 +5809,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   setInterval(draw,60000);
  }
  function downloadRandstadGraph(){
-  var now=new Date(),start=localISO(new Date(now.getFullYear(),now.getMonth(),now.getDate()+(now.getHours()>=18?1:0)));
+  var now=new Date(),start=localISO(new Date(now.getFullYear(),now.getMonth(),now.getDate()+1));
   var data=ricoRandstadSharedRows(start,dayCount);
   if(!data.length){alert('Randstadgegevens ontbreken. Vernieuw eerst de landelijke weerscan.');return}
   var cw=160,W=Math.max(1000,data.length*cw+80),H=490,c=document.createElement('canvas');c.width=W;c.height=H;
@@ -5829,7 +5832,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   var visual=document.body.classList.contains('rv66-visual');host.hidden=!visual;
   if(!visual)return;
   var rows=getRows();if(!rows.length){host.hidden=true;return}
-  var key=dayCount+'|'+localISO(new Date())+'|'+(new Date().getHours()>=18)+'|'+rows.map(r=>[r.date,r.max,r.min,r.precip,r.pop,r.sun].join(':')).join('|');
+  var key=dayCount+'|'+localISO(new Date())+'|morgen|'+rows.map(r=>[r.date,r.max,r.min,r.precip,r.pop,r.sun].join(':')).join('|');
   var regionRows=[];try{regionRows=ricoRandstadSharedRows(rows[0].date,dayCount).map(r=>({date:r.date,max:r.max,min:r.min,precip:r.rain,sun:r.sun,pop:null}))}catch(e){console.warn('Randstad modelmix',e)}
   key+='|randstad:'+regionRows.map(r=>[r.date,r.max,r.min,r.precip,r.sun].join(':')).join('|');
   if(key===prevKey)return;prevKey=key;
