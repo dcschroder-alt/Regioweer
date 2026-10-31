@@ -548,7 +548,9 @@ body{min-width:0}
 #rv91Randstad{margin-top:12px}
 #rv91RandstadGraph.rv67-graph{display:grid;grid-auto-flow:column;overflow-x:auto;gap:6px;padding:12px 2px 6px;scrollbar-width:thin}
 #rv91RandstadGraph .rv67-day{min-width:66px;padding:6px 3px}
-#rv91RandstadGraph .rv67-tn{font-size:15px;font-weight:850;margin-top:5px}
+#rv91RandstadGraph .rv67-tn{font-size:inherit;font-weight:900;opacity:1;color:#162033;margin-top:5px}
+#rv91RandstadGraph .rv67-tx{font-weight:900;color:#162033}
+#rv91RandstadGraph .rv67-rainval{color:#162033}
 @media(max-width:650px){#rv91RandstadGraph.rv67-graph{grid-auto-columns:74px!important}#rv91RandstadGraph .rv67-day{min-width:70px}}
 </style></head>
 <body><div class="wrap">
@@ -2950,7 +2952,25 @@ function ricoRandstadSharedRow(d){
          regions:regions.length,source:'landelijke scan · Randstad-kust/west/oost'};
 }
 function ricoRandstadSharedRows(start,limit=15){
- return ricoRandstadSharedDays().filter(d=>d?.date>=start).slice(0,limit).map(ricoRandstadSharedRow).filter(Boolean);
+ // Oudere scans kunnen regio-aanduidingen missen. Gebruik dan de vaste
+ // 35 scanpuntnamen; nooit de landelijke modelmix als 'Randstad' presenteren.
+ const days=ricoRandstadSharedDays();
+ return days.filter(d=>d?.date>=start).slice(0,limit).map(d=>{
+  const row=ricoRandstadSharedRow(d);
+  if(row)return row;
+  if(!Array.isArray(d?.pts))return null;
+  const regions={
+   'Randstad-kust':['Hoek van Holland','IJmuiden','Scheveningen'],
+   'Randstad-west':['Leiden','Gouda'],
+   'Randstad-oost':['Houten','Almere']
+  };
+  const vals=Object.values(regions).map(names=>{
+   const pts=d.pts.filter(p=>names.includes(p?.point?.n||p?.n));
+   return {tx:nsMedian(pts.map(p=>p.tx)),tn:nsMedian(pts.map(p=>p.tn)),sun:nsMedian(pts.map(p=>p.sun)),rain:nsMedian(pts.map(p=>p.rain))};
+  }).filter(r=>Number.isFinite(r.tx)&&Number.isFinite(r.tn));
+  if(!vals.length)return null;
+  return {date:d.date,max:nsMedian(vals.map(r=>r.tx)),min:nsMedian(vals.map(r=>r.tn)),sun:nsMedian(vals.map(r=>r.sun)),rain:nsMedian(vals.map(r=>r.rain)),regions:vals.length,source:'landelijke scan · Randstadpunten'};
+ }).filter(Boolean);
 }
 async function drawRandstadCardsPng(){
  // De landelijke scan wordt onafhankelijk geladen. Gebruik direct de beschikbare
@@ -3713,7 +3733,15 @@ function nsAggregate(modelSets){
   const d=x.daily.time[i],o=raw[d]||(raw[d]={}),p=x.point.n,q=o[p]||(o[p]={point:x.point,vals:[]});
   const get=(arr)=>{const v=arr?.[i];return Number.isFinite(v)?v:null};
   const sunRaw=get(x.daily.sunshine_duration);
-  const v={model:ms.name,key:ms.key,group:ms.group,tx:get(x.daily.temperature_2m_max),tn:get(x.daily.temperature_2m_min),rain:get(x.daily.precipitation_sum),sun:Number.isFinite(sunRaw)?sunRaw/3600:null,wind:get(x.daily.wind_speed_10m_max),gust:get(x.daily.wind_gusts_10m_max),dir:get(x.daily.wind_direction_10m_dominant)};
+  // Fysische bovengrens: astronomische daglengte op dit scanpunt en datum.
+  // Dit corrigeert alleen onmogelijke waarden; een bewolkt weersymbool
+  // bewijst op zichzelf niet dat de model-zonuren fout zijn.
+  const doy=Math.floor((Date.parse(d+'T12:00:00Z')-Date.UTC(+d.slice(0,4),0,1))/86400000)+1;
+  const decl=23.44*Math.PI/180*Math.sin(2*Math.PI*(284+doy)/365.25);
+  const phi=(x.point.lat||52)*Math.PI/180;
+  const cosH=Math.max(-1,Math.min(1,-Math.tan(phi)*Math.tan(decl)));
+  const daylight=24*Math.acos(cosH)/Math.PI;
+  const v={model:ms.name,key:ms.key,group:ms.group,tx:get(x.daily.temperature_2m_max),tn:get(x.daily.temperature_2m_min),rain:get(x.daily.precipitation_sum),sun:Number.isFinite(sunRaw)?Math.max(0,Math.min(sunRaw/3600,daylight)):null,wind:get(x.daily.wind_speed_10m_max),gust:get(x.daily.wind_gusts_10m_max),dir:get(x.daily.wind_direction_10m_dominant)};
   if([v.tx,v.tn,v.rain,v.sun,v.wind,v.gust].some(Number.isFinite))q.vals.push(v)
  }
  const allDates=Object.keys(raw).sort();
@@ -5820,10 +5848,10 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   data.forEach(function(r,i){var x=40+i*cw,mid=x+cw/2;
    ctx.fillStyle=i%2?'#edf4fc':'#ffffff';ctx.fillRect(x,105,cw-8,335);
    ctx.fillStyle='#234f79';ctx.textAlign='center';ctx.font='bold 20px Arial';ctx.fillText(safeDate(r.date),mid,138);
-   var h=Math.max(8,(r.max-low)/span*160);ctx.fillStyle='#7bb6da';ctx.fillRect(mid-22,340-h,44,h);
+   var h=Math.max(8,(r.max-low)/span*160);var grad=ctx.createLinearGradient(0,340-h,0,340);grad.addColorStop(0,'#f4b34c');grad.addColorStop(1,'#2797cf');ctx.fillStyle=grad;ctx.fillRect(mid-22,340-h,44,h);
    ctx.fillStyle='#173f6b';ctx.font='bold 25px Arial';ctx.fillText(Math.round(r.max)+'°',mid,175);
-   ctx.fillStyle='#286ca0';ctx.font='bold 23px Arial';ctx.fillText(Math.round(r.min)+'°',mid,375);
-   ctx.fillStyle='#2279a9';ctx.font='bold 17px Arial';ctx.fillText(Number.isFinite(r.rain)?r.rain.toLocaleString('nl-NL',{maximumFractionDigits:1})+' mm':'— mm',mid,415);
+   ctx.fillStyle='#173f6b';ctx.font='bold 25px Arial';ctx.fillText(Math.round(r.min)+'°',mid,375);
+   ctx.fillStyle='#173f6b';ctx.font='17px Arial';ctx.fillText(Number.isFinite(r.rain)?r.rain.toLocaleString('nl-NL',{maximumFractionDigits:1})+' mm':'— mm',mid,415);
   });ctx.textAlign='left';ctx.fillStyle='#526b83';ctx.font='15px Arial';ctx.fillText('TX boven · TN onder · neerslag in mm · bron: opgeslagen landelijke modelmixscan',36,472);
   c.toBlob(function(blob){if(!blob)return;var u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='ricoweer-randstad-modelmix-'+data.length+'-dagen.png';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(u)},1000)},'image/png');
  }
@@ -5855,7 +5883,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   });
   var graph=document.getElementById('rv67Graph');if(graph){var left=graph.scrollLeft;graph.replaceChildren(frag);graph.style.gridTemplateColumns='repeat('+rows.length+',minmax(66px,1fr))';graph.scrollLeft=left}
   var rh=document.getElementById('rv91Randstad'),rg=document.getElementById('rv91RandstadGraph'),rt=document.getElementById('rv91RandstadTitle');
-  if(rh&&rg){rh.hidden=false;var status=document.getElementById('rv93RandstadStatus');if(status)status.textContent=regionRows.length?'Zelfde regionale waarden als de Randstad-PNG · '+regionRows.length+' dagen beschikbaar':'Geen regionale scangegevens beschikbaar. Vernieuw de landelijke weerscan; de gekozen plaats verandert deze grafiek niet.';if(!regionRows.length)rg.replaceChildren();if(regionRows.length){if(rt)rt.textContent='🏙️ Randstad · modelmix in beeld · '+regionRows.length+' dagen';
+  if(rh&&rg){rh.hidden=false;var status=document.getElementById('rv93RandstadStatus');if(status)status.textContent=regionRows.length?'Zelfde regionale waarden als de Randstad-PNG · '+regionRows.length+' dagen beschikbaar':'Geen Randstad-scanpunten voor deze datums in de opgeslagen landelijke scan. Laad de landelijke weerscan opnieuw; deze grafiek gebruikt geen extra API-aanvragen.';if(!regionRows.length)rg.replaceChildren();if(regionRows.length){if(rt)rt.textContent='🏙️ Randstad · modelmix in beeld · '+regionRows.length+' dagen';
    var rmax=Math.max(1,...regionRows.map(r=>Math.max(0,num(r.max)||0))),rmin=Math.min(0,...regionRows.map(r=>num(r.min)||0)),rrange=Math.max(4,rmax-rmin),rrain=Math.max(1,...regionRows.map(r=>Math.max(0,num(r.precip)||0)));
    var rf=document.createDocumentFragment();regionRows.forEach(function(r){var d=document.createElement('div');d.className='rv67-day';var sun=num(r.sun),rain=num(r.precip),mx=num(r.max),mn=num(r.min);d.innerHTML='<div class="rv67-date"></div><div class="rv67-icon"></div><div class="rv67-temp"><div class="rv67-tempbar"><span class="rv67-tx"></span></div></div><div class="rv67-tn"></div><div class="rv67-rain"><i></i></div><div class="rv67-rainval"></div>';d.querySelector('.rv67-date').textContent=safeDate(r.date);d.querySelector('.rv67-icon').textContent=rain!==null&&rain>=5?'🌧️':sun!==null&&sun>=5?'☀️':rain!==null&&rain>=.3?'🌦️':'⛅';d.querySelector('.rv67-tempbar').style.height=Math.max(7,Math.min(82,((mx-rmin)/rrange)*75+7))+'px';d.querySelector('.rv67-tx').textContent=mx===null?'–':Math.round(mx)+'°';d.querySelector('.rv67-tn').textContent=mn===null?'–':Math.round(mn)+'°';d.querySelector('.rv67-rain i').style.width=rain===null?'0%':Math.max(0,Math.min(100,rain/rrain*100))+'%';d.querySelector('.rv67-rainval').textContent=rain===null?'– mm':rain.toLocaleString('nl-NL',{maximumFractionDigits:1})+' mm';rf.appendChild(d)});var pos=rg.scrollLeft;rg.replaceChildren(rf);rg.style.gridTemplateColumns='repeat('+regionRows.length+',minmax(66px,1fr))';rg.scrollLeft=pos;
   }}
