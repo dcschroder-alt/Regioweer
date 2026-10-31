@@ -3892,6 +3892,16 @@ function nsSummerSequence(days){
  const start=dayShort(best[0].d.date),end=dayShort(best[best.length-1].d.date);
  return {n:best.length,start,end,text:`In het zuiden komen ${best.length} zomerse dagen op rij in beeld (${start} t/m ${end}).`}
 }
+// v97.1: same geographical framing for daily and daypart maps.
+// Fit to Dutch extremes, accounting for marker size, after Leaflet container layout.
+function rico971FitNetherlands(map,el){
+ if(!map||!el||!el.clientWidth||!el.clientHeight)return;
+ map.invalidateSize({pan:false});
+ const narrow=el.clientWidth<650;
+ const pad=narrow?{paddingTopLeft:[38,62],paddingBottomRight:[38,65]}:{paddingTopLeft:[65,78],paddingBottomRight:[65,92]};
+ // Outer Wadden and Zuid-Limburg included. Narrower containers prevent an overly broad European view.
+ map.fitBounds([[50.76,3.36],[53.53,7.16]],{...pad,animate:false});
+}
 function nsRandstadWind(rs){
  const wind=nsMedian(rs.map(x=>x.wind)),dir=nsCircularMean(rs.map(x=>x.dir));
  return Number.isFinite(wind)?`💨 ${nsDir(dir)} ${bftText(wind)}`:'';
@@ -4028,7 +4038,7 @@ async function nsOpenRandstad(date){
  const region=(name,r)=>`<div class="nationalCard"><b>${name}</b><span>${Number.isFinite(r.tx)?`TX <strong>${Math.round(r.tx)}°</strong>`:'TX —'}${Number.isFinite(r.tn)?` · TN ${Math.round(r.tn)}°`:''}</span><small>${Number.isFinite(r.sun)?`☀ ${Math.round(r.sun)} u · `:''}${Number.isFinite(r.rain)?`☔ ${nsFmt(r.rain)} mm · `:''}${Number.isFinite(r.wind)?`💨 ${nsDir(r.dir)} ${bftText(r.wind)}`:''}</small></div>`;
  $('randstadModalTitle').textContent=`🏙️ Randstad · ${dayShort(d.date)}`;
  $('randstadModalMeta').textContent=`${models.length} ${models.length===1?'model':'modellen'} · modelzekerheid ${cf.label}${cf.spread!=null?` · TX-spreiding circa ${nsFmt(cf.spread,1)}°`:''}`;
- $('randstadModalBody').innerHTML=`<div id="nsRandstadDayparts">${nsDaypartPanel(null)}</div>${nsExtremePanel(d,['Randstad-kust','Randstad-west','Randstad-oost'])}<div class="assistantCard"><b>${nsWx(rain.mix,sun)}${Number.isFinite(tx)?` · ${Math.round(tx)}°`:''}</b><span>${Number.isFinite(tn)?`Minimum rond ${Math.round(tn)}° · `:''}${nsRainText(rain,'Randstad')}${Number.isFinite(gust)&&gust>=40?` · stoten tot ${Math.round(gust)} km/u`:''}</span></div><div class="randstadDetailGrid">${region('🌊 Kust',rk)}${region('🏙️ Westelijk binnenland',rw)}${region('🌳 Utrecht/Flevoland',ro)}</div><div class="nationalCard"><b>📝 Dagduiding Randstad</b><div class="randstadDuiding" id="randstadDuidingText">${nsRandstadDuiding(d,rs,rain,models)} <small>Uurtiming wordt opgehaald…</small></div></div><div class="nationalCard"><b>🔎 Hoogste modelsignalen</b><span>${nsSignalCards(d,['Randstad-kust','Randstad-west','Randstad-oost'])||'Geen opvallende modelsignalen.'}</span></div><div class="nationalCard"><b>🧩 Modellen voor deze dag</b><span>${models.join(' · ')||'Nog geen bruikbare modeldata'}</span></div>`;
+ $('randstadModalBody').innerHTML=`<section class="rico971Hero"><div><div class="rico971Eyebrow">${nsWx(rain.mix,sun)}</div><div class="rico971Lead">Randstad · ${dayShort(d.date)}</div><div class="rico971Minor">${Number.isFinite(tn)?`Minimum ${Math.round(tn)}° · `:''}${nsRainText(rain,'Neerslag')}</div></div><div class="rico971Big">${Number.isFinite(tx)?`${Math.round(tx)}°`:'—'}</div></section><div class="rico971Stats"><div><span>☀️ Zon</span><strong>${Number.isFinite(sun)?Math.round(sun)+' uur':'—'}</strong></div><div><span>🌧️ Neerslag</span><strong>${Number.isFinite(rain.mix)?nsFmt(rain.mix)+' mm':'—'}</strong></div><div><span>💨 Windstoten</span><strong>${Number.isFinite(gust)?Math.round(gust)+' km/u':'—'}</strong></div><div><span>🎯 Zekerheid</span><strong>${cf.label}</strong></div></div><h3 class="rico971Section">Verschillen binnen de Randstad</h3><div class="randstadDetailGrid rico971Regions">${region('🌊 Kust',rk)}${region('🏙️ Westelijk binnenland',rw)}${region('🌳 Utrecht/Flevoland',ro)}</div><div id="nsRandstadDayparts">${nsDaypartPanel(null)}</div><details class="rico971Detail"><summary>📝 Uitgebreide dagduiding</summary><div class="randstadDuiding" id="randstadDuidingText">${nsRandstadDuiding(d,rs,rain,models)} <small>Uurtiming wordt opgehaald…</small></div></details><details class="rico971Detail"><summary>🌡️ Extremen en hoogste modelsignalen</summary>${nsExtremePanel(d,['Randstad-kust','Randstad-west','Randstad-oost'])}<div class="nationalCard"><span>${nsSignalCards(d,['Randstad-kust','Randstad-west','Randstad-oost'])||'Geen opvallende modelsignalen.'}</span></div></details><details class="rico971Detail"><summary>🧩 ${models.length} modellen · modeldetails</summary><p>${models.join(' · ')||'Nog geen bruikbare modeldata'}</p><p>Temperatuurspreiding: ${cf.spread!=null?nsFmt(cf.spread,1)+'°':'onbekend'}</p></details>`;
  $('randstadModal').classList.remove('hidden');$('randstadModal').setAttribute('aria-hidden','false');
  try{const timing=await nsFetchRandstadTiming(d.date);const el=$('randstadDuidingText');if(el&&$('randstadModalTitle')?.textContent.includes(dayShort(d.date))){el.textContent=nsRandstadDuiding(d,rs,rain,models,timing);const p=$('nsRandstadDayparts');if(p)p.innerHTML=nsDaypartPanel(timing)}}catch(e){const el=$('randstadDuidingText');if(el)el.textContent=nsRandstadDuiding(d,rs,rain,models)}
 }
@@ -5115,8 +5125,8 @@ function updateWeatherAtlas(){
    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:10}).addTo(map);
    // Bij een hoge kaart vult Nederland de kaart zonder grote stroken Duitsland of Noordzee.
    // Gebruik de echte geografische uitersten; Leaflet past de zoom aan de kaartverhouding aan.
-   map.fitBounds([[50.75,3.35],[53.52,7.15]],{padding:[10,10],animate:false});
-   {let firstVisible=false;const fitWhenShown=()=>{if(firstVisible||!el.getClientRects().length||el.clientWidth<100)return;map.invalidateSize({pan:false});map.fitBounds([[50.70,3.25],[53.62,7.35]],{padding:[48,58],animate:false});firstVisible=true;window.removeEventListener('resize',fitWhenShown)};window.addEventListener('resize',fitWhenShown);setTimeout(fitWhenShown,300);}
+   rico971FitNetherlands(map,el);
+   {let firstVisible=false;const fitWhenShown=()=>{if(firstVisible||!el.getClientRects().length||el.clientWidth<100)return;rico971FitNetherlands(map,el);firstVisible=true;window.removeEventListener('resize',fitWhenShown)};window.addEventListener('resize',fitWhenShown);setTimeout(fitWhenShown,300);}
    // v83: use all 35 scanpoints as zoom candidates, even outside the original preferred 10.
    // De modelmix en de bestaande 35 scanpunten blijven de bron.
    const all=d.pts.filter(p=>Number.isFinite(p.tx)&&Number.isFinite(p.point?.lat)&&Number.isFinite(p.point?.lon));
@@ -5523,8 +5533,8 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
  const map=L.map(el,{zoomControl:true,scrollWheelZoom:false,dragging:true,doubleClickZoom:true,boxZoom:true,keyboard:true,touchZoom:true,attributionControl:false});
  maps.push(map);
  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:12}).addTo(map);
- map.fitBounds([[50.75,3.35],[53.52,7.15]],{padding:[10,10],animate:false});
-   {let firstVisible=false;const fitWhenShown=()=>{if(firstVisible||!el.getClientRects().length||el.clientWidth<100)return;map.invalidateSize({pan:false});map.fitBounds([[50.70,3.25],[53.62,7.35]],{padding:[48,58],animate:false});firstVisible=true;window.removeEventListener('resize',fitWhenShown)};window.addEventListener('resize',fitWhenShown);setTimeout(fitWhenShown,300);}
+ rico971FitNetherlands(map,el);
+   {let firstVisible=false;const fitWhenShown=()=>{if(firstVisible||!el.getClientRects().length||el.clientWidth<100)return;rico971FitNetherlands(map,el);firstVisible=true;window.removeEventListener('resize',fitWhenShown)};window.addEventListener('resize',fitWhenShown);setTimeout(fitWhenShown,300);}
  const layer=L.layerGroup().addTo(map);
  const preferred=['Terschelling','Groningen','IJmuiden','Emmeloord','Enschede','Rotterdam','Houten','Apeldoorn','Vlissingen','Maastricht'];
  function draw(){
@@ -6189,6 +6199,31 @@ function start(){setup();const atlas=document.getElementById('ricoWeatherAtlas')
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(start,450));else setTimeout(start,450);
 })();
 </script>
+
+<style id="rico-v971-polish">
+/* Avoid the Europe-wide viewport caused by a 1600px-wide Leaflet container. */
+#ricoWeatherAtlas .ricoWeatherGrid{max-width:1080px;margin-inline:auto}
+#ricoWeatherAtlas .ricoWeatherCard{min-width:0}
+#ricoWeatherAtlas.ricoV967Home .ricoWeatherMap{height:700px!important}
+#ricoWeatherAtlas .ricoDaypartGrid{max-width:1080px;margin-inline:auto}
+#ricoWeatherAtlas.ricoV967Home .ricoPartMapCanvas{height:700px!important}
+@media(max-width:700px){#ricoWeatherAtlas.ricoV967Home .ricoWeatherMap{height:510px!important}#ricoWeatherAtlas.ricoV967Home .ricoPartMapCanvas{height:510px!important}}
+#randstadModalBody .rico971Hero{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px;background:linear-gradient(120deg,#e0f3fa,#f4f9ff);border:1px solid #c7e0ef;border-radius:16px;margin-bottom:10px}
+#randstadModalBody .rico971Eyebrow{font-weight:750;color:#14516f}
+#randstadModalBody .rico971Lead{font-size:18px;font-weight:850;margin-top:5px}
+#randstadModalBody .rico971Minor{font-size:13px;line-height:1.5;margin-top:6px}
+#randstadModalBody .rico971Big{font-size:52px;line-height:1;font-weight:900;color:#075d85;white-space:nowrap}
+#randstadModalBody .rico971Stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 18px}
+#randstadModalBody .rico971Stats>div{background:#eef6fc;border:1px solid #d3e5f1;border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:5px}
+#randstadModalBody .rico971Stats span{font-size:12px;color:#4c687b}
+#randstadModalBody .rico971Stats strong{font-size:19px;color:#124c6c}
+#randstadModalBody .rico971Section{font-size:17px;margin:14px 0 9px}
+#randstadModalBody .rico971Regions{margin-bottom:14px}
+#randstadModalBody .rico971Detail{border:1px solid #cbddea;border-radius:13px;background:#f5f9fc;padding:13px;margin:10px 0}
+#randstadModalBody .rico971Detail summary{cursor:pointer;font-weight:850;color:#174869}
+#randstadModalBody .rico971Detail[open] summary{margin-bottom:12px}
+@media(max-width:600px){#randstadModalBody .rico971Stats{grid-template-columns:repeat(2,minmax(0,1fr))}#randstadModalBody .rico971Big{font-size:40px}}
+</style>
 </body></html>
 <style id="rico-v82-map-style">
 /* Weerkaart NL-style compact, coloured readings, preserving symbols and wind. */
