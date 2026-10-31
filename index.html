@@ -4933,6 +4933,8 @@ async function ricoV96Load(date){
  }).finally(()=>ricoV96Pending.delete(date));
  ricoV96Pending.set(date,promise);return promise;
 }
+// Share the loader across the two separate script scopes.
+window.ricoV96Load = ricoV96Load;
 
 function weatherSymbol(p){
  if(Number.isFinite(p.rain)&&p.rain>=7)return '🌧️';
@@ -5429,7 +5431,7 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
    // Nacht 23-05 is altijd donker. Ochtend en middag behouden dagsymbolen.
    return (slot.name==='Nacht'||slot.name==='Avond')?nightIcon(dayIcon):dayIcon;
  }
- async function fetchDate(date){const key='rico-v51-civil-dayparts-'+date;try{const old=JSON.parse(localStorage.getItem(key)||'null');if(old?.saved&&Date.now()-old.saved<90*60000&&old.data?.loc?.length)return old.data}catch(e){}const data=await ricoV96Load(date);return data}
+ async function fetchDate(date){const key='rico-v51-civil-dayparts-'+date;try{const old=JSON.parse(localStorage.getItem(key)||'null');if(old?.saved&&Date.now()-old.saved<90*60000&&old.data?.loc?.length)return old.data}catch(e){}const loader=window.ricoV96Load; if(typeof loader!=='function')throw new Error('Uurgegevens-lader niet beschikbaar');const data=await loader(date);return data}
  function sixHours(slot,byDate){const result=[];for(const p of points()){const rows=[];for(let k=0;k<6;k++){const hour=new Date(slot.start.getTime()+k*3600000);const data=byDate[dateStr(hour)];const loc=data?.loc?.find(x=>x.name===p.n);const value=loc?.rows?.find(x=>x.hour===hour.getUTCHours());if(value)rows.push(value)}result.push({point:p,data:rows.length>=4?summarize(rows):null})}return result}
  function cleanMaps(){maps.forEach(m=>{try{m.remove()}catch(e){}});maps=[]}
  async function render(){const target=document.getElementById('ricoDaypartMaps');if(!target||busy)return;const s=slots(),signature=s.map(x=>x.start.toISOString()).join('|');if(signature===loadedKey&&target.querySelector('.ricoPartMapCard'))return;busy=true;target.innerHTML='<p class="ricoDaypartNote">Uurverwachtingen laden voor 35 landelijke scanpunten…</p>';try{const dates=[...new Set(s.flatMap(x=>[dateStr(x.start),dateStr(new Date(x.end.getTime()-3600000))]))];const byDate={};for(const date of dates)byDate[date]=await fetchDate(date);cleanMaps();const dateLabel=x=>x.toLocaleDateString('nl-NL',{timeZone:'UTC',weekday:'short',day:'numeric',month:'short'});target.innerHTML='<div class="ricoDaypartGrid">'+s.map((x,i)=>`<article class="ricoPartMapCard"><div class="ricoPartMapTitle"><span>${dateLabel(x.start)} · ${x.name}</span><span>${String(x.start.getUTCHours()).padStart(2,'0')}:00–${String(x.end.getUTCHours()).padStart(2,'0')}:00</span></div><div id="ricoPartMap${i}" class="ricoPartMapCanvas"></div><div id="ricoPartFoot${i}" class="ricoPartMapFoot"></div></article>`).join('')+'</div>';await ricoLeafletReady();s.forEach((slot,i)=>{
