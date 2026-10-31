@@ -563,13 +563,16 @@ body{min-width:0}
    const cloud='<path d="M17 46C9 46 5 41 5 35c0-6 5-11 11-11 3-9 10-14 19-12 8 1 13 7 14 14 8-1 14 4 14 11 0 6-5 9-13 9Z" fill="#f8fbff" stroke="#587b96" stroke-width="2.8" stroke-linejoin="round"/>';
    const drops='<g stroke="#138bd1" stroke-width="4" stroke-linecap="round"><path d="M18 50l-4 8M33 50l-4 8M48 50l-4 8"/></g>';
    const sky=night?moon:sun;
-   const content=(cloudy?'':sky)+(cloudy||partial||wet?cloud:'')+(wet?drops:'');
+   // Bij halfbewolkt de zon zichtbaar linksboven houden, ook op kleine kaarticonen.
+   const partialSky=partial&&!night?'<g transform="translate(-9 -9) scale(1.13)">'+sun+'</g>':sky;
+   const partialCloud=partial?'<g transform="translate(9 7) scale(.87)">'+cloud+'</g>':cloud;
+   const content=(cloudy?'':partialSky)+(cloudy||partial||wet?partialCloud:'')+(wet?drops:'');
    const label=wet?'Regen':cloudy?'Bewolkt':partial?(night?'Wolken en maan':'Zon en wolken'):(night?'Helder':'Zonnig');
    return `<svg class="ricoUnifiedWeatherSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 64" width="42" height="42" role="img" aria-label="${label}">${content}</svg>`;
  }
 </script>
 <style id="ricoV963DailySymbols">
-#ricoWeatherAtlas .rico82Pin .ricoUnifiedWeatherSvg{display:block;width:35px;height:35px;overflow:visible;filter:drop-shadow(0 1px 2px rgba(13,40,61,.4))}
+#ricoWeatherAtlas .rico82Pin .ricoUnifiedWeatherSvg{display:block;width:39px;height:39px;overflow:visible;filter:drop-shadow(0 1px 2px rgba(13,40,61,.4))}
 #ricoWeatherAtlas .rico82Pin .ricoWeatherSymbol{display:flex!important;justify-content:center;align-items:center;height:35px!important;line-height:35px!important}
 #ricoWeatherAtlas .rico82Pin .ricoWeatherTemp{font-size:16px!important;font-weight:850!important}
 @media(max-width:600px){#ricoWeatherAtlas .rico82Pin .ricoUnifiedWeatherSvg{width:32px;height:32px}#ricoWeatherAtlas .rico82Pin .ricoWeatherTemp{font-size:15px!important}}
