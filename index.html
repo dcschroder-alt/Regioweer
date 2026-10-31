@@ -6118,14 +6118,14 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
      const st=el('ricomapStatus');
      if(window.__ricoManualScanRunning){if(st)st.textContent='Er loopt al een modelscan.';return}
      const now=Date.now(),last=Number(window.__ricoLastManualScan||0);
-     if(now-last<5*60*1000){if(st)st.textContent='Even wachten: een handmatige modelscan is maximaal eenmaal per 5 minuten mogelijk.';return}
+     if(now-last<5*60*1000){if(st)st.textContent='De verversing is onlangs gestart. Opgeslagen gegevens worden nu opnieuw getoond.';try{if(typeof nationalScanLastPack!=='undefined'&&nationalScanLastPack?.days?.length)ricoMapSync();else if(typeof renderNationalScan==='function')renderNationalScan(false).catch(console.warn)}catch(e){}return}
      window.__ricoManualScanRunning=true;hard.disabled=true;
      if(st)st.textContent='Nieuwe modelgegevens worden opgehaald…';
      try{
        // Let the already-running scan finish; a second click must not start a duplicate.
        if(typeof __rwNationalScanPending!=='undefined'&&__rwNationalScanPending)await __rwNationalScanPending;
        const main=el('load');
-       if(main){main.click();}else{await renderNationalScan(true);}
+       if(main){main.click();await new Promise(resolve=>setTimeout(resolve,350));if(typeof renderNationalScan==='function')await renderNationalScan(false);}else{await renderNationalScan(false);}
        window.__ricoLastManualScan=Date.now();
        if(typeof ricoMapSync==='function')ricoMapSync();
        if(st)st.textContent='Centrale verversing gestart; kaarten volgen automatisch zodra de gegevens beschikbaar zijn.';
@@ -6393,7 +6393,8 @@ function syncViews(){
   window.dispatchEvent(new Event('resize'));
  });
 }
-window.addEventListener('rico:national-scan-updated',syncViews);
+document.addEventListener('rico:national-scan-updated',syncViews);
+document.addEventListener('rico:dayparts-loaded',syncViews);
 window.addEventListener('rico:dayparts-loaded',syncViews);
 function init(){
  const main=document.getElementById('load'),hard=document.getElementById('rico74Force');
@@ -6404,6 +6405,7 @@ function init(){
  });
  // Restore the navigation immediately from any already-present scan, without a new API request.
  if(typeof nationalScanLastPack!=='undefined'&&nationalScanLastPack?.days?.length)syncViews();
+ else {try{const cached=JSON.parse(localStorage.getItem(NATIONAL_SCAN_CACHE)||'null');if(cached?.days?.length&&typeof renderNationalScanData==='function')renderNationalScanData(cached.days,cached.models||[],true)}catch(e){console.warn('Startkaartcache',e)}}
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
