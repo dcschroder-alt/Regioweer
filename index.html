@@ -6411,37 +6411,40 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
-<script id="rico-v982-startup-map-repair">
-/* Redraw from the existing national scan only; no extra model/API requests. */
+<script id="rico-v983-startup-map-repair">
+/* Cache-only startup repair. Do not depend on scrolling or pressing the scan button. */
 (()=>{'use strict';
-let pending=false, lastKey='', attempts=0;
-function ready(){try{return typeof nationalScanLastPack!=='undefined'&&nationalScanLastPack?.days?.some(d=>d.pts?.some(p=>Number.isFinite(p.tx)))}catch(e){return false}}
-function repair(){
- if(!ready()||pending)return;
- pending=true;
+let lastData=null, busy=false, retry=0;
+function pack(){try{return typeof nationalScanLastPack!=='undefined'?nationalScanLastPack:null}catch(e){return null}}
+function run(){
+ if(busy)return;
+ const p=pack();
+ if(!p?.days?.length){
+  try{const c=JSON.parse(localStorage.getItem('rico-national-scan-v75-35punten')||'null');
+   if(c?.days?.length&&typeof renderNationalScanData==='function')renderNationalScanData(c.days,c.models||[],true);
+  }catch(e){}
+  return;
+ }
+ busy=true;
  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-  pending=false;
-  const pack=nationalScanLastPack;
-  const key=pack.days.map(d=>d.date+':'+(d.pts?.length||0)).join('|');
-  const daySelect=document.getElementById('ricomapDay');
-  const mapEmpty=!daySelect?.options.length || !document.querySelector('#ricomapCanvas .leaflet-marker-icon');
+  busy=false;
   const atlas=document.getElementById('ricoWeatherAtlas');
-  const atlasEmpty=atlas&&!atlas.querySelector('.ricoWeatherMap .leaflet-container');
-  if(key!==lastKey||mapEmpty){try{if(typeof ricoMapSync==='function')ricoMapSync()}catch(e){console.warn('NL kaartstart',e)}}
-  if(atlasEmpty||key!==lastKey){try{if(typeof updateWeatherAtlas==='function')updateWeatherAtlas()}catch(e){console.warn('Dagkaartstart',e)}}
-  lastKey=key;
-  document.querySelectorAll('#ricoWeatherAtlas .ricoWeatherMap').forEach(el=>{
-   if(el._leaflet_map){try{el._leaflet_map.invalidateSize({pan:false})}catch(e){}}
-  });
+  const grid=atlas?.querySelector('.ricoWeatherGrid');
+  const missing=!!grid&&!grid.querySelector('.ricoWeatherCard');
+  if(missing&&typeof updateWeatherAtlas==='function')try{updateWeatherAtlas()}catch(e){console.warn('Kaartstart',e)}
+  const select=document.getElementById('ricomapDay');
+  if(select&&(!select.options.length||p!==lastData)&&typeof ricoMapSync==='function')try{ricoMapSync()}catch(e){console.warn('NL kaartstart',e)}
+  lastData=p;
+  // Leaflet calculates map size correctly only after the panel is displayed.
   window.dispatchEvent(new Event('resize'));
  }));
 }
-function schedule(){repair();setTimeout(repair,250);setTimeout(repair,1100)}
+function schedule(){run();setTimeout(run,250);setTimeout(run,1000);setTimeout(run,2500)}
 document.addEventListener('rico:national-scan-updated',schedule);
 window.addEventListener('load',schedule);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)schedule()});
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule);else schedule();
-const check=setInterval(()=>{if(ready()){schedule();clearInterval(check)}else if(++attempts>=24)clearInterval(check)},500);
+const timer=setInterval(()=>{run();if(pack()?.days?.length||++retry>30)clearInterval(timer)},500);
 })();
 </script>
 </body></html>
