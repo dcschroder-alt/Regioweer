@@ -6411,7 +6411,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
-<script id="rico-v985-startup-coordination">
+<script id="rico-v986-startup-coordination">
 (()=>{'use strict';
 let restoring=false, scheduled=false;
 function restore(){
@@ -6431,7 +6431,20 @@ function sync(){
   window.dispatchEvent(new Event('resize'));
  });
 }
-function start(){restore();sync()}
+// A local place forecast may be restored without starting the national scan.
+// Restore the national cache first; when absent, run the existing slot-aware
+// national scan once. renderNationalScan() itself prevents duplicate requests.
+let started=false;
+function start(){
+ restore();sync();
+ if(started)return;
+ started=true;
+ if(typeof nationalScanLastPack!=='undefined'&&nationalScanLastPack?.days?.length)return;
+ if(typeof renderNationalScan!=='function'||document.getElementById('model')?.value!=='mix')return;
+ // Respect the existing no-network night window and rate-limit protection.
+ if(typeof forecastRateLimitedToday==='function'&&forecastRateLimitedToday())return;
+ Promise.resolve(renderNationalScan(false)).then(sync).catch(e=>console.warn('Automatische landelijke scan',e));
+}
 document.addEventListener('rico:national-scan-updated',sync);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 window.addEventListener('load',start);
