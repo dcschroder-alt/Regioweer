@@ -6327,6 +6327,55 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #randstadModalBody .rico971Detail[open] summary{margin-bottom:12px}
 @media(max-width:600px){#randstadModalBody .rico971Stats{grid-template-columns:repeat(2,minmax(0,1fr))}#randstadModalBody .rico971Big{font-size:40px}}
 </style>
+<style id="rico976Layout">
+/* Visual consistency: preserve the existing forecast values and event handlers. */
+.nationalRegions{gap:10px!important;align-items:stretch}
+.nationalRegions>div{min-height:0!important;padding:14px 10px!important}
+.nationalRegions .nsRegionWeather{font-size:clamp(15px,1.55vw,23px)!important}
+.nationalScanGrid.ricoScanVisual{align-items:start!important;gap:10px!important}
+.nationalScanGrid.ricoScanVisual>.nationalCard{min-height:0!important;height:auto!important;align-self:start!important}
+.nationalScanGrid.ricoScanVisual>.nationalCard details{min-height:0!important}
+.nationalScanGrid.ricoScanVisual>.nationalCard summary{cursor:pointer}
+.nationalCompactMeta.ricoConfidence{margin-top:10px!important}
+.quickJump{position:relative;gap:7px!important;scroll-padding-inline:12px}
+.quickJump button{transition:background .15s ease,transform .15s ease}
+.quickJump button:hover{background:#d9edfc!important;transform:translateY(-1px)}
+#ricoEnergyPanel{margin-top:22px!important;scroll-margin-top:20px}
+#ricoEnergyPanel .ricoEnergyHead{border-bottom:1px solid #d8e8ed;padding-bottom:10px}
+@media(max-width:700px){.nationalRegions{grid-template-columns:repeat(2,minmax(0,1fr))!important}.nationalRegions>div{padding:10px 7px!important}.quickJump button{font-size:12px!important}}
+</style>
+<script id="rico976LayoutScript">
+(function(){'use strict';
+const sections=[
+ ['todayGlancePanel','Vandaag'],['weatherTextPanel','Weerbericht'],
+ ['nationalScanPanel','Landelijk'],['rv57Panel','Kansenkaart'],
+ ['v97Cockpit','Cockpit'],['longRangePanel','6 weken'],
+ ['ricoEnergyPanel','Energie'],['climatePanel','Klimaat'],
+ ['editorialDeskPanel','Redactie']
+];
+function setup(){
+ const nav=document.querySelector('.quickJump');
+ if(nav){
+  const old=new Map([...nav.querySelectorAll('button[data-jump]')].map(b=>[b.dataset.jump,b]));
+  sections.forEach(([id,label])=>{
+   let b=old.get(id);if(!b){b=document.createElement('button');b.type='button';b.dataset.jump=id;
+    b.addEventListener('click',()=>{const el=document.getElementById(id);if(!el)return;const d=el.querySelector(':scope > details');if(d)d.open=true;el.scrollIntoView({behavior:'smooth',block:'start'})});}
+   b.textContent=(id==='ricoEnergyPanel'?'☀️ ':'')+label;nav.appendChild(b);
+  });
+  [...nav.querySelectorAll('button[data-jump]')].forEach(b=>{if(!sections.some(s=>s[0]===b.dataset.jump))nav.appendChild(b)});
+ }
+ // Energy is a separate, lower-priority section, following the meteorological outlook.
+ const energy=document.getElementById('ricoEnergyPanel');
+ const climate=document.getElementById('climatePanel');
+ const editorial=document.getElementById('editorialDeskPanel');
+ const anchor=editorial||climate||document.getElementById('rv60Tools');
+ if(energy&&anchor&&energy!==anchor&&energy.parentElement===anchor.parentElement){anchor.parentElement.insertBefore(energy,anchor)}
+ // Avoid a blank row next to a collapsed temperature extremes card.
+ document.querySelectorAll('.nationalScanGrid.ricoScanVisual').forEach(grid=>grid.style.alignItems='start');
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(setup,500));else setTimeout(setup,500);
+})();
+</script>
 </body></html>
 <style id="rico-v82-map-style">
 /* Weerkaart NL-style compact, coloured readings, preserving symbols and wind. */
