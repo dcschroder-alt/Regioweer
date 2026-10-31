@@ -6124,10 +6124,11 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
      try{
        // Let the already-running scan finish; a second click must not start a duplicate.
        if(typeof __rwNationalScanPending!=='undefined'&&__rwNationalScanPending)await __rwNationalScanPending;
-       await renderNationalScan(true);
+       const main=el('load');
+       if(main){main.click();}else{await renderNationalScan(true);}
        window.__ricoLastManualScan=Date.now();
        if(typeof ricoMapSync==='function')ricoMapSync();
-       if(st)st.textContent='Modelscan afgerond; kaart bijgewerkt.';
+       if(st)st.textContent='Centrale verversing gestart; kaarten volgen automatisch zodra de gegevens beschikbaar zijn.';
      }catch(e){if(st)st.textContent='Nieuwe scan niet gelukt: '+e.message}
      finally{window.__ricoManualScanRunning=false;hard.disabled=false}
    },'Start een nieuwe landelijke modelscan; maximaal eenmaal per 5 minuten');
@@ -6295,7 +6296,7 @@ function setup(){
  }
  const mode=atlas.querySelector('#ricoMapMode');
  const holder=atlas.querySelector('#ricoDaypartMaps');
- if(mode&&holder&&!partsRequested){partsRequested=true;mode.querySelector('[data-mode="parts"]')?.click();setTimeout(()=>{mode.querySelector('[data-mode="daily"]')?.click();holder.classList.remove('ricoDaypartHidden');redraw()},650)}
+ if(mode&&holder&&!partsRequested){partsRequested=true;mode.querySelector('[data-mode="parts"]')?.click()}
  if(holder){holder.classList.remove('ricoDaypartHidden');const grid2=holder.querySelector('.ricoDaypartGrid');if(grid2)grid2.classList.remove('ricoDaypartHidden')}
  redraw();
 }
@@ -6375,6 +6376,36 @@ function setup(){
  document.querySelectorAll('.nationalScanGrid.ricoScanVisual').forEach(grid=>grid.style.alignItems='start');
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(setup,500));else setTimeout(setup,500);
+})();
+</script>
+<style id="rico-v978-startup-css">
+/* Do not expose uninitialised daypart maps; preserve the existing mobile one-column layout. */
+#ricoWeatherAtlas.ricoV967Home #ricoDaypartMaps:empty{display:none!important}
+#ricoWeatherAtlas.ricoV967Home .ricoV85Nav{display:flex!important}
+</style>
+<script id="rico-v978-unified-refresh">
+(()=>{'use strict';
+let scheduled=false;
+function syncViews(){
+ if(scheduled)return;scheduled=true;
+ requestAnimationFrame(()=>{scheduled=false;
+  try{if(typeof ricoMapSync==='function'&&typeof nationalScanLastPack!=='undefined'&&nationalScanLastPack?.days?.length)ricoMapSync()}catch(e){console.warn('Kaart synchroniseren',e)}
+  window.dispatchEvent(new Event('resize'));
+ });
+}
+window.addEventListener('rico:national-scan-updated',syncViews);
+window.addEventListener('rico:dayparts-loaded',syncViews);
+function init(){
+ const main=document.getElementById('load'),hard=document.getElementById('rico74Force');
+ if(hard){hard.title='Gebruikt dezelfde centrale verversing als Gegevens ophalen';hard.textContent='↻ Gegevens ophalen (plaats + landelijk)';}
+ if(main)main.addEventListener('click',()=>{
+  const status=document.getElementById('nationalScanStatus');
+  if(status&&!status.textContent.trim())status.textContent='Gegevens worden bijgewerkt…';
+ });
+ // Restore the navigation immediately from any already-present scan, without a new API request.
+ if(typeof nationalScanLastPack!=='undefined'&&nationalScanLastPack?.days?.length)syncViews();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
 </body></html>
