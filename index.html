@@ -4190,7 +4190,10 @@ async function _renderNationalScanCore(force=false){
  const now=Date.now(),hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Amsterdam',hour:'2-digit',hourCycle:'h23'}).format(new Date(now)));
  const currentSlot=ricoNationalSlot(now);
  // Alleen in het dagvenster 06:00-18:59 ophalen. Vanaf 19:00 tot 06:00 geen scan-API.
- const allowed=force||(hour>=6&&hour<19);
+ // A fresh installation without a national cache must be able to populate maps.
+ // Only the first missing-cache scan may run outside the normal daytime slots.
+ const missingCache=!cached?.days?.length;
+ const allowed=force||(hour>=6&&hour<19)||missingCache;
  const slotAlreadyDone=!!(cached?.days?.length&&cached.slot===currentSlot&&currentSlot);
  if(cached?.days?.length&&(slotAlreadyDone||(!allowed&&!force))){
    renderNationalScanData(cached.days,cached.models||[],true);
@@ -6411,7 +6414,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
-<script id="rico-v986-startup-coordination">
+<script id="rico-v987-startup-coordination">
 (()=>{'use strict';
 let restoring=false, scheduled=false;
 function restore(){
@@ -6438,9 +6441,9 @@ let started=false;
 function start(){
  restore();sync();
  if(started)return;
- started=true;
  if(typeof nationalScanLastPack!=='undefined'&&nationalScanLastPack?.days?.length)return;
  if(typeof renderNationalScan!=='function'||document.getElementById('model')?.value!=='mix')return;
+ started=true;
  // Respect the existing no-network night window and rate-limit protection.
  if(typeof forecastRateLimitedToday==='function'&&forecastRateLimitedToday())return;
  Promise.resolve(renderNationalScan(false)).then(sync).catch(e=>console.warn('Automatische landelijke scan',e));
@@ -6448,6 +6451,7 @@ function start(){
 document.addEventListener('rico:national-scan-updated',sync);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 window.addEventListener('load',start);
+document.getElementById('model')?.addEventListener('change',start);
 })();
 </script>
 </body></html>
