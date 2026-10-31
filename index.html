@@ -4891,20 +4891,49 @@ let lastAtlasSignature='';
 const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // v71: gebruik waar beschikbaar exact dezelfde uurbewolking als de dagdeelkaarten.
 // De cache wordt door de bestaande dagdeelkaarten gevuld: geen extra weer-API-aanroepen.
-function ricoCachedDaytime(pointName,date){
+// v96: astronomische daglichturen per scanpunt, uit gedeelde 35-punts uurcache.
+function ricoSolarWindow(date,lat,lon){
+ const d=new Date(date+'T12:00:00Z'),start=Date.UTC(d.getUTCFullYear(),0,0);
+ const n=Math.floor((d.getTime()-start)/86400000);
+ const decl=23.44*Math.sin(2*Math.PI*(n-81)/365)*Math.PI/180;
+ const phi=lat*Math.PI/180,zenith=90.833*Math.PI/180;
+ const cosine=(Math.cos(zenith)-Math.sin(phi)*Math.sin(decl))/(Math.cos(phi)*Math.cos(decl));
+ const half=Math.acos(Math.max(-1,Math.min(1,cosine)))*12/Math.PI;
+ // Middag in lokale civiele uren; lengtegraad en zomertijd inbegrepen.
+ const tz=(new Date(date+'T12:00:00Z').toLocaleString('en-US',{timeZone:'Europe/Amsterdam',timeZoneName:'shortOffset'}).match(/GMT([+-]\d+)/)||[])[1];
+ const offset=tz?Number(tz):1,midday=12-lon/15+offset;
+ return {rise:midday-half,set:midday+half};
+}
+function ricoCachedDaytime(pointName,date,point){
  try{
   const cached=JSON.parse(localStorage.getItem('rico-v51-civil-dayparts-'+date)||'null');
-  if(!cached?.saved||Date.now()-cached.saved>90*60000)return null;
-  const loc=cached.data?.loc?.find(x=>x.name===pointName);
-  const rows=(loc?.rows||[]).filter(r=>{const h=Number(r.hour);return Number.isFinite(h)&&h>=5&&h<17});
+  if(!cached?.data?.loc?.length)return null;
+  const loc=cached.data.loc.find(x=>x.name===pointName);
+  if(!loc||!point)return null;
+  const daylight=ricoSolarWindow(date,point.lat,point.lon);
+  const rows=(loc.rows||[]).filter(r=>Number.isFinite(Number(r.hour))&&Number(r.hour)+.5>=daylight.rise&&Number(r.hour)+.5<daylight.set);
   const clouds=rows.map(r=>r.cloud).filter(Number.isFinite);
-  if(clouds.length<6)return null;
-  const rain=rows.map(r=>r.rain).filter(Number.isFinite);
-  const avg=clouds.reduce((a,b)=>a+b,0)/clouds.length;
-  const mm=rain.length>=6?rain.reduce((a,b)=>a+b,0):null;
-  return {cloud:avg,rain:mm,count:clouds.length};
+  if(clouds.length<Math.max(4,Math.floor((daylight.set-daylight.rise)*.6)))return null;
+  const rain=rows.map(r=>r.rain).filter(Number.isFinite),pop=rows.map(r=>r.pop).filter(Number.isFinite);
+  const cloud=clouds.reduce((a,b)=>a+b,0)/clouds.length;
+  const mm=rain.length>=Math.floor(rows.length*.7)?rain.reduce((a,b)=>a+b,0):null;
+  const wetHours=rows.filter(r=>(Number.isFinite(r.rain)&&r.rain>=.2)||(Number.isFinite(r.pop)&&r.pop>=60)).length;
+  return {cloud,rain:mm,count:clouds.length,wetHours,rise:daylight.rise,set:daylight.set};
  }catch(e){return null}
 }
+// Een gedeelde aanvraag per kalenderdag, hergebruikt door de dagdeelkaarten.
+const ricoV96Pending=new Map();
+async function ricoV96Load(date){
+ const key='rico-v51-civil-dayparts-'+date;
+ try{const c=JSON.parse(localStorage.getItem(key)||'null');if(c?.saved&&Date.now()-c.saved<90*60000&&c.data?.loc?.length)return c.data}catch(e){}
+ if(ricoV96Pending.has(date))return ricoV96Pending.get(date);
+ const promise=nsFetchTimingPoints(date,NATIONAL_POINTS.map(p=>({...p})),'rico-v34-atlas').then(data=>{
+  try{localStorage.setItem(key,JSON.stringify({saved:Date.now(),data}))}catch(e){}
+  window.dispatchEvent(new Event('rico:dayparts-loaded'));return data;
+ }).finally(()=>ricoV96Pending.delete(date));
+ ricoV96Pending.set(date,promise);return promise;
+}
+
 function weatherSymbol(p){
  if(Number.isFinite(p.rain)&&p.rain>=7)return '🌧️';
  if(Number.isFinite(p.rain)&&p.rain>=1)return '🌦️';
@@ -4989,10 +5018,13 @@ function updateWeatherAtlas(){
   const mm=rain.length?rain.sort((a,b)=>a-b)[Math.floor(rain.length/2)]:null;
   const previous=atlasHistory();const signals=atlasSignals(d);const change=atlasDayChange(d,previous);
   const extra=`<div class="ricoAtlasExtra"><div><b>Verandering sinds vorige scan:</b> ${change}</div><div class="ricoChips">${signals.length?signals.slice(0,2).map(x=>`<span class="ricoChip">${x}</span>`).join(''):'<span class="ricoSmall">Geen bijzondere signalen uit de beschikbare dagwaarden</span>'}</div></div>`;
-  return `<article class="ricoWeatherCard"><div class="ricoWeatherTitle"><span>${safe(dayLabel(d.date))}</span><span>${good.length}/${NATIONAL_POINTS.length}</span></div><div class="ricoWeatherMap" id="ricoWeatherMap${i}" aria-label="Landelijk weerbeeld ${safe(dayLabel(d.date))}"></div><div class="ricoWeatherFoot">${mm!==null?'Landelijke neerslagmediaan '+mm.toFixed(1).replace('.',',')+' mm · ':''}temperaturen: modelmix · symbool: 05–17 uurbewolking indien beschikbaar, anders indicatief · <b>blauw = vorst</b>${i>=10?' · lange termijn, grotere onzekerheid':i>=7?' · langere termijn, grotere onzekerheid':''}</div>${extra}</article>`
+  return `<article class="ricoWeatherCard"><div class="ricoWeatherTitle"><span>${safe(dayLabel(d.date))}</span><span>${good.length}/${NATIONAL_POINTS.length}</span></div><div class="ricoWeatherMap" id="ricoWeatherMap${i}" aria-label="Landelijk weerbeeld ${safe(dayLabel(d.date))}"></div><div class="ricoWeatherFoot">${mm!==null?'Landelijke neerslagmediaan '+mm.toFixed(1).replace('.',',')+' mm · ':''}temperaturen: modelmix · symbool: uurgegevens tussen zonsopkomst en zonsondergang (eerste 72 uur), anders indicatief · <b>blauw = vorst</b>${i>=10?' · lange termijn, grotere onzekerheid':i>=7?' · langere termijn, grotere onzekerheid':''}</div>${extra}</article>`
  }).join('');
  const rainHost=host.querySelector('.ricoAtlasRain');if(rainHost)rainHost.remove();host.querySelector('.ricoWeatherGrid').insertAdjacentHTML('afterend',atlasRainSummary(valid));
  // Alleen bestaande kaartbibliotheek en OSM-kaarttegels. Geen weer-API-calls.
+ // Alleen eerste drie etmalen automatisch ophalen, gedeeld met dagdelen.
+ const first=valid.slice(0,3).filter(d=>d.date>=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Amsterdam'}));
+ for(const day of first){ricoV96Load(day.date).catch(e=>console.warn('v96 uurdata',day.date,e));}
  if(typeof ricoLeafletReady!=='function')return;
  ricoLeafletReady().then(()=>{
   valid.forEach((d,i)=>{
@@ -5011,7 +5043,7 @@ function updateWeatherAtlas(){
    function drawDailyMarkers(){
      layer.clearLayers();
      const zoom=map.getZoom(),size=map.getSize();
-     const gap=zoom<=7?76:zoom===8?67:zoom===9?57:49;
+     const gap=zoom<=7?(size.x>850?59:76):zoom===8?67:zoom===9?57:49;
      const candidates=all.filter(p=>{const pt=map.latLngToContainerPoint([p.point.lat,p.point.lon]);return pt.x>=30&&pt.y>=40&&pt.x<=size.x-30&&pt.y<=size.y-40});
      // Zoomed-in view: distribute labels across the visible map rather than always
      // favouring the ten national overview sites, which could leave the east empty.
@@ -5032,12 +5064,12 @@ function updateWeatherAtlas(){
        if(pt.x<30||pt.y<40||pt.x>size.x-30||pt.y>size.y-40)continue;
        if(occupied.some(q=>Math.hypot(pt.x-q.x,pt.y-q.y)<gap))continue;
        occupied.push(pt);
-       const hourly=ricoCachedDaytime(p.point.n,d.date);
+       const hourly=ricoCachedDaytime(p.point.n,d.date,p.point);
        // Prefer the actual 05-17 cloud and precipitation summary where available.
        // Where hourly cache is absent, avoid a definitive full-sun icon inferred from daily sunshine alone.
        const sunFraction=Number.isFinite(p.sun)&&typeof possibleDaylightHours==='function'?p.sun/Math.max(1,possibleDaylightHours(d.date)):null;
        const disagreement=!!hourly&&Number.isFinite(sunFraction)&&sunFraction>=0.65&&hourly.cloud>=65;
-       const sym=hourly?(Number.isFinite(hourly.rain)&&hourly.rain>=1?(hourly.cloud<60?'🌦️':'🌧️'):(hourly.cloud<25?'☀️':hourly.cloud<60?'🌤️':hourly.cloud<85?'⛅':'☁️')):(weatherSymbol(p)==='☀️'?'🌤️':weatherSymbol(p));
+       const sym=hourly?(hourly.wetHours>=2&&Number.isFinite(hourly.rain)&&hourly.rain>=.3?(hourly.cloud<60?'🌦️':'🌧️'):(hourly.cloud<25?'☀️':hourly.cloud<60?'🌤️':hourly.cloud<85?'⛅':'☁️')):(weatherSymbol(p)==='☀️'?'🌤️':weatherSymbol(p));
        const max=Math.round(p.tx),min=Number.isFinite(p.tn)?Math.round(p.tn):null;
        const frost=min!==null&&min<0;
        // Wind op maximaal drie geografisch gespreide zichtbare locaties.
@@ -5051,7 +5083,7 @@ function updateWeatherAtlas(){
        const arrow=windDir===null?'➤':'➤';
        const windHtml=showWind?`<span class="ricoWeatherWind ricoDailyWind"><span class="ricoWeatherWindArrow" style="transform:rotate(${windDir===null?0:(windDir+90)%360}deg)">${arrow}</span>${beaufort(p.wind)} Bft</span>`:'';
        const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin rico82Pin${frost?' ricoFrostPin':''}"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp"><span class="ricoTx">${max}°</span>${min!==null?`<span class="ricoSep">/</span><span class="ricoTn">${min}°</span>`:''}</span>${windHtml}</div>`,iconSize:[82,showWind?84:60],iconAnchor:[41,showWind?42:30]});
-       const popup=`<b>${safe(p.point.n)}</b><br>${hourly?'Weersymbool: bewolking 05–17 uur (uurcache, '+hourly.count+' uren)':'Weersymbool: indicatie uit dagwaarden (geen volledige uurcache)'}${disagreement?'<br><b>⚠ Zonuren en bewolking spreken elkaar tegen</b>':''}<br>Max ${max}°${min!==null?' · min '+min+'°':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen`;
+       const popup=`<b>${safe(p.point.n)}</b><br>${hourly?'Weersymbool: dynamische daglichturen (uurcache, '+hourly.count+' uren)':'Weersymbool: indicatie uit dagwaarden (geen volledige uurcache)'}${disagreement?'<br><b>⚠ Zonuren en bewolking spreken elkaar tegen</b>':''}<br>Max ${max}°${min!==null?' · min '+min+'°':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen`;
        L.marker([p.point.lat,p.point.lon],{icon}).bindPopup(popup).addTo(layer);
      }
    }
@@ -5066,7 +5098,7 @@ function install(){
  const panel=document.getElementById('nationalScanPanel');if(!panel)return;
  if(!document.getElementById('ricoWeatherAtlas')){
   const section=document.createElement('section');section.id='ricoWeatherAtlas';
-  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 15 dagen</div><div class="note">Interactieve landelijke kaart in de stijl van Weerkaart NL: direct meerdere locaties; bij inzoomen verschijnen ook regionale punten in oost en zuid. Weersymbolen, maximum- en minimumtemperatuur en wind. Tik op een symbool voor details. De aparte Weerkaart NL blijft interactief. Temperaturen uit de landelijke modelmix. Weersymbolen volgen waar beschikbaar de reeds geladen uurbewolking van 05–17 uur, anders een voorzichtige indicatie uit dagwaarden. Bij ontbrekende zichtgegevens wordt mist niet als zeker voorspeld. Dagdeelkaarten en dagkaart kunnen verschillende modelbronnen gebruiken; bij verschil heeft de uurcache voor het weersymbool voorrang. Tik op een locatie om de gebruikte bron te zien.</div><div class="ricoWeatherGrid"></div>';
+  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 15 dagen</div><div class="note">Interactieve landelijke kaart in de stijl van Weerkaart NL: direct meerdere locaties; bij inzoomen verschijnen ook regionale punten in oost en zuid. Weersymbolen, maximum- en minimumtemperatuur en wind. Tik op een symbool voor details. De aparte Weerkaart NL blijft interactief. Temperaturen uit de landelijke modelmix. Weersymbolen volgen de uurgegevens tussen zonsopkomst en zonsondergang in de eerste 72 uur, anders een voorzichtige indicatie uit dagwaarden. Bij ontbrekende zichtgegevens wordt mist niet als zeker voorspeld. Dagdeelkaarten en dagkaart kunnen verschillende modelbronnen gebruiken; bij verschil heeft de uurcache voor het weersymbool voorrang. Tik op een locatie om de gebruikte bron te zien.</div><div class="ricoWeatherGrid"></div>';
   const map=panel.querySelector('.ricomapPanel');if(map)map.insertAdjacentElement('beforebegin',section);else panel.appendChild(section);
  }
  // Koppel aan bestaande landelijke scanweergave, inclusief cacheherstel.
@@ -5397,7 +5429,7 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
    // Nacht 23-05 is altijd donker. Ochtend en middag behouden dagsymbolen.
    return (slot.name==='Nacht'||slot.name==='Avond')?nightIcon(dayIcon):dayIcon;
  }
- async function fetchDate(date){const key='rico-v51-civil-dayparts-'+date;try{const old=JSON.parse(localStorage.getItem(key)||'null');if(old?.saved&&Date.now()-old.saved<90*60000&&old.data?.loc?.length)return old.data}catch(e){}const data=await nsFetchTimingPoints(date,points(),'rico-v34-atlas');try{localStorage.setItem(key,JSON.stringify({saved:Date.now(),data}))}catch(e){}return data}
+ async function fetchDate(date){const key='rico-v51-civil-dayparts-'+date;try{const old=JSON.parse(localStorage.getItem(key)||'null');if(old?.saved&&Date.now()-old.saved<90*60000&&old.data?.loc?.length)return old.data}catch(e){}const data=await ricoV96Load(date);return data}
  function sixHours(slot,byDate){const result=[];for(const p of points()){const rows=[];for(let k=0;k<6;k++){const hour=new Date(slot.start.getTime()+k*3600000);const data=byDate[dateStr(hour)];const loc=data?.loc?.find(x=>x.name===p.n);const value=loc?.rows?.find(x=>x.hour===hour.getUTCHours());if(value)rows.push(value)}result.push({point:p,data:rows.length>=4?summarize(rows):null})}return result}
  function cleanMaps(){maps.forEach(m=>{try{m.remove()}catch(e){}});maps=[]}
  async function render(){const target=document.getElementById('ricoDaypartMaps');if(!target||busy)return;const s=slots(),signature=s.map(x=>x.start.toISOString()).join('|');if(signature===loadedKey&&target.querySelector('.ricoPartMapCard'))return;busy=true;target.innerHTML='<p class="ricoDaypartNote">Uurverwachtingen laden voor 35 landelijke scanpunten…</p>';try{const dates=[...new Set(s.flatMap(x=>[dateStr(x.start),dateStr(new Date(x.end.getTime()-3600000))]))];const byDate={};for(const date of dates)byDate[date]=await fetchDate(date);cleanMaps();const dateLabel=x=>x.toLocaleDateString('nl-NL',{timeZone:'UTC',weekday:'short',day:'numeric',month:'short'});target.innerHTML='<div class="ricoDaypartGrid">'+s.map((x,i)=>`<article class="ricoPartMapCard"><div class="ricoPartMapTitle"><span>${dateLabel(x.start)} · ${x.name}</span><span>${String(x.start.getUTCHours()).padStart(2,'0')}:00–${String(x.end.getUTCHours()).padStart(2,'0')}:00</span></div><div id="ricoPartMap${i}" class="ricoPartMapCanvas"></div><div id="ricoPartFoot${i}" class="ricoPartMapFoot"></div></article>`).join('')+'</div>';await ricoLeafletReady();s.forEach((slot,i)=>{
@@ -5410,7 +5442,7 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
  const layer=L.layerGroup().addTo(map);
  const preferred=['Terschelling','Groningen','IJmuiden','Emmeloord','Enschede','Rotterdam','Houten','Apeldoorn','Vlissingen','Maastricht'];
  function draw(){
-  layer.clearLayers();const zoom=map.getZoom(),size=map.getSize(),gap=zoom<=7?76:zoom===8?67:zoom===9?57:49;
+  layer.clearLayers();const zoom=map.getZoom(),size=map.getSize(),gap=zoom<=7?(size.x>850?59:76):zoom===8?67:zoom===9?57:49;
   const visible=allUsable.filter(x=>{const pt=map.latLngToContainerPoint([x.point.lat,x.point.lon]);return pt.x>=34&&pt.y>=40&&pt.x<=size.x-34&&pt.y<=size.y-40});
   const ordered=[...visible].sort((a,b)=>{
    if(zoom<=7){const ia=preferred.indexOf(a.point.n),ib=preferred.indexOf(b.point.n);return (ia<0?100:ia)-(ib<0?100:ib)}
