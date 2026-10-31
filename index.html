@@ -6105,6 +6105,57 @@ function init(){if(root())return;const panel=document.getElementById('riskPanel'
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
+
+<style id="rico-v967-home-css">
+#ricoWeatherAtlas.ricoV967Home{margin:12px 0 20px;padding:12px;max-width:100%}
+#ricoWeatherAtlas.ricoV967Home>.note{display:none}
+#ricoWeatherAtlas.ricoV967Home #ricoMapMode{display:none!important}
+#ricoWeatherAtlas.ricoV967Home .ricoWeatherGrid,#ricoWeatherAtlas.ricoV967Home #ricoDaypartMaps .ricoDaypartGrid{display:grid!important;grid-template-columns:minmax(0,1fr)!important}
+#ricoWeatherAtlas.ricoV967Home #ricoDaypartMaps{display:block!important;margin-top:12px}
+#ricoWeatherAtlas.ricoV967Home .ricoAtlasRain{display:none!important}
+#ricoWeatherAtlas.ricoV967Home .ricoWeatherCard .ricoAtlasExtra{display:none}
+#ricoWeatherAtlas.ricoV967Home .ricoWeatherMap{height:430px!important}
+#ricoWeatherAtlas.ricoV967Home .ricoPartMapCanvas{height:390px!important}
+#ricoWeatherAtlas.ricoV967Home .ricoV967Heading{font-weight:850;font-size:17px;margin:15px 0 7px}
+#ricoWeatherAtlas.ricoV967Home .ricoV967Tip{font-size:12px;color:var(--muted);margin:5px 0 10px}
+@media(max-width:600px){#ricoWeatherAtlas.ricoV967Home .ricoWeatherMap{height:350px!important}#ricoWeatherAtlas.ricoV967Home .ricoPartMapCanvas{height:345px!important}}
+</style>
+<script id="rico-v967-home">
+(()=>{
+'use strict';
+let mounted=false,partsRequested=false,shifted=false;
+function redraw(){window.dispatchEvent(new Event('resize'));setTimeout(()=>window.dispatchEvent(new Event('resize')),220)}
+function setup(){
+ const atlas=document.getElementById('ricoWeatherAtlas');
+ const anchor=document.getElementById('todayTomorrowPanel');
+ if(!atlas||!anchor)return;
+ if(!mounted){
+   anchor.insertAdjacentElement('afterend',atlas);
+   atlas.classList.add('ricoV967Home');
+   const heading=atlas.firstElementChild;
+   if(heading)heading.textContent='🌤️ Vandaag & morgen · landelijke kaarten';
+   const dayHeading=document.createElement('div');dayHeading.className='ricoV967Heading';dayHeading.textContent='🕒 Dagdelen · eerste 72 uur';
+   const tip=document.createElement('div');tip.className='ricoV967Tip';tip.textContent='Blader met Vorige dag / Volgende dag; kies hieronder het dagdeel. Kaarten gebruiken de bestaande landelijke scan en uurcache.';
+   const holder=atlas.querySelector('#ricoDaypartMaps');if(holder){holder.before(dayHeading,tip)}
+   mounted=true;
+ }
+ const grid=atlas.querySelector('.ricoWeatherGrid');
+ const cards=grid?.querySelectorAll(':scope > .ricoWeatherCard');
+ if(cards?.length){
+   // Vanaf 18:00 is morgen de startdag, zonder de oudere dagen te verwijderen.
+   const hour=Number(new Intl.DateTimeFormat('nl-NL',{timeZone:'Europe/Amsterdam',hour:'2-digit',hourCycle:'h23'}).format(new Date()));
+   if(hour>=18&&!shifted){const next=document.querySelector('#ricoV85DailyNav [data-step="1"]');if(next&&!next.disabled){next.click();shifted=true}}
+ }
+ const mode=atlas.querySelector('#ricoMapMode');
+ const holder=atlas.querySelector('#ricoDaypartMaps');
+ if(mode&&holder&&!partsRequested){partsRequested=true;mode.querySelector('[data-mode="parts"]')?.click();setTimeout(()=>{mode.querySelector('[data-mode="daily"]')?.click();holder.classList.remove('ricoDaypartHidden');redraw()},650)}
+ if(holder){holder.classList.remove('ricoDaypartHidden');const grid2=holder.querySelector('.ricoDaypartGrid');if(grid2)grid2.classList.remove('ricoDaypartHidden')}
+ redraw();
+}
+function start(){setup();const atlas=document.getElementById('ricoWeatherAtlas');if(!atlas)return;const grid=atlas.querySelector('.ricoWeatherGrid');if(grid)new MutationObserver(()=>setTimeout(setup,450)).observe(grid,{childList:true});setTimeout(setup,1000);setTimeout(setup,3500)}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(start,450));else setTimeout(start,450);
+})();
+</script>
 </body></html>
 <style id="rico-v82-map-style">
 /* Weerkaart NL-style compact, coloured readings, preserving symbols and wind. */
