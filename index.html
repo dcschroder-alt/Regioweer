@@ -4931,11 +4931,20 @@ function ricoMapSync(){const sel=document.getElementById('ricomapDay');if(!sel)r
 document.addEventListener('DOMContentLoaded',()=>{ricoMapSync();});
 document.getElementById('ricomapDay')?.addEventListener('change',ricoRenderMap);
 document.getElementById('ricomapType')?.addEventListener('change',ricoRenderMap);
-document.getElementById('ricomapRefresh')?.addEventListener('click',async()=>{
+// Cache-only: never call renderNationalScan or any weather API.
+document.getElementById('ricomapRefresh')?.addEventListener('click',()=>{
  const status=document.getElementById('ricomapStatus');
- if(status)status.textContent='Landelijke scan wordt opgehaald…';
- try{await renderNationalScan(false);if(!nationalScanLastPack?.days?.length&&status)status.textContent='Geen landelijke scangegevens beschikbaar. Controleer de API-log.';else ricoMapSync()}
- catch(e){if(status)status.textContent='Vernieuwen mislukt: '+e.message}
+ try{
+   let pack=nationalScanLastPack;
+   if(!pack?.days?.length){
+     const stored=JSON.parse(localStorage.getItem(NATIONAL_SCAN_CACHE)||'null');
+     if(stored?.days?.length)pack={days:stored.days,models:stored.models||[],fromCache:true};
+   }
+   if(!pack?.days?.length){if(status)status.textContent='Nog geen opgeslagen kaartgegevens. Gebruik Nieuwe modelgegevens ophalen.';return}
+   if(!nationalScanLastPack?.days?.length)renderNationalScanData(pack.days,pack.models||[],true);
+   ricoMapSync();
+   if(status)status.textContent='Kaart opnieuw getekend met opgeslagen gegevens · geen nieuwe weer-API-aanvragen';
+ }catch(e){if(status)status.textContent='Opnieuw tekenen mislukt: '+e.message}
 });
 const ricoOriginalNationalRender=renderNationalScanData;
 renderNationalScanData=function(...args){const result=ricoOriginalNationalRender.apply(this,args);ricoMapSync();return result};
@@ -6031,7 +6040,27 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  const hint=document.createElement('div');hint.className='rico74hint';hint.textContent='Wissel van dag of kaartlaag zonder nieuwe modelaanvraag; bestaande scangegevens worden gebruikt.';box.append(hint);host.parentNode.insertBefore(box,host);
  }
  function init(){bar('ricomapCanvas','ricomapDay',true);bar('rv59MapCanvas','rv57MapDate',false);
- const btn=el('ricomapRefresh');if(btn&&!el('rico74Force')){btn.textContent='Kaart bijwerken (cache)';const hard=makeButton('↻ Nieuwe modelsccan',async()=>{hard.disabled=true;try{await renderNationalScan(true);if(typeof ricoMapSync==='function')ricoMapSync()}catch(e){const st=el('ricomapStatus');if(st)st.textContent='Nieuwe scan niet gelukt: '+e.message}finally{hard.disabled=false}},'Vraagt zo nodig nieuwe modeldata op');hard.id='rico74Force';btn.insertAdjacentElement('afterend',hard)}
+ const btn=el('ricomapRefresh');if(btn&&!el('rico74Force')){
+   btn.textContent='Kaart opnieuw tekenen';btn.title='Alleen opgeslagen kaartgegevens; geen weer-API-verzoeken';
+   const hard=makeButton('↻ Nieuwe modelgegevens ophalen',async()=>{
+     const st=el('ricomapStatus');
+     if(window.__ricoManualScanRunning){if(st)st.textContent='Er loopt al een modelscan.';return}
+     const now=Date.now(),last=Number(window.__ricoLastManualScan||0);
+     if(now-last<5*60*1000){if(st)st.textContent='Even wachten: een handmatige modelscan is maximaal eenmaal per 5 minuten mogelijk.';return}
+     window.__ricoManualScanRunning=true;hard.disabled=true;
+     if(st)st.textContent='Nieuwe modelgegevens worden opgehaald…';
+     try{
+       // Let the already-running scan finish; a second click must not start a duplicate.
+       if(typeof __rwNationalScanPending!=='undefined'&&__rwNationalScanPending)await __rwNationalScanPending;
+       await renderNationalScan(true);
+       window.__ricoLastManualScan=Date.now();
+       if(typeof ricoMapSync==='function')ricoMapSync();
+       if(st)st.textContent='Modelscan afgerond; kaart bijgewerkt.';
+     }catch(e){if(st)st.textContent='Nieuwe scan niet gelukt: '+e.message}
+     finally{window.__ricoManualScanRunning=false;hard.disabled=false}
+   },'Start een nieuwe landelijke modelscan; maximaal eenmaal per 5 minuten');
+   hard.id='rico74Force';btn.insertAdjacentElement('afterend',hard)
+ }
  }
  document.addEventListener('DOMContentLoaded',()=>{init();const target=el('rv57Map');if(target){new MutationObserver(()=>{if(el('rv59MapCanvas'))bar('rv59MapCanvas','rv57MapDate',false)}).observe(target,{childList:true,subtree:false})}});
 })();
