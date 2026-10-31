@@ -5140,6 +5140,8 @@ function updateWeatherAtlas(){
    const el=document.getElementById('ricoWeatherMap'+i);if(!el||!window.L)return;
    const map=L.map(el,{zoomControl:true,scrollWheelZoom:false,dragging:true,doubleClickZoom:true,boxZoom:true,keyboard:true,touchZoom:true,attributionControl:false});
    weatherMaps.push(map);
+   // v97.4: Leaflet needs a valid initial view even when the day card is hidden.
+   map.setView([52.12,5.25],7,{animate:false});
    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:10}).addTo(map);
    // Bij een hoge kaart vult Nederland de kaart zonder grote stroken Duitsland of Noordzee.
    // Gebruik de echte geografische uitersten; Leaflet past de zoom aan de kaartverhouding aan.
@@ -5159,12 +5161,24 @@ function updateWeatherAtlas(){
      dailyFitWidth=w;dailyFitHeight=h;
      setTimeout(()=>{dailyProgrammatic=false},100);
    };
+   // Refit when navigation reveals a previously hidden day card.
+   const revealDaily=()=>{
+     if(!el.isConnected||!el.offsetParent||el.clientWidth<180)return;
+     dailyProgrammatic=true;
+     map.invalidateSize({pan:false,animate:false});
+     if(!dailyUserMoved){rico971FitNetherlands(map,el);dailyFitWidth=el.clientWidth;dailyFitHeight=el.clientHeight;}
+     requestAnimationFrame(()=>{map.invalidateSize({pan:false,animate:false});drawDailyMarkers();setTimeout(()=>{dailyProgrammatic=false},120);});
+   };
+   const onDailyVisible=e=>{if(e.detail?.element===el)setTimeout(revealDaily,35)};
+   window.addEventListener('rico:daily-map-visible',onDailyVisible);
+   map.on('unload',()=>window.removeEventListener('rico:daily-map-visible',onDailyVisible));
    const dailyObserver=new ResizeObserver(()=>requestAnimationFrame(fitDailyVisible));
    dailyObserver.observe(el);
    map.on('unload',()=>dailyObserver.disconnect());
    requestAnimationFrame(fitDailyVisible);
    setTimeout(fitDailyVisible,350);
    setTimeout(fitDailyVisible,1200);
+   setTimeout(revealDaily,1500);
    // v83: use all 35 scanpoints as zoom candidates, even outside the original preferred 10.
    // De modelmix en de bestaande 35 scanpunten blijven de bron.
    const all=d.pts.filter(p=>Number.isFinite(p.tx)&&Number.isFinite(p.point?.lat)&&Number.isFinite(p.point?.lon));
@@ -6129,6 +6143,9 @@ function sync(){
  if(!state.date||!dates.includes(state.date))state.date=dates.includes(preferred)?preferred:dates[0];
  const idx=Math.max(0,dates.indexOf(state.date));
  all.forEach((c,i)=>c.classList.toggle('ricoV85OnlyHidden',i!==idx));
+ // v97.4: notify Leaflet after the chosen day becomes visible.
+ const selectedMap=all[idx]?.querySelector('.ricoWeatherMap');
+ if(selectedMap)setTimeout(()=>window.dispatchEvent(new CustomEvent('rico:daily-map-visible',{detail:{element:selectedMap}})),90);
  const grid=document.querySelector('#ricoWeatherAtlas .ricoWeatherGrid');
  const bar=nav('ricoV85DailyNav',grid);
  bar.innerHTML='<button type="button" data-step="-1">◀ Vorige dag</button><strong></strong><button type="button" data-step="1">Volgende dag ▶</button>';
