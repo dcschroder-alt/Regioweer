@@ -6163,14 +6163,14 @@ function dateFor(c){return txt(c.querySelector('.ricoWeatherTitle span:first-chi
 function nav(id,before){let el=document.getElementById(id);if(!el){el=document.createElement('nav');el.id=id;el.className='ricoV85Nav';before.before(el)}return el}
 function resize(){requestAnimationFrame(()=>{window.dispatchEvent(new Event('resize'));setTimeout(()=>window.dispatchEvent(new Event('resize')),150)})}
 function sync(){
- const all=cards();if(!all.length)return;
+ const all=cards();
  const today=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Amsterdam'});
  const hour=Number(new Intl.DateTimeFormat('nl-NL',{timeZone:'Europe/Amsterdam',hour:'2-digit',hourCycle:'h23'}).format(new Date()));
  const defaultDate=new Date(Date.parse(today+'T12:00:00')+(hour>=18?86400000:0)).toLocaleDateString('sv-SE',{timeZone:'Europe/Amsterdam'});
  // The atlas cards follow the scan's chronological order. Match dayparts by calendar day/month.
  const dates=all.map(c=>dateKey(dateFor(c)));
  const preferred=dateKey(new Date(defaultDate+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'short'}));
- if(!state.date||!dates.includes(state.date))state.date=dates.includes(preferred)?preferred:dates[0];
+ if(!state.date||!dates.includes(state.date))state.date=dates.includes(preferred)?preferred:(dates[0]||state.date);
  const idx=Math.max(0,dates.indexOf(state.date));
  all.forEach((c,i)=>c.classList.toggle('ricoV85OnlyHidden',i!==idx));
  // v97.4: notify Leaflet after the chosen day becomes visible.
@@ -6179,16 +6179,16 @@ function sync(){
  const grid=document.querySelector('#ricoWeatherAtlas .ricoWeatherGrid');
  const bar=nav('ricoV85DailyNav',grid);
  bar.innerHTML='<button type="button" data-step="-1">◀ Vorige dag</button><strong></strong><button type="button" data-step="1">Volgende dag ▶</button>';
- bar.querySelector('strong').textContent=dateFor(all[idx]);
- bar.querySelector('[data-step="-1"]').disabled=idx===0;
- bar.querySelector('[data-step="1"]').disabled=idx===all.length-1;
+ bar.querySelector('strong').textContent=all.length?dateFor(all[idx]):'Landelijke dagkaarten laden…';
+ bar.querySelector('[data-step="-1"]').disabled=!all.length||idx===0;
+ bar.querySelector('[data-step="1"]').disabled=!all.length||idx===all.length-1;
  bar.querySelectorAll('[data-step]').forEach(b=>b.onclick=()=>{state.date=dates[idx+Number(b.dataset.step)];state.partName='';sync();resize()});
  const holder=document.getElementById('ricoDaypartMaps'),partGrid=holder?.querySelector('.ricoDaypartGrid');
  if(partGrid){
   const pc=[...partGrid.querySelectorAll(':scope > .ricoPartMapCard')];
   const matches=pc.map((c,i)=>({c,i})).filter(x=>dateKey(partDate(x.c))===state.date);
   // Do not show a daypart from another date if hourly data for the selected day is unavailable.
-  const selected=matches.find(x=>partName(x.c)===state.partName)||matches[0];
+  const selected=matches.find(x=>partName(x.c)===state.partName)||matches[0]||(pc.length?{c:pc[0],i:0}:null);
   pc.forEach((c,i)=>c.classList.toggle('ricoV85OnlyHidden',!selected||i!==selected.i));
   const pbar=nav('ricoV85PartNav',holder);
   if(selected){state.partName=partName(selected.c);pbar.innerHTML='<strong></strong><div class="ricoV85Slots"></div>';pbar.querySelector('strong').textContent=partDate(selected.c);
@@ -6198,7 +6198,7 @@ function sync(){
  resize();
 }
 function init(){const atlas=document.getElementById('ricoWeatherAtlas');if(!atlas)return;const grid=atlas.querySelector('.ricoWeatherGrid');if(grid){new MutationObserver(()=>setTimeout(sync,250)).observe(grid,{childList:true});}
- const holder=document.getElementById('ricoDaypartMaps');if(holder)new MutationObserver(()=>setTimeout(sync,300)).observe(holder,{childList:true,subtree:false});
+ const holder=document.getElementById('ricoDaypartMaps');if(holder)new MutationObserver(()=>setTimeout(sync,100)).observe(holder,{childList:true,subtree:false});
  sync();window.addEventListener('rico:dayparts-loaded',sync);document.addEventListener('rico:dayparts-loaded',sync);document.addEventListener('rico:national-scan-updated',()=>setTimeout(sync,100));window.addEventListener('load',()=>setTimeout(sync,350));
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(init,250));else setTimeout(init,250);
@@ -6411,40 +6411,30 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
-<script id="rico-v983-startup-map-repair">
-/* Cache-only startup repair. Do not depend on scrolling or pressing the scan button. */
+<script id="rico-v985-startup-coordination">
 (()=>{'use strict';
-let lastData=null, busy=false, retry=0;
-function pack(){try{return typeof nationalScanLastPack!=='undefined'?nationalScanLastPack:null}catch(e){return null}}
-function run(){
- if(busy)return;
- const p=pack();
- if(!p?.days?.length){
-  try{const c=JSON.parse(localStorage.getItem('rico-national-scan-v75-35punten')||'null');
-   if(c?.days?.length&&typeof renderNationalScanData==='function')renderNationalScanData(c.days,c.models||[],true);
-  }catch(e){}
-  return;
- }
- busy=true;
- requestAnimationFrame(()=>requestAnimationFrame(()=>{
-  busy=false;
-  const atlas=document.getElementById('ricoWeatherAtlas');
-  const grid=atlas?.querySelector('.ricoWeatherGrid');
-  const missing=!!grid&&!grid.querySelector('.ricoWeatherCard');
-  if(missing&&typeof updateWeatherAtlas==='function')try{updateWeatherAtlas()}catch(e){console.warn('Kaartstart',e)}
-  const select=document.getElementById('ricomapDay');
-  if(select&&(!select.options.length||p!==lastData)&&typeof ricoMapSync==='function')try{ricoMapSync()}catch(e){console.warn('NL kaartstart',e)}
-  lastData=p;
-  // Leaflet calculates map size correctly only after the panel is displayed.
-  window.dispatchEvent(new Event('resize'));
- }));
+let restoring=false, scheduled=false;
+function restore(){
+ if(restoring)return;
+ try{
+  if(typeof nationalScanLastPack!=='undefined'&&nationalScanLastPack?.days?.length)return;
+  if(typeof NATIONAL_SCAN_CACHE==='undefined'||typeof renderNationalScanData!=='function')return;
+  const cache=JSON.parse(localStorage.getItem(NATIONAL_SCAN_CACHE)||'null');
+  if(!cache?.days?.length)return;
+  restoring=true;renderNationalScanData(cache.days,cache.models||[],true);
+ }catch(e){console.warn('Ricoweer kaartcache',e)}finally{restoring=false}
 }
-function schedule(){run();setTimeout(run,250);setTimeout(run,1000);setTimeout(run,2500)}
-document.addEventListener('rico:national-scan-updated',schedule);
-window.addEventListener('load',schedule);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)schedule()});
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule);else schedule();
-const timer=setInterval(()=>{run();if(pack()?.days?.length||++retry>30)clearInterval(timer)},500);
+function sync(){
+ if(scheduled)return;scheduled=true;
+ requestAnimationFrame(()=>{scheduled=false;
+  try{if(typeof ricoMapSync==='function'&&typeof nationalScanLastPack!=='undefined'&&nationalScanLastPack?.days?.length)ricoMapSync()}catch(e){console.warn('Weerkaart NL',e)}
+  window.dispatchEvent(new Event('resize'));
+ });
+}
+function start(){restore();sync()}
+document.addEventListener('rico:national-scan-updated',sync);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+window.addEventListener('load',start);
 })();
 </script>
 </body></html>
