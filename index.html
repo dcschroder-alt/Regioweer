@@ -6394,8 +6394,8 @@ function syncViews(){
  });
 }
 document.addEventListener('rico:national-scan-updated',syncViews);
-document.addEventListener('rico:dayparts-loaded',syncViews);
-window.addEventListener('rico:dayparts-loaded',syncViews);
+document.addEventListener('rico:dayparts-loaded',()=>window.dispatchEvent(new Event('resize')));
+window.addEventListener('rico:dayparts-loaded',()=>window.dispatchEvent(new Event('resize')));
 function init(){
  const main=document.getElementById('load'),hard=document.getElementById('rico74Force');
  if(hard){hard.title='Gebruikt dezelfde centrale verversing als Gegevens ophalen';hard.textContent='↻ Gegevens ophalen (plaats + landelijk)';}
