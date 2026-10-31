@@ -552,7 +552,29 @@ body{min-width:0}
 #rv91RandstadGraph .rv67-tx{font-weight:900;color:#162033}
 #rv91RandstadGraph .rv67-rainval{color:#162033}
 @media(max-width:650px){#rv91RandstadGraph.rv67-graph{grid-auto-columns:74px!important}#rv91RandstadGraph .rv67-day{min-width:70px}}
-</style></head>
+</style><script>
+ function ricoSharedWeatherIcon(icon,night){
+   const wet=icon==='🌧️'||icon==='🌦️';
+   const cloudy=icon==='☁️'||icon==='🌧️';
+   const partial=icon==='🌤️'||icon==='⛅'||icon==='🌦️';
+   const rays='<g stroke="#f6a800" stroke-width="3" stroke-linecap="round"><path d="M23 2v6M23 38v6M1 23h6M39 23h6M8 8l5 5M33 33l5 5M8 38l5-5M33 13l5-5"/></g>';
+   const sun='<g>'+rays+'<circle cx="23" cy="23" r="11" fill="#ffcb37" stroke="#e9a11a" stroke-width="2"/></g>';
+   const moon='<path d="M31 4A18 18 0 1 0 45 32 18 18 0 0 1 31 4Z" fill="#ffe19a" stroke="#c68b2f" stroke-width="2"/>';
+   const cloud='<path d="M17 46C9 46 5 41 5 35c0-6 5-11 11-11 3-9 10-14 19-12 8 1 13 7 14 14 8-1 14 4 14 11 0 6-5 9-13 9Z" fill="#f8fbff" stroke="#587b96" stroke-width="2.8" stroke-linejoin="round"/>';
+   const drops='<g stroke="#138bd1" stroke-width="4" stroke-linecap="round"><path d="M18 50l-4 8M33 50l-4 8M48 50l-4 8"/></g>';
+   const sky=night?moon:sun;
+   const content=(cloudy?'':sky)+(cloudy||partial||wet?cloud:'')+(wet?drops:'');
+   const label=wet?'Regen':cloudy?'Bewolkt':partial?(night?'Wolken en maan':'Zon en wolken'):(night?'Helder':'Zonnig');
+   return `<svg class="ricoUnifiedWeatherSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 64" width="42" height="42" role="img" aria-label="${label}">${content}</svg>`;
+ }
+</script>
+<style id="ricoV963DailySymbols">
+#ricoWeatherAtlas .rico82Pin .ricoUnifiedWeatherSvg{display:block;width:35px;height:35px;overflow:visible;filter:drop-shadow(0 1px 2px rgba(13,40,61,.4))}
+#ricoWeatherAtlas .rico82Pin .ricoWeatherSymbol{display:flex!important;justify-content:center;align-items:center;height:35px!important;line-height:35px!important}
+#ricoWeatherAtlas .rico82Pin .ricoWeatherTemp{font-size:16px!important;font-weight:850!important}
+@media(max-width:600px){#ricoWeatherAtlas .rico82Pin .ricoUnifiedWeatherSvg{width:32px;height:32px}#ricoWeatherAtlas .rico82Pin .ricoWeatherTemp{font-size:15px!important}}
+</style>
+</head>
 <body><div class="wrap">
 <section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v69</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
 <nav class="quickJump" aria-label="Snel naar onderdelen"><span class="quickJumpLabel">Snel naar</span><button type="button" data-jump="todayGlancePanel">Vandaag</button><button type="button" data-jump="weatherTextPanel">Weerbericht</button><button type="button" data-jump="nationalScanPanel">Landelijk</button><button type="button" data-jump="longRangePanel">6 weken</button><button type="button" data-jump="climatePanel">Klimaat</button><button type="button" data-jump="editorialDeskPanel">Redactie</button><button type="button" data-jump="v97Cockpit">Cockpit</button><button type="button" data-jump="ricoEnergyPanel">☀️ Energie</button></nav>
@@ -5084,7 +5106,7 @@ function updateWeatherAtlas(){
        const windDir=Number.isFinite(p.dir)?p.dir:null;
        const arrow=windDir===null?'➤':'➤';
        const windHtml=showWind?`<span class="ricoWeatherWind ricoDailyWind"><span class="ricoWeatherWindArrow" style="transform:rotate(${windDir===null?0:(windDir+90)%360}deg)">${arrow}</span>${beaufort(p.wind)} Bft</span>`:'';
-       const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin rico82Pin${frost?' ricoFrostPin':''}"><span class="ricoWeatherSymbol">${sym}</span><span class="ricoWeatherTemp"><span class="ricoTx">${max}°</span>${min!==null?`<span class="ricoSep">/</span><span class="ricoTn">${min}°</span>`:''}</span>${windHtml}</div>`,iconSize:[82,showWind?84:60],iconAnchor:[41,showWind?42:30]});
+       const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin rico82Pin${frost?' ricoFrostPin':''}"><span class="ricoWeatherSymbol">${ricoSharedWeatherIcon(sym,false)}</span><span class="ricoWeatherTemp"><span class="ricoTx">${max}°</span>${min!==null?`<span class="ricoSep">/</span><span class="ricoTn">${min}°</span>`:''}</span>${windHtml}</div>`,iconSize:[82,showWind?84:60],iconAnchor:[41,showWind?42:30]});
        const popup=`<b>${safe(p.point.n)}</b><br>${hourly?'Weersymbool: dynamische daglichturen (uurcache, '+hourly.count+' uren)':'Weersymbool: indicatie uit dagwaarden (geen volledige uurcache)'}${disagreement?'<br><b>⚠ Zonuren en bewolking spreken elkaar tegen</b>':''}<br>Max ${max}°${min!==null?' · min '+min+'°':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen`;
        L.marker([p.point.lat,p.point.lon],{icon}).bindPopup(popup).addTo(layer);
      }
@@ -5432,7 +5454,7 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
  function daypartIcon(icon,slot){
    // Zesuurvak wordt op de kaart als geheel samengevat. Avond en nacht tonen
    // een nachtvariant, maar exact dezelfde wolk en regen als overdag.
-   return unifiedWeatherIcon(icon,slot.name==='Avond'||slot.name==='Nacht');
+   return ricoSharedWeatherIcon(icon,slot.name==='Avond'||slot.name==='Nacht');
  }
  async function fetchDate(date){const key='rico-v51-civil-dayparts-'+date;try{const old=JSON.parse(localStorage.getItem(key)||'null');if(old?.saved&&Date.now()-old.saved<90*60000&&old.data?.loc?.length)return old.data}catch(e){}const loader=window.ricoV96Load; if(typeof loader!=='function')throw new Error('Uurgegevens-lader niet beschikbaar');const data=await loader(date);return data}
  function sixHours(slot,byDate){const result=[];for(const p of points()){const rows=[];for(let k=0;k<6;k++){const hour=new Date(slot.start.getTime()+k*3600000);const data=byDate[dateStr(hour)];const loc=data?.loc?.find(x=>x.name===p.n);const value=loc?.rows?.find(x=>x.hour===hour.getUTCHours());if(value)rows.push(value)}result.push({point:p,data:rows.length>=4?summarize(rows):null})}return result}
