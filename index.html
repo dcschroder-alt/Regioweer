@@ -5380,6 +5380,7 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
 
 <style id="ricoDaypartMapStyle">
 .ricoMapMode{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.ricoMapMode button{border:1px solid #b9d0e2;border-radius:10px;padding:10px 15px;background:#edf5fa;color:#17476b;font-weight:800;cursor:pointer}.ricoMapMode button[aria-pressed="true"]{background:#087e9b;color:white}.ricoDaypartNote{font-size:12px;color:#526b7b;margin:7px 0}.ricoDaypartGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.ricoPartMapCard{min-width:0;border:1px solid #bdd3e3;border-radius:12px;overflow:hidden;background:#e9f2f8}.ricoPartMapTitle{background:#087e9b;color:white;padding:10px;font-weight:850;display:flex;justify-content:space-between}.ricoPartMapCanvas{height:460px;background:#d5e8ed}.ricoPartMapCanvas .leaflet-tile-pane{filter:saturate(.66) contrast(.91) brightness(.98)}.ricoPartMapFoot{font-size:12px;padding:10px;color:#26465a;line-height:1.5}.ricoPartMapPin{display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;font-weight:900;line-height:1.05;width:76px;height:58px;filter:drop-shadow(0 1px 2px #fff)}.ricoPartMapPin .ricoWeatherSymbol{font-size:25px;line-height:30px;height:30px;display:block;filter:drop-shadow(0 2px 1px rgba(16,39,57,.78)) drop-shadow(1px 0 1px rgba(16,39,57,.65)) drop-shadow(-1px 0 1px rgba(16,39,57,.65))}.ricoPartMapPin .ricoWeatherTemp{background:rgba(255,255,255,.96);border-radius:7px;padding:3px 7px;box-shadow:0 1px 4px #19374d55;font-size:15px;white-space:nowrap}.ricoPartMapPin .ricoTx{color:#c72d26}.ricoPartMapPin .ricoTn{color:#1269c4}.ricoPartMapPin .ricoNightSvg{display:block;width:34px;height:34px;overflow:visible;filter:drop-shadow(0 1px 1px rgba(0,0,0,.35))}.ricoDaypartHidden{display:none!important}@media(max-width:1000px){.ricoDaypartGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.ricoDaypartGrid{grid-template-columns:1fr}.ricoPartMapCanvas{height:430px}}
+.ricoPartMapPin .ricoUnifiedWeatherSvg{display:block;width:42px;height:42px;overflow:visible;filter:drop-shadow(0 1px 2px rgba(13,40,61,.36))}.ricoPartMapPin .ricoWeatherSymbol{height:43px!important;line-height:43px!important;display:flex!important;align-items:center;justify-content:center}.ricoPartMapPin .ricoWeatherTemp{font-size:16px;font-weight:900;border-radius:10px;padding:4px 8px;color:#153c55}
 </style>
 <script>
 /* v35: daypart night symbols; daypart temperature as one value, using the same marker styling as daily maps; never invent hourly values from daily scan. */
@@ -5412,24 +5413,26 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
  function fmt(v,d=0){return Number.isFinite(v)?v.toFixed(d).replace('.',','):'—'}
  function bft(kmh){if(!Number.isFinite(kmh))return '—';const ms=kmh/3.6;return [0.3,1.6,3.4,5.5,8,10.8,13.9,17.2,20.8,24.5,28.5,32.7].findIndex(x=>ms<x)===-1?12:[0.3,1.6,3.4,5.5,8,10.8,13.9,17.2,20.8,24.5,28.5,32.7].findIndex(x=>ms<x)}
  function summarize(rows){const temps=rows.map(x=>x.temp).filter(Number.isFinite),cloud=med(rows.map(x=>x.cloud)),wind=med(rows.map(x=>x.wind)),rain=rows.map(x=>x.rain).filter(Number.isFinite),pop=med(rows.map(x=>x.pop));if(!temps.length)return null;const mm=rain.length?rain.reduce((a,b)=>a+b,0):null;const wet=(mm!==null&&mm>=.2)||(Number.isFinite(pop)&&pop>=50);const icon=wet?(cloud!==null&&cloud<60?'🌦️':'🌧️'):(cloud===null?'🌤️':cloud<25?'☀️':cloud<60?'🌤️':cloud<85?'⛅':'☁️');return {lo:Math.min(...temps),hi:Math.max(...temps),cloud,wind,mm,pop,icon}}
- // v35: nachtelijke pictogrammen als een enkel scherp SVG-symbool; geen losse emoji's.
- function nightIcon(dayIcon){
-   const rain=dayIcon==='🌧️'||dayIcon==='🌦️';
-   const heavyCloud=dayIcon==='☁️';
-   const partly=dayIcon==='🌤️'||dayIcon==='⛅'||dayIcon==='🌦️';
-   const moon='<path d="M30 6a19 19 0 1 0 20 28A18 18 0 0 1 30 6Z" fill="#f9df87" stroke="#b88939" stroke-width="1.5"/>';
-   const cloud='<path d="M20 43c-7 0-11-4-11-10 0-5 4-9 9-10 2-8 9-13 17-11 7 1 11 6 12 12 6-1 12 4 12 10 0 6-5 9-12 9Z" fill="#f4f8fc" stroke="#6e8ba2" stroke-width="2"/>';
-   const drops='<path d="M21 48l-3 7M34 48l-3 7M47 48l-3 7" stroke="#278fc7" stroke-width="3.5" stroke-linecap="round"/>';
-   const svg=(content)=>`<svg class="ricoNightSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 64" width="34" height="34" role="img" aria-label="${rain?'Regen in de nacht':heavyCloud?'Bewolkt in de nacht':partly?'Wolken en opklaringen in de nacht':'Heldere nacht'}">${content}</svg>`;
-   if(rain)return svg((partly?moon:'')+cloud+drops);
-   if(heavyCloud)return svg(cloud);
-   if(partly)return svg(moon+cloud);
-   return svg(moon);
+ // v96.2: dezelfde heldere SVG-symbolen in alle dagdelen; dag/nacht verandert
+ // alleen de zon in een maan, niet de wolkstijl of kleur.
+ function unifiedWeatherIcon(icon,night){
+   const wet=icon==='🌧️'||icon==='🌦️';
+   const cloudy=icon==='☁️'||icon==='🌧️';
+   const partial=icon==='🌤️'||icon==='⛅'||icon==='🌦️';
+   const rays='<g stroke="#f6a800" stroke-width="3" stroke-linecap="round"><path d="M23 2v6M23 38v6M1 23h6M39 23h6M8 8l5 5M33 33l5 5M8 38l5-5M33 13l5-5"/></g>';
+   const sun='<g>'+rays+'<circle cx="23" cy="23" r="11" fill="#ffcb37" stroke="#e9a11a" stroke-width="2"/></g>';
+   const moon='<path d="M31 4A18 18 0 1 0 45 32 18 18 0 0 1 31 4Z" fill="#ffe19a" stroke="#c68b2f" stroke-width="2"/>';
+   const cloud='<path d="M17 46C9 46 5 41 5 35c0-6 5-11 11-11 3-9 10-14 19-12 8 1 13 7 14 14 8-1 14 4 14 11 0 6-5 9-13 9Z" fill="#f8fbff" stroke="#587b96" stroke-width="2.8" stroke-linejoin="round"/>';
+   const drops='<g stroke="#138bd1" stroke-width="4" stroke-linecap="round"><path d="M18 50l-4 8M33 50l-4 8M48 50l-4 8"/></g>';
+   const sky=night?moon:sun;
+   const content=(cloudy?'':sky)+(cloudy||partial||wet?cloud:'')+(wet?drops:'');
+   const label=wet?'Regen':cloudy?'Bewolkt':partial?(night?'Wolken en maan':'Zon en wolken'):(night?'Helder':'Zonnig');
+   return `<svg class="ricoUnifiedWeatherSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 64" width="42" height="42" role="img" aria-label="${label}">${content}</svg>`;
  }
- function daypartIcon(dayIcon,slot){
-   // Avond 17-23 bevat in Nederland overwegend nachtelijke uren in het winterhalfjaar.
-   // Nacht 23-05 is altijd donker. Ochtend en middag behouden dagsymbolen.
-   return (slot.name==='Nacht'||slot.name==='Avond')?nightIcon(dayIcon):dayIcon;
+ function daypartIcon(icon,slot){
+   // Zesuurvak wordt op de kaart als geheel samengevat. Avond en nacht tonen
+   // een nachtvariant, maar exact dezelfde wolk en regen als overdag.
+   return unifiedWeatherIcon(icon,slot.name==='Avond'||slot.name==='Nacht');
  }
  async function fetchDate(date){const key='rico-v51-civil-dayparts-'+date;try{const old=JSON.parse(localStorage.getItem(key)||'null');if(old?.saved&&Date.now()-old.saved<90*60000&&old.data?.loc?.length)return old.data}catch(e){}const loader=window.ricoV96Load; if(typeof loader!=='function')throw new Error('Uurgegevens-lader niet beschikbaar');const data=await loader(date);return data}
  function sixHours(slot,byDate){const result=[];for(const p of points()){const rows=[];for(let k=0;k<6;k++){const hour=new Date(slot.start.getTime()+k*3600000);const data=byDate[dateStr(hour)];const loc=data?.loc?.find(x=>x.name===p.n);const value=loc?.rows?.find(x=>x.hour===hour.getUTCHours());if(value)rows.push(value)}result.push({point:p,data:rows.length>=4?summarize(rows):null})}return result}
