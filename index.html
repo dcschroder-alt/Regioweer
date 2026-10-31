@@ -639,6 +639,34 @@ body{min-width:0}
 #ricoWeatherAtlas.ricoV967Home .ricoWeatherMap{height:750px!important}
 @media(max-width:700px){#ricoWeatherAtlas .ricoWeatherMap,#ricoWeatherAtlas.ricoV967Home .ricoWeatherMap{height:530px!important}}
 </style>
+
+<style id="rico-v975-dashboard-polish">
+/* Visual polish of existing national data; no new weather requests. */
+#nationalScanDays .nationalDaySummary{background:linear-gradient(105deg,#075b91,#0087b4)!important;color:#fff!important;border-radius:18px;padding:17px 22px;box-shadow:0 5px 16px rgba(0,79,128,.13)}
+#nationalScanDays .nationalDaySummary b,#nationalScanDays .nationalDaySummary span,#nationalScanDays .nationalDaySummary strong{color:#fff!important}
+#nationalScanDays .nationalDayHead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:17px 0 11px}
+#nationalScanDays .nationalDayHead b{font-size:19px;color:#083c63}
+#nationalScanDays .nationalDayHead small{font-size:11px;color:#49637a;text-align:right}
+#nationalScanDays .nationalRegions{gap:12px}
+#nationalScanDays .ricoRegionVisual{position:relative;overflow:hidden;min-height:185px;justify-content:center;gap:5px;background:linear-gradient(160deg,#c6e5fb 0%,#e8f4ff 65%,#f8fcff 100%);border:1px solid #b8d8ed;border-radius:19px;box-shadow:0 2px 8px rgba(14,78,116,.06);padding:17px 9px}
+#nationalScanDays .ricoRegionName{color:#fff;background:#0d5187;border-radius:20px;padding:5px 16px;line-height:1.2;font-size:15px}
+#nationalScanDays .ricoRegionIcon{font-size:30px;line-height:1.25;min-height:37px}
+#nationalScanDays .ricoRegionTemp{font-size:40px;color:#075e85;letter-spacing:-1px}
+#nationalScanDays .ricoRegionLow{font-size:13px}
+#nationalScanDays .ricoRegionStats{width:100%;border-top:1px solid #c5ddea;margin-top:6px;padding-top:9px;font-size:12px;gap:8px}
+#nationalScanDays .ricoRegionVisual small{font-size:12px;color:#365e76}
+#nationalScanDays .ricoScanVisual{gap:12px;margin-top:13px}
+#nationalScanDays .ricoScanVisual>.nationalCard{border:1px solid #c7dfef;border-radius:18px;box-shadow:0 2px 7px rgba(9,67,108,.04)}
+#nationalScanDays .ricoScanVisual .nationalDayCard,#nationalScanDays .ricoScanVisual .randstadDayCard{min-height:105px;padding:18px 46px 18px 18px}
+#nationalScanDays .ricoScanVisual .nationalDayCard::after,#nationalScanDays .ricoScanVisual .randstadDayCard::after{bottom:auto;top:35%;font-size:27px}
+#nationalScanDays .ricoScanVisual .nationalCard b{font-size:17px;color:#092f56}
+#nationalScanDays .ricoScanVisual .nationalCard span{font-size:14px;line-height:1.5}
+#nationalScanDays .ricoConfidence{margin-top:13px;background:linear-gradient(110deg,#eaf5f9,#f4f9ff);border:1px solid #d8e8f1;padding:15px;border-radius:18px}
+#nationalScanDays .ricoConfidence>strong{font-size:16px;color:#093f69}
+#nationalScanDays .ricoConfidenceText>span{background:#fff;border:1px solid #d9e5ee;border-radius:11px}
+@media(max-width:750px){#nationalScanDays .nationalDayHead{align-items:flex-start;flex-direction:column}#nationalScanDays .nationalDayHead small{text-align:left;max-width:100%}#nationalScanDays .ricoRegionVisual{min-height:155px}#nationalScanDays .ricoRegionTemp{font-size:32px}}
+@media(prefers-reduced-motion:no-preference){#nationalScanDays .ricoScanVisual .nationalDayCard:hover,#nationalScanDays .ricoScanVisual .randstadDayCard:hover{transform:translateY(-2px);transition:transform .15s ease}}
+</style>
 </head>
 <body><div class="wrap">
 <section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v96.6</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
