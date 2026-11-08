@@ -716,7 +716,7 @@ body{min-width:0}
 </style>
 </head>
 <body><div class="wrap">
-<section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v100.0</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
+<section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v100.2</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
 <nav class="quickJump" aria-label="Snel naar onderdelen"><span class="quickJumpLabel">Snel naar</span><button type="button" data-jump="todayGlancePanel">Vandaag</button><button type="button" data-jump="weatherTextPanel">Weerbericht</button><button type="button" data-jump="nationalScanPanel">Landelijk</button><button type="button" data-jump="longRangePanel">6 weken</button><button type="button" data-jump="climatePanel">Klimaat</button><button type="button" data-jump="editorialDeskPanel">Redactie</button><button type="button" data-jump="v97Cockpit">Cockpit</button><button type="button" data-jump="ricoEnergyPanel">☀️ Energie</button></nav>
 <section class="panel">
 <div class="grid">
@@ -5202,6 +5202,48 @@ function weatherSymbol(p){
  if(Number.isFinite(p.rain))return '🌥️';
  return '·';
 }
+/* v100.2 — Gebalanceerde selectie voor beide landelijke weerkaarttypen.
+   De weergegevens blijven exact uit hun eigen bron komen; alleen de plaatsen op
+   de kaart worden geselecteerd. Geen limiet van tien die gaten veroorzaakt. */
+function ricoAtlasBalancedPoints(items,map){
+ const sz=map.getSize(),zoom=map.getZoom();
+ // Screenshotreferentie: vaste dekking in midden, west, oost, noorden en zuiden.
+ // Gebruik dezelfde prioriteit bij dagelijkse waarden en bij zesuurswaarden.
+ const first=['Houten','Emmeloord','Arnhem','Rotterdam','Enschede',
+   'Terschelling','Groningen','Vlissingen','Eindhoven','Maastricht',
+   'Den Helder','Venlo','Emmen','Breda','IJmuiden','Leeuwarden',
+   'Apeldoorn','Hoorn','Winterswijk','Schiermonnikoog','Roermond',
+   'Lelystad','Texel','Almere','Gouda','Doetinchem','Den Bosch',
+   'Scheveningen','Leiden','Amsterdam','Harlingen','Nijmegen'];
+ const padX=sz.x<450?34:42,padY=sz.y<540?42:46;
+ const candidate=items.map(item=>{
+   const p=item.point;
+   if(!p||!Number.isFinite(p.lat)||!Number.isFinite(p.lon))return null;
+   const xy=map.latLngToContainerPoint([p.lat,p.lon]);
+   if(xy.x<padX||xy.y<padY||xy.x>sz.x-padX||xy.y>sz.y-padY)return null;
+   return {item,xy,name:p.n||''};
+ }).filter(Boolean);
+ const ordered=[...candidate].sort((a,b)=>{
+   const ai=first.indexOf(a.name),bi=first.indexOf(b.name);
+   return (ai<0?first.length:ai)-(bi<0?first.length:bi)||a.name.localeCompare(b.name);
+ });
+ // Markers met weersymbool + temperatuurbadge vragen meer ruimte dan de losse
+ // groene cijfers op de referentiekaart. Bij grotere zoom automatisch dichter.
+ const width=zoom>=9?55:zoom===8?64:sz.x<550?64:72;
+ const height=zoom>=9?52:zoom===8?59:sz.y<580?62:66;
+ // Laat op een volledige Nederlandse kaart ongeveer 16–20 punten toe,
+ // op een smal scherm minder. Inzoomen toont extra regionale locaties.
+ const cap=sz.x<420?11:sz.x<600?14:zoom>=9?35:20;
+ const selected=[];
+ const place=c=>{
+   if(selected.length>=cap)return false;
+   if(selected.some(q=>Math.abs(c.xy.x-q.xy.x)<width&&Math.abs(c.xy.y-q.xy.y)<height))return false;
+   selected.push(c);return true;
+ };
+ ordered.forEach(place);
+ return selected.map(c=>c.item);
+}
+window.ricoAtlasBalancedPoints=ricoAtlasBalancedPoints;
 function distance(a,b){const dx=(a.point.lon-b.point.lon)*Math.cos(a.point.lat*Math.PI/180),dy=a.point.lat-b.point.lat;return Math.hypot(dx,dy)}
 function spreadPoints(points,max){
  const remaining=points.filter(p=>Number.isFinite(p.point?.lat)&&Number.isFinite(p.point?.lon));
@@ -5333,32 +5375,14 @@ function updateWeatherAtlas(){
    // De modelmix en de bestaande 35 scanpunten blijven de bron.
    const all=d.pts.filter(p=>Number.isFinite(p.tx)&&Number.isFinite(p.point?.lat)&&Number.isFinite(p.point?.lon));
    const layer=L.layerGroup().addTo(map);
-   const preferred=['Terschelling','Groningen','IJmuiden','Emmeloord','Enschede','Rotterdam','Houten','Apeldoorn','Vlissingen','Maastricht'];
    function drawDailyMarkers(){
      layer.clearLayers();
-     const zoom=map.getZoom(),size=map.getSize();
-     const gap=zoom<=7?(size.x>850?59:76):zoom===8?67:zoom===9?57:49;
-     const candidates=all.filter(p=>{const pt=map.latLngToContainerPoint([p.point.lat,p.point.lon]);return pt.x>=30&&pt.y>=40&&pt.x<=size.x-30&&pt.y<=size.y-40});
-     // Zoomed-in view: distribute labels across the visible map rather than always
-     // favouring the ten national overview sites, which could leave the east empty.
-     const ordered=zoom<=7?[...candidates].sort((a,b)=>{
-       const ia=preferred.indexOf(a.point.n),ib=preferred.indexOf(b.point.n);
-       return (ia<0?100:ia)-(ib<0?100:ib);
-     }):[...candidates].sort((a,b)=>{
-       const pa=map.latLngToContainerPoint([a.point.lat,a.point.lon]);
-       const pb=map.latLngToContainerPoint([b.point.lat,b.point.lon]);
-       const center={x:size.x/2,y:size.y/2};
-       return Math.hypot(pa.x-center.x,pa.y-center.y)-Math.hypot(pb.x-center.x,pb.y-center.y);
-     });
-     const occupied=[];
+     const size=map.getSize();
+     const ordered=ricoAtlasBalancedPoints(all,map);
      const windSites=['IJmuiden','Terschelling','Groningen','Rotterdam','Houten','Apeldoorn','Vlissingen','Enschede','Maastricht'];
      let windShown=[];
      for(const p of ordered){
        const pt=map.latLngToContainerPoint([p.point.lat,p.point.lon]);
-       if(pt.x<30||pt.y<40||pt.x>size.x-30||pt.y>size.y-40)continue;
-       if(occupied.some(q=>Math.hypot(pt.x-q.x,pt.y-q.y)<gap))continue;
-       if(zoom<=7&&occupied.length>=10)break; // gedeeld compact NL-overzicht
-       occupied.push(pt);
        const hourly=ricoCachedDaytime(p.point.n,d.date,p.point);
        // Prefer the actual 05-17 cloud and precipitation summary where available.
        // Where hourly cache is absent, avoid a definitive full-sun icon inferred from daily sunshine alone.
@@ -5705,7 +5729,7 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
 /* v35: daypart night symbols; daypart temperature as one value, using the same marker styling as daily maps; never invent hourly values from daily scan. */
 (()=>{
  // Gebruik alle 35 landelijke scanpunten voor de uurverwachting.
- // De kaart zelf toont tien goed gespreide punten, net als de dagelijkse kaarten.
+ // Beide kaarten gebruiken dezelfde geografisch gebalanceerde plaatsselectie.
  const PREFERRED=[['Terschelling','Texel','Den Helder'],['Groningen','Leeuwarden','Emmen'],['IJmuiden','Den Helder','Amsterdam'],['Emmeloord','Lelystad','Almere'],['Enschede','Winterswijk','Emmen'],['Rotterdam','Scheveningen','Leiden'],['Houten','Gouda','Almere'],['Apeldoorn','Arnhem','Lelystad'],['Vlissingen','Breda'],['Maastricht','Venlo','Eindhoven']];
  function points(){return NATIONAL_POINTS.map(p=>({...p}));}
  function displayPoints(){const all=points();return PREFERRED.map(names=>names.map(n=>all.find(p=>p.n===n)).find(Boolean)).filter(Boolean);}
@@ -5773,23 +5797,13 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
  rico971FitNetherlands(map,el);
    {let firstVisible=false;const fitWhenShown=()=>{if(firstVisible||!el.getClientRects().length||el.clientWidth<100)return;rico971FitNetherlands(map,el);firstVisible=true;window.removeEventListener('resize',fitWhenShown)};window.addEventListener('resize',fitWhenShown);setTimeout(fitWhenShown,300);}
  const layer=L.layerGroup().addTo(map);
- const preferred=['Terschelling','Groningen','IJmuiden','Emmeloord','Enschede','Rotterdam','Houten','Apeldoorn','Vlissingen','Maastricht'];
  function draw(){
-  layer.clearLayers();const zoom=map.getZoom(),size=map.getSize(),gap=zoom<=7?(size.x>850?59:76):zoom===8?67:zoom===9?57:49;
-  const visible=allUsable.filter(x=>{const pt=map.latLngToContainerPoint([x.point.lat,x.point.lon]);return pt.x>=34&&pt.y>=40&&pt.x<=size.x-34&&pt.y<=size.y-40});
-  const ordered=[...visible].sort((a,b)=>{
-   if(zoom<=7){const ia=preferred.indexOf(a.point.n),ib=preferred.indexOf(b.point.n);return (ia<0?100:ia)-(ib<0?100:ib)}
-   const pa=map.latLngToContainerPoint([a.point.lat,a.point.lon]),pb=map.latLngToContainerPoint([b.point.lat,b.point.lon]);
-   return Math.hypot(pa.x-size.x/2,pa.y-size.y/2)-Math.hypot(pb.x-size.x/2,pb.y-size.y/2);
-  });
-  const occupied=[];
+  layer.clearLayers();
+  const ordered=window.ricoAtlasBalancedPoints(allUsable,map);
   const windShown=[];
   const windSites=['IJmuiden','Terschelling','Groningen','Rotterdam','Houten','Apeldoorn','Vlissingen','Enschede','Maastricht'];
   for(const {point,data:d} of ordered){
    const pt=map.latLngToContainerPoint([point.lat,point.lon]);
-   if(occupied.some(q=>Math.hypot(pt.x-q.x,pt.y-q.y)<gap))continue;
-   if(zoom<=7&&occupied.length>=10)break; // gedeeld compact NL-overzicht
-   occupied.push(pt);
    const temp=Math.round(d.temp),symbol=daypartIcon(d.icon,slot),chosen=window.ricoAtlasLayer||'wx';
    const comparable=slot.name!=='Nacht'?(nationalScanLastPack?.days||[]).find(x=>x.date===slot.date)?.pts?.find(p=>p.point?.n===point.n):null;
    const compareText=Number.isFinite(comparable?.tx)&&Number.isFinite(comparable?.tn)?`<br>Dagmodelmix (andere bron): TX ${Math.round(comparable.tx)}° / TN ${Math.round(comparable.tn)}°${d.hi>comparable.tx+1.5||d.lo<comparable.tn-1.5?' · ⚠ uurverloop wijkt af van dagmodelmix':''}`:'';
