@@ -5170,7 +5170,7 @@ function updateWeatherAtlas(){
   const mm=rain.length?rain.sort((a,b)=>a-b)[Math.floor(rain.length/2)]:null;
   const previous=atlasHistory();const signals=atlasSignals(d);const change=atlasDayChange(d,previous);
   const extra=`<div class="ricoAtlasExtra"><div><b>Verandering sinds vorige scan:</b> ${change}</div><div class="ricoChips">${signals.length?signals.slice(0,2).map(x=>`<span class="ricoChip">${x}</span>`).join(''):'<span class="ricoSmall">Geen bijzondere signalen uit de beschikbare dagwaarden</span>'}</div></div>`;
-  return `<article class="ricoWeatherCard"><div class="ricoWeatherTitle"><span>${safe(dayLabel(d.date))}</span><span>${good.length}/${NATIONAL_POINTS.length}</span></div><div class="ricoWeatherMap" id="ricoWeatherMap${i}" aria-label="Landelijk weerbeeld ${safe(dayLabel(d.date))}"></div><div class="ricoWeatherFoot">${mm!==null?'Landelijke neerslagmediaan '+mm.toFixed(1).replace('.',',')+' mm · ':''}temperaturen: modelmix · symbool: uurgegevens tussen zonsopkomst en zonsondergang (eerste 72 uur), anders indicatief · <b>blauw = vorst</b>${i>=10?' · lange termijn, grotere onzekerheid':i>=7?' · langere termijn, grotere onzekerheid':''}</div>${extra}</article>`
+  return `<article class="ricoWeatherCard"><div class="ricoWeatherTitle"><span>${safe(dayLabel(d.date))}</span><span>${good.length}/${NATIONAL_POINTS.length}</span></div><div class="ricoWeatherMap" id="ricoWeatherMap${i}" aria-label="Landelijk weerbeeld ${safe(dayLabel(d.date))}"></div><div class="ricoWeatherFoot">${mm!==null?'Landelijke neerslagmediaan '+mm.toFixed(1).replace('.',',')+' mm · ':''}temperaturen: eerste 72 uur gedeelde uurbron met dagdelen (indien geladen), daarna modelmix · symbool: uurgegevens tussen zonsopkomst en zonsondergang (eerste 72 uur), anders indicatief · <b>blauw = vorst</b>${i>=10?' · lange termijn, grotere onzekerheid':i>=7?' · langere termijn, grotere onzekerheid':''}</div>${extra}</article>`
  }).join('');
  const rainHost=host.querySelector('.ricoAtlasRain');if(rainHost)rainHost.remove();host.querySelector('.ricoWeatherGrid').insertAdjacentHTML('afterend',atlasRainSummary(valid));
  // Alleen bestaande kaartbibliotheek en OSM-kaarttegels. Geen weer-API-calls.
@@ -5257,7 +5257,17 @@ function updateWeatherAtlas(){
        const sunFraction=Number.isFinite(p.sun)&&typeof possibleDaylightHours==='function'?p.sun/Math.max(1,possibleDaylightHours(d.date)):null;
        const disagreement=!!hourly&&Number.isFinite(sunFraction)&&sunFraction>=0.65&&hourly.cloud>=65;
        const sym=hourly?(hourly.wetHours>=2&&Number.isFinite(hourly.rain)&&hourly.rain>=.3?(hourly.cloud<60?'🌦️':'🌧️'):(hourly.cloud<25?'☀️':hourly.cloud<60?'🌤️':hourly.cloud<85?'⛅':'☁️')):(weatherSymbol(p)==='☀️'?'🌤️':weatherSymbol(p));
-       const max=Math.round(p.tx),min=Number.isFinite(p.tn)?Math.round(p.tn):null;
+       // v98.9: the first 72h daily map uses the SAME hourly source as
+       // the daypart map, preventing a 6-hour maximum exceeding the daily maximum.
+       // Keep the national multi-model daily values for all other products.
+       let hourlyExtremes=null;
+       try{
+         const c=JSON.parse(localStorage.getItem('rico-v51-civil-dayparts-'+d.date)||'null');
+         const loc=c?.data?.loc?.find(x=>x.name===p.point.n);
+         const vals=(loc?.rows||[]).map(x=>x.temp).filter(Number.isFinite);
+         if(vals.length>=20)hourlyExtremes={tx:Math.max(...vals),tn:Math.min(...vals)};
+       }catch(e){}
+       const max=Math.round(hourlyExtremes?hourlyExtremes.tx:p.tx),min=hourlyExtremes?Math.round(hourlyExtremes.tn):(Number.isFinite(p.tn)?Math.round(p.tn):null);
        const frost=min!==null&&min<0;
        // Wind op maximaal drie geografisch gespreide zichtbare locaties.
        // In dezelfde marker, zodat geen extra labels of verbindingslijnen ontstaan.
