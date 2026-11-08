@@ -678,7 +678,7 @@ body{min-width:0}
 </style>
 </head>
 <body><div class="wrap">
-<section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v96.6</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
+<section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v99.0</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
 <nav class="quickJump" aria-label="Snel naar onderdelen"><span class="quickJumpLabel">Snel naar</span><button type="button" data-jump="todayGlancePanel">Vandaag</button><button type="button" data-jump="weatherTextPanel">Weerbericht</button><button type="button" data-jump="nationalScanPanel">Landelijk</button><button type="button" data-jump="longRangePanel">6 weken</button><button type="button" data-jump="climatePanel">Klimaat</button><button type="button" data-jump="editorialDeskPanel">Redactie</button><button type="button" data-jump="v97Cockpit">Cockpit</button><button type="button" data-jump="ricoEnergyPanel">☀️ Energie</button></nav>
 <section class="panel">
 <div class="grid">
@@ -2214,6 +2214,45 @@ function mistPartIndicator(hours){
  const title=`${kind}: ${affected}/${valid.length} uurwaarden met zicht onder 5 km; minimum ${lowest} m. Aandeel uurwaarden, geen voorspelde kans.`;
  return `<div class="ricoMistPart" title="${title}"><span>🌫️ ${kind}</span><span class="ricoMistTrack"><i style="width:${share}%"></i></span><small>${share}% uren beperkt zicht</small></div>`;
 }
+// v99.0: Temperature change is an explanation of HOURLY evolution only.
+// Never derive or overwrite a daily maximum/minimum (TX/TN) with these values.
+function ricoweerHourTempTrend(hours, label=''){
+ const points=(hours||[]).map(r=>{
+  const hour=Number.isFinite(r.hour)?r.hour:Number(String(r.time||'').slice(11,13));
+  const temp=r.temp;
+  return {hour,temp,count:r.count};
+ }).filter(r=>Number.isInteger(r.hour)&&r.hour>=0&&r.hour<24&&Number.isFinite(r.temp)).sort((a,b)=>a.hour-b.hour);
+ if(points.length<3||points.at(-1).hour-points[0].hour<2)return null;
+ // Never describe a continuous development when the necessary hours are missing.
+ if(points.some((p,i)=>i>0&&(p.hour-points[i-1].hour>2||p.hour===points[i-1].hour)))return null;
+ const from=points[0],to=points.at(-1),delta=to.temp-from.temp;
+ if(Math.abs(delta)<2||Math.round(from.temp)===Math.round(to.temp))return null;
+ const direction=delta>0?'warm':'cool',fromText=Math.round(from.temp)+'°',toText=Math.round(to.temp)+'°';
+ const lead=label==='Nacht'?'In de nacht':label==='Ochtend'?'In de ochtend':label==='Middag'?'In de middag':label==='Avond'?'In de avond':label==='resterend'?'In de resterende uren':'In de loop van de dag';
+ const verb=delta>0?'loopt de temperatuur op':'koelt het af';
+ return {direction,delta,from:from.temp,to:to.temp,start:from.hour,end:to.hour,text:`${lead} ${verb} van ongeveer ${fromText} naar ${toText}.`};
+}
+function ricoweerHourTempDuiding(rows,date){
+ if(!rows?.length)return '';
+ const isToday=date===nlToday();
+ const labels=[['Nacht',0,6],['Ochtend',6,12],['Middag',12,18],['Avond',18,24]];
+ const trends=labels.map(([label,a,b])=>ricoweerHourTempTrend(rows.filter(r=>{
+  const h=Number(String(r.time||'').slice(11,13));return h>=a&&h<b;
+ }),label)).filter(Boolean);
+ if(trends.length){
+  // First highlight unusual night/late-day warming or cooling; then the biggest change.
+  trends.sort((a,b)=>{
+   const score=x=>Math.abs(x.delta)+(x.direction==='warm'&&(x.start<6||x.start>=18)?2:0)+(x.direction==='cool'&&x.start>=12&&x.start<18?1:0);
+   return score(b)-score(a);
+  });
+  const selected=trends.filter(x=>Math.abs(x.delta)>=3||trends.length===1).slice(0,2);
+  if(selected.length)return selected.sort((a,b)=>a.start-b.start).map(x=>x.text).join(' ');
+ }
+ // If no complete 6-hour part shows a clear signal, use the overall hourly trend.
+ const whole=ricoweerHourTempTrend(rows,isToday?'resterend':'');
+ return whole&&Math.abs(whole.delta)>=3?whole.text:'';
+}
+
 function dayPartSummary(rows,label,h0,h1,date=null){
  const a=rows.filter(r=>{const h=+r.time.slice(11,13);return h>=h0&&h<h1});if(!a.length)return '';
  const temps=a.map(r=>r.temp).filter(Number.isFinite),p=a.reduce((x,r)=>x+(r.precip||0),0),pct=Math.max(0,...a.map(r=>r.rainPct||0)),codes=a.map(r=>r.code).filter(Number.isFinite);
@@ -2227,7 +2266,8 @@ function dayPartSummary(rows,label,h0,h1,date=null){
  if(label==='Avond'&&date){const ss=sunsetMinutesForDate(date),nightShare=Number.isFinite(ss)?Math.max(0,Math.min(360,1440-Math.max(1080,ss)))/360:0;if(nightShare>.5){if(p>=.05)wx='🌧️';else if(code<=1)wx='🌙';else if(code<=3)wx='☁️';else wx='☁️'}}
  const wind=winds.length?Math.round(winds.reduce((x,y)=>x+y,0)/winds.length):null,dir=circ(dirs),pressure=press.length?Math.round(press.reduce((x,y)=>x+y,0)/press.length):null,gust=gusts.length?Math.round(Math.max(...gusts)):null,cloud=clouds.length?Math.round(clouds.reduce((x,y)=>x+y,0)/clouds.length):null,dew=dews.length?Math.round(dews.reduce((x,y)=>x+y,0)/dews.length):null,vis=a.map(r=>r.visibility).filter(Number.isFinite),hum=a.map(r=>r.humidity).filter(Number.isFinite),minVis=vis.length?Math.min(...vis):null,maxHum=hum.length?Math.max(...hum):null,mist=!!date&&strictMistSignal(date)&&Number.isFinite(minVis)&&minVis>0&&minVis<1500; 
  const rain=p>=.05?`💧 ${p.toFixed(1).replace('.',',')} mm${pct?` · ${pct}% modellen nat`:''}`:'💧 droog';
- return `<div class="dayPart"><b>${label}</b><div class="partIcon">${wx}</div><div class="partTemp">${Number.isFinite(tfirst)?tfirst+'°':'—'}${Number.isFinite(tlast)&&tlast!==tfirst?' → '+tlast+'°':''}</div><div class="partMeta">${rain}<br>💨 ${Number.isFinite(wind)?bftText(wind):'—'} ${compass(dir)}<br>◉ ${Number.isFinite(pressure)?pressure+' hPa MSL':'—'}${Number.isFinite(gust)&&gust>=35?`<br>💨 stoten ${gust} km/u`:''}${Number.isFinite(cloud)?` · ☁️ ${cloud}%`:''}${Number.isFinite(dew)?`<br>💧 dauwpunt ${dew}°`:''}${mist?`<br>🌫️ mistsignaal`:''}</div>${mistPartIndicator(a)}</div>`;
+ const tTrend=ricoweerHourTempTrend(a,label);
+ return `<div class="dayPart"><b>${label}</b><div class="partIcon">${wx}</div><div class="partTemp">${Number.isFinite(tfirst)?tfirst+'°':'—'}${Number.isFinite(tlast)&&tlast!==tfirst?' → '+tlast+'°':''}</div>${tTrend?`<div class="partTrend" style="font-size:12px;line-height:1.4;margin:5px 0">🌡️ ${tTrend.text}</div>`:''}<div class="partMeta">${rain}<br>💨 ${Number.isFinite(wind)?bftText(wind):'—'} ${compass(dir)}<br>◉ ${Number.isFinite(pressure)?pressure+' hPa MSL':'—'}${Number.isFinite(gust)&&gust>=35?`<br>💨 stoten ${gust} km/u`:''}${Number.isFinite(cloud)?` · ☁️ ${cloud}%`:''}${Number.isFinite(dew)?`<br>💧 dauwpunt ${dew}°`:''}${mist?`<br>🌫️ mistsignaal`:''}</div>${mistPartIndicator(a)}</div>`;
 }
 function dayAdviceCards(dayMix,rows,dew,gust,date=null){
  const isToday=date===nlToday(),temps=rows?.map(r=>r.temp).filter(Number.isFinite)||[];
@@ -2384,8 +2424,10 @@ function buildDayNarrative(date,dayMix,rows,arrays,wind,dir,gust,dew){
  const hi=isToday&&remHi.length?Math.round(Math.max(...remHi)):(Number.isFinite(dayMix.txHigh)?Math.round(dayMix.txHigh):null);
  let lead=Math.max(0,Math.round((new Date(date+'T12:00:00')-new Date(forecastStartDate()+'T12:00:00'))/864e5));
  const visual=detailDayVisual(rows,dayMix).text.toLowerCase();
- let intro=isToday?(afterDark?`Voor de rest van vanavond: ${visual}. De temperatuur ligt eerst rond <strong>${Math.round(shownMax)}°</strong>${Number.isFinite(eveningTemp)?` en daalt later naar ongeveer <strong>${Math.round(eveningTemp)}°</strong>`:''}.`:`Voor de rest van vandaag: ${visual}, met een maximum rond <strong>${Math.round(shownMax)}°</strong>. ${Number.isFinite(eveningTemp)?`Vanavond daalt de temperatuur naar ongeveer <strong>${Math.round(eveningTemp)}°</strong>.`:''}`):`${visual.charAt(0).toUpperCase()+visual.slice(1)} met een maximum rond <strong>${Math.round(shownMax)}°</strong> en een minimum rond <strong>${Math.round(shownMin)}°</strong>.`;
+ let intro=isToday?(afterDark?`Voor de rest van vanavond: ${visual}. De uurlijkse temperatuur ligt in de resterende uren tot ongeveer <strong>${Math.round(shownMax)}°</strong>.`:`Voor de rest van vandaag: ${visual}, met een hoogste uurlijkse temperatuur in de resterende uren rond <strong>${Math.round(shownMax)}°</strong>.`):`${visual.charAt(0).toUpperCase()+visual.slice(1)} met een maximum rond <strong>${Math.round(dayMix.max)}°</strong> en een minimum rond <strong>${Math.round(dayMix.min)}°</strong>.`;
  bits.push(intro);
+ const tempEvolution=ricoweerHourTempDuiding(rows,date);
+ if(tempEvolution)bits.push(tempEvolution);
  // Vertel daarna het verloop van de dag in gewone weerberichttaal. Nachtelijke
  // neerslag blijft context, maar verandert het hoofdweerbeeld overdag niet.
  if(!isToday&&rows?.length){
@@ -2468,7 +2510,7 @@ function buildNowcastBox(rows,date){
  const warm=[...rows].filter(r=>Number.isFinite(r.temp)).sort((a,b)=>b.temp-a.temp)[0];if(warm)bits.push(`Warmst rond <strong>${warm.time.slice(11,16)}</strong> met ongeveer ${Math.round(warm.temp)}°.`);
  if(!isDarkNow()&&sun>=.25)bits.push(`Nog circa <strong>${sun.toFixed(1).replace('.',',')} uur zon</strong>.`);
  const peak=[...rows].filter(r=>Number.isFinite(r.gust)).sort((a,b)=>b.gust-a.gust)[0];if(peak&&peak.gust>=45)bits.push(`Sterkste windstoten rond ${Math.round(peak.gust)} km/u.`);
- if(Number.isFinite(first?.temp)&&Number.isFinite(last?.temp)&&first.temp-last.temp>=4)bits.push(`Later koelt het duidelijk af.`);
+ const remainingTempTrend=ricoweerHourTempTrend(rows,'resterend');if(remainingTempTrend&&Math.abs(remainingTempTrend.delta)>=3)bits.push(remainingTempTrend.text);
  return `<b>⏭ Nu → ${isDarkNow()?'later vanavond':'vanavond'}</b>${bits.join(' ')}`;
 }
 async function openDayDetail(date){
@@ -4017,6 +4059,7 @@ async function nsFetchRandstadTiming(date){return nsFetchTimingPoints(date,[{n:'
 async function nsFetchNationalTiming(date){return nsFetchTimingPoints(date,[{n:'Wadden',lat:53.30,lon:5.07},{n:'Noordwest',lat:52.96,lon:4.76},{n:'Noordoost',lat:53.22,lon:6.57},{n:'Midden',lat:52.09,lon:5.12},{n:'Zuidwest',lat:51.45,lon:3.57},{n:'Zuidoost',lat:50.85,lon:5.69}],'nederland')}
 function nsRandstadTimingText(t){
  if(!t?.hours?.length)return'';const h=t.hours,w=nsHourWindows(h),bits=[];
+ const tempChange=ricoweerHourTempDuiding(h.map(x=>({...x,time:'2000-01-01T'+String(x.hour).padStart(2,'0')+':00'})),'2000-01-01');if(tempChange)bits.push('Volgens de aanvullende uurverwachting: '+tempChange);
  if(!w.length)bits.push('De uurverwachting houdt de Randstad de hele dag droog.');
  else{const first=w[0][0],last=w[w.length-1][1];if(first>=12)bits.push(`Eerst blijft het droog; vanaf ongeveer ${nsTime(first)} neemt de kans op buien of regen toe.`);else if(first>=7)bits.push(`In de ochtend neemt vanaf ongeveer ${nsTime(first)} de kans op buien of regen toe.`);else if(last<=13)bits.push(`In de nacht en ochtend kan regen of een bui vallen; vanaf ongeveer ${nsTime(last)} wordt het op de meeste plaatsen droger.`);else if(w.length>=2)bits.push(`Er zijn meerdere natte perioden in beeld: ongeveer ${w.map(x=>`${nsTime(x[0])}–${nsTime(x[1])}`).join(' en ')}.`);else bits.push(`Buien of regen zijn vooral tussen ongeveer ${nsTime(first)} en ${nsTime(last)} in beeld.`);
   const c=t.firstWet['kust'],o=t.firstWet['Utrecht/Flevoland'];if(Number.isFinite(c)&&Number.isFinite(o)&&Math.abs(c-o)>=2)bits.push(c<o?'De neerslag bereikt waarschijnlijk eerst de kust en later Utrecht/Flevoland.':'De eerste neerslag ligt juist eerder landinwaarts; de kust volgt waarschijnlijk later.');}
@@ -4033,6 +4076,7 @@ function nsTempRangeSentence(vals,scope='Landinwaarts'){const a=vals.filter(Numb
 function nsSignalCards(day,regions=null){const t=nsTopModelSignal(day,'tx',regions),r=nsTopModelSignal(day,'rain',regions),g=nsTopModelSignal(day,'gust',regions),out=[];if(t)out.push(`🌡️ Hoogste modelsignaal <strong>${Math.round(t.value)}°</strong> · ${t.model} · ${nsArea({point:t.point})}`);if(r&&r.value>=1)out.push(`🌧️ Natste modelsignaal <strong>${nsFmt(r.value)} mm</strong> · ${r.model} · ${nsArea({point:r.point})}`);if(g&&g.value>=35)out.push(`💨 Zwaarste modelsignaal <strong>${Math.round(g.value)} km/u</strong> · ${g.model} · ${nsArea({point:g.point})}`);return out.join('<br>')}
 function nsNationalTimingText(t){
  if(!t?.hours?.length)return'';const h=t.hours,w=nsHourWindows(h),bits=[];
+ const tempChange=ricoweerHourTempDuiding(h.map(x=>({...x,time:'2000-01-01T'+String(x.hour).padStart(2,'0')+':00'})),'2000-01-01');if(tempChange)bits.push('Volgens de aanvullende uurverwachting: '+tempChange);
  if(!w.length)bits.push('Het blijft volgens het uurverloop de hele dag droog.');
  else{const first=w[0][0],last=w[w.length-1][1];if(first>=12)bits.push(`Eerst blijft het op veel plaatsen droog; vanaf ongeveer ${nsTime(first)} neemt de kans op buien of regen toe.`);else if(first>=7)bits.push(`In de ochtend neemt vanaf ongeveer ${nsTime(first)} de kans op buien of regen toe.`);else if(last<=13)bits.push(`In de nacht en ochtend kan regen of een bui vallen; vanaf ongeveer ${nsTime(last)} wordt het op veel plaatsen droger.`);else if(w.length>=2)bits.push(`Er zijn meerdere natte perioden in beeld: ongeveer ${w.map(x=>`${nsTime(x[0])}–${nsTime(x[1])}`).join(' en ')}.`);else bits.push(`Buien of regen zijn vooral tussen ongeveer ${nsTime(first)} en ${nsTime(last)} in beeld.`);
   const entries=Object.entries(t.firstWet).filter(([,v])=>Number.isFinite(v)).sort((a,b)=>a[1]-b[1]);if(entries.length>=2&&entries.at(-1)[1]-entries[0][1]>=2)bits.push(`De eerste neerslag ligt rond ${entries[0][0]} en bereikt ${entries.at(-1)[0]} waarschijnlijk enkele uren later.`)}
@@ -4100,7 +4144,8 @@ function nsDaypartPanel(t){
  const cards=parts.map(([name,a,b,ico])=>{
   const rows=t.hours.filter(x=>x.hour>=a&&x.hour<b),temps=rows.map(x=>x.temp).filter(Number.isFinite),cloud=nsHourMean(rows,'cloud',a,b),wind=nsHourMean(rows,'wind',a,b),dir=nsHourDir(rows,a,b),rain=rows.map(x=>x.rain).filter(Number.isFinite),sum=rain.reduce((x,y)=>x+y,0),wet=rows.some(x=>x.wet);
   const sky=!Number.isFinite(cloud)?'Bewolking onbekend':cloud<25?'Zonnig / helder':cloud<55?'Zon en wolken':cloud<80?'Veel bewolking':'Bewolkt';
-  return `<div class="nsPart"><div class="nsPartTitle">${ico} ${name}</div><strong>${temps.length?`${f(Math.min(...temps),'°')}–${f(Math.max(...temps),'°')}`:'Temperatuur —'}</strong><span>${sky}</span><small>${rain.length?(wet||sum>=.1?`🌧️ ${nsFmt(sum)} mm`:'☀️ Droog'):'Neerslag —'} · 💨 ${Number.isFinite(wind)?`${nsDir(dir)} ${bftText(wind)}`:'—'}</small></div>`;
+  const tempTrend=ricoweerHourTempTrend(rows,name);
+  return `<div class="nsPart"><div class="nsPartTitle">${ico} ${name}</div><strong>${temps.length?`${f(Math.min(...temps),'°')}–${f(Math.max(...temps),'°')}`:'Temperatuur —'}</strong>${tempTrend?`<span>🌡️ ${tempTrend.text}</span>`:''}<span>${sky}</span><small>${rain.length?(wet||sum>=.1?`🌧️ ${nsFmt(sum)} mm`:'☀️ Droog'):'Neerslag —'} · 💨 ${Number.isFinite(wind)?`${nsDir(dir)} ${bftText(wind)}`:'—'}</small></div>`;
  }).join('');
  const h=t.hours,first=nsHourMean(h,'cloud',6,12),later=nsHourMean(h,'cloud',12,18),wm=nsHourMean(h,'wind',6,12),we=nsHourMean(h,'wind',18,24),dm=nsHourDir(h,6,12),de=nsHourDir(h,18,24),morning=nsHourMean(h,'temp',6,12),afternoon=nsHourMean(h,'temp',12,18);
  const changes=[];
