@@ -3332,7 +3332,7 @@ let deferredInstall=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredInstall=e;$('install').classList.remove('hidden')});
 $('install').onclick=async()=>{if(!deferredInstall)return;deferredInstall.prompt();await deferredInstall.userChoice;deferredInstall=null;$('install').classList.add('hidden')};
 window.addEventListener('appinstalled',()=>{$('install').classList.add('hidden');setStatus('Ricoweer is als app geïnstalleerd.',100)});
-if('serviceWorker' in navigator){window.addEventListener('load',async()=>{
+if('serviceWorker' in navigator && !(location.pathname.endsWith('/weerkaart.html')||new URLSearchParams(location.search).get('livekaart')==='1')){window.addEventListener('load',async()=>{
  try{await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});
  const reg=await navigator.serviceWorker.getRegistration('./');await reg?.update();
  }catch(e){console.warn('Ricoweer offlinefunctie niet beschikbaar',e)}
@@ -5278,9 +5278,9 @@ function ricoAtlasBalancedPoints(items,map){
  const sz=map.getSize(),zoom=map.getZoom();
  const priority=[
    'Den Helder','Hoorn','IJmuiden',  // Kop en kust van Noord-Holland
-   'Houten','Emmeloord','Rotterdam','Enschede',
+   'Houten','Eindhoven','Emmeloord','Rotterdam','Enschede',
    'Terschelling','Groningen','Vlissingen','Maastricht',
-   'Arnhem','Eindhoven','Emmen','Breda','Apeldoorn',
+   'Arnhem','Emmen','Breda','Apeldoorn',
    'Leeuwarden','Venlo','Almere','Lelystad','Harlingen',
    'Schiermonnikoog','Texel','Roermond','Den Bosch',
    'Scheveningen','Leiden','Amsterdam','Gouda',
@@ -5371,7 +5371,14 @@ function atlasRainSummary(days){
 function updateWeatherAtlas(){
  const host=document.getElementById('ricoWeatherAtlas');if(!host)return;
  const days=(typeof nationalScanLastPack!=='undefined'?nationalScanLastPack?.days:[])||[];
- const valid=days.filter(d=>d?.pts?.some(p=>Number.isFinite(p.tx))).slice(0,15);
+ // De publieke WordPress-link heeft uitsluitend morgen en overmorgen nodig.
+ // Geen dagelijkse/uurdata combineren of extra weersimulatie uitvoeren.
+ const isPublicMap=(location.pathname.endsWith('/weerkaart.html')||new URLSearchParams(location.search).get('livekaart')==='1');
+ const amsterdamToday=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Amsterdam',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+ const baseDay=new Date(amsterdamToday+'T12:00:00Z');
+ const dateForOffset=n=>new Date(baseDay.getTime()+n*86400000).toISOString().slice(0,10);
+ const publicDates=new Set([dateForOffset(1),dateForOffset(2)]);
+ const valid=days.filter(d=>d?.pts?.some(p=>Number.isFinite(p.tx))&&(!isPublicMap||publicDates.has(d.date))).slice(0,isPublicMap?2:15);
  if(!valid.length){host.querySelector('.ricoWeatherGrid').innerHTML='<div class="note">Nog geen landelijke modelmix beschikbaar. De weerkaarten verschijnen na de bestaande landelijke scan.</div>';return}
  const signature=valid.map(d=>d.date+':'+d.pts.filter(p=>Number.isFinite(p.tx)).length+':'+d.pts.map(p=>[p.tx,p.tn,p.rain,p.sun,p.wind,p.dir,p.gust,p.snow].join('/')).join(',')).join('|');
  const history=atlasHistory();const fullSignature=signature+'|'+(history?.savedAt||'')+'|'+(history?.days?.map(d=>d.date+':'+d.pts?.map(p=>p.tx+','+p.rain+','+p.gust).join(';')).join('|')||'');
@@ -5389,7 +5396,7 @@ function updateWeatherAtlas(){
  // Alleen bestaande kaartbibliotheek en OSM-kaarttegels. Geen weer-API-calls.
  // Alleen eerste drie etmalen automatisch ophalen, gedeeld met dagdelen.
  const first=valid.slice(0,3).filter(d=>d.date>=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Amsterdam'}));
- for(const day of first){ricoV96Load(day.date).catch(e=>console.warn('v96 uurdata',day.date,e));}
+ if(!isPublicMap)for(const day of first){ricoV96Load(day.date).catch(e=>console.warn('v96 uurdata',day.date,e));}
  if(typeof ricoLeafletReady!=='function')return;
  ricoLeafletReady().then(()=>{
   valid.forEach((d,i)=>{
@@ -5443,7 +5450,7 @@ function updateWeatherAtlas(){
      layer.clearLayers();
      const size=map.getSize();
      const ordered=ricoAtlasBalancedPoints(all,map);
-     const windSites=['IJmuiden','Terschelling','Groningen','Rotterdam','Houten','Apeldoorn','Vlissingen','Enschede','Maastricht'];
+     const windSites=['Eindhoven','IJmuiden','Terschelling','Groningen','Rotterdam','Houten','Apeldoorn','Vlissingen','Enschede','Maastricht'];
      let windShown=[];
      for(const p of ordered){
        const pt=map.latLngToContainerPoint([p.point.lat,p.point.lon]);
@@ -5471,10 +5478,15 @@ function updateWeatherAtlas(){
        // Wind op maximaal drie geografisch gespreide zichtbare locaties.
        // In dezelfde marker, zodat geen extra labels of verbindingslijnen ontstaan.
        const windAvailable=Number.isFinite(p.wind);
-       const eligible=windSites.includes(p.point.n) && windShown.length<3 &&
-         windShown.every(w=>Math.hypot(pt.x-w.x,pt.y-w.y)>130);
+       // Eindhoven: altijd het eigen windlabel wanneer er een dagwindwaarde is.
+       // Daarbovenop blijven maximaal drie geografisch gespreide bestaande
+       // windlabels zichtbaar. Geen windkracht verzinnen bij ontbrekende bron.
+       const isEindhoven=p.point.n==='Eindhoven';
+       const eligible=windSites.includes(p.point.n) &&
+         (isEindhoven||(windShown.filter(w=>!w.eindhoven).length<3 &&
+           windShown.every(w=>Math.hypot(pt.x-w.x,pt.y-w.y)>130)));
        const showWind=windAvailable&&eligible;
-       if(showWind)windShown.push({x:pt.x,y:pt.y});
+       if(showWind)windShown.push({x:pt.x,y:pt.y,eindhoven:isEindhoven});
        const windDir=Number.isFinite(p.dir)?p.dir:null;
        const arrow=windDir===null?'➤':'➤';
        const windHtml=showWind?`<span class="ricoWeatherWind ricoDailyWind"><span class="ricoWeatherWindArrow" style="transform:rotate(${windDir===null?0:(windDir+90)%360}deg)">${arrow}</span>${beaufort(p.wind)} Bft</span>`:'';
@@ -5500,6 +5512,12 @@ function install(){
  if(!document.getElementById('ricoWeatherAtlas')){
   const section=document.createElement('section');section.id='ricoWeatherAtlas';
   section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 15 dagen</div><div class="note">Interactieve landelijke kaart in de stijl van Weerkaart NL: direct meerdere locaties; bij inzoomen verschijnen ook regionale punten in oost en zuid. Weersymbolen, maximum- en minimumtemperatuur en wind. Tik op een symbool voor details. De aparte Weerkaart NL blijft interactief. Temperaturen uit de landelijke modelmix. Weersymbolen volgen de uurgegevens tussen zonsopkomst en zonsondergang in de eerste 72 uur, anders een voorzichtige indicatie uit dagwaarden. Bij ontbrekende zichtgegevens wordt mist niet als zeker voorspeld. Dagkaarten tonen dagelijkse modelmixwaarden (TX/TN); dagdelen tonen onafhankelijke uurwaarden. Het zijn verschillende grootheden: ze worden niet door elkaar vervangen. Het dagweersymbool volgt de dagelijkse modelmix voor neerslag en zonneduur (bewolkt ≤20%, veel bewolking 20–40%, zon/wolken 40–60%, vrij zonnig 60–80%, zonnig ≥80% van de daglichtduur); de uurcache wordt alleen als aanvulling gebruikt of als fallback wanneer dag-zonuren ontbreken. Tik op een locatie om de gebruikte bron te zien.</div><div class="ricoWeatherGrid"></div>';
+  if(!(location.pathname.endsWith('/weerkaart.html')||new URLSearchParams(location.search).get('livekaart')==='1')){
+    const shortcut=document.createElement('p');
+    shortcut.className='ricoLiveShortcut';
+    shortcut.innerHTML='<a href="./weerkaart.html" target="_blank" rel="noopener">🔗 Live weerkaart voor morgen en overmorgen (WordPress)</a>';
+    section.querySelector('.ricoWeatherGrid').before(shortcut);
+  }
   const map=panel.querySelector('.ricomapPanel');if(map)map.insertAdjacentElement('beforebegin',section);else panel.appendChild(section);
  }
  // Koppel aan bestaande landelijke scanweergave, inclusief cacheherstel.
@@ -6436,7 +6454,7 @@ function sync(){
  }
  resize();
 }
-function init(){const atlas=document.getElementById('ricoWeatherAtlas');if(!atlas)return;const grid=atlas.querySelector('.ricoWeatherGrid');if(grid){new MutationObserver(()=>setTimeout(sync,250)).observe(grid,{childList:true});}
+function init(){if((location.pathname.endsWith('/weerkaart.html')||new URLSearchParams(location.search).get('livekaart')==='1'))return;const atlas=document.getElementById('ricoWeatherAtlas');if(!atlas)return;const grid=atlas.querySelector('.ricoWeatherGrid');if(grid){new MutationObserver(()=>setTimeout(sync,250)).observe(grid,{childList:true});}
  const holder=document.getElementById('ricoDaypartMaps');if(holder)new MutationObserver(()=>setTimeout(sync,100)).observe(holder,{childList:true,subtree:false});
  sync();window.addEventListener('rico:dayparts-loaded',sync);document.addEventListener('rico:dayparts-loaded',sync);document.addEventListener('rico:national-scan-updated',()=>setTimeout(sync,100));window.addEventListener('load',()=>setTimeout(sync,350));
 }
@@ -6539,6 +6557,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 let mounted=false,partsRequested=false,shifted=false;
 function redraw(){window.dispatchEvent(new Event('resize'));setTimeout(()=>window.dispatchEvent(new Event('resize')),220)}
 function setup(){
+ if((location.pathname.endsWith('/weerkaart.html')||new URLSearchParams(location.search).get('livekaart')==='1'))return;
  const atlas=document.getElementById('ricoWeatherAtlas');
  const anchor=document.getElementById('todayTomorrowPanel');
  if(!atlas||!anchor)return;
@@ -6731,3 +6750,103 @@ document.getElementById('model')?.addEventListener('change',start);
 <!-- Ricoweer v82 interactieve landelijke dagkaarten in Weerkaart NL-stijl -->
 
 <!-- Ricoweer v83: zoom candidate fix + conservative daily icons -->
+
+
+<style id="rico-v1007-live-map-css">
+.ricoLiveShortcut{margin:10px 0}.ricoLiveShortcut a{display:inline-block;border:1px solid #80b8cf;border-radius:10px;background:#e8f4fb;color:#085175;padding:10px 14px;font-weight:800;text-decoration:none}
+html.ricoLiveMode,html.ricoLiveMode body{margin:0!important;padding:0!important;width:100%!important;max-width:none!important;background:#edf4f9!important;min-height:100vh!important;color:#18394c!important}
+html.ricoLiveMode body>*:not(#ricoLiveShell){display:none!important}
+#ricoLiveShell{display:block!important;margin:0 auto;padding:18px clamp(8px,2.2vw,22px) 28px;max-width:1440px;box-sizing:border-box;font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+#ricoLiveShell #rv64Jump{display:none!important}
+#ricoLiveShell .ricoLiveHeader{background:white;border:1px solid #cddfeb;border-radius:16px;padding:16px 19px;margin-bottom:12px;box-shadow:0 2px 9px #1a526410}
+#ricoLiveShell .ricoLiveHeader h1{margin:0 0 4px;font-size:clamp(21px,3vw,29px);color:#064a6c;line-height:1.25}
+#ricoLiveShell .ricoLiveHeader p{margin:4px 0;font-size:13px;color:#466375;line-height:1.5}
+#ricoLiveShell .ricoLiveHeader .ricoLiveStatus{margin-top:10px;font-weight:750;color:#155c78}
+#ricoLiveShell .ricoLiveRefresh{float:right;border:1px solid #82b5ce;border-radius:10px;background:#e6f4fa;color:#075374;font-size:13px;font-weight:800;padding:9px 12px;cursor:pointer}
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas{display:block!important;max-width:none!important;width:100%!important;background:transparent!important;border:0!important;padding:0!important;margin:0!important}
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas>.note,
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas>.ricoMapMode,
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas #ricoV100Layers,
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas>.ricoV100LayerBar,
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas>.ricoV100Toolbar,
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas>.ricoDaypartNote,
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas>.ricoV967Tip,
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas>.ricoV967Heading,
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas>.ricoAtlasRain,
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas #ricoDaypartMaps,
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas #ricoV85DailyNav,
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas .ricoAtlasExtra,
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas .ricoV100LayerInfo,
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas .ricoWeatherFoot{display:none!important}
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas .ricoWeatherGrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px!important;max-width:none!important;width:100%!important;margin:12px 0!important}
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas .ricoWeatherCard{display:block!important;min-width:0!important;overflow:hidden!important;background:#e6f0f5!important;border-radius:14px!important}
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas .ricoWeatherTitle{font-size:16px!important;padding:12px 14px!important}
+#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas .ricoWeatherMap{height:710px!important;max-height:82vh!important;width:100%!important}
+#ricoLiveShell .ricoLiveFooter{font-size:12px;line-height:1.6;color:#526c7c;padding:8px 6px 18px}
+@media(max-width:770px){#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas .ricoWeatherGrid{grid-template-columns:minmax(0,1fr)!important}#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas .ricoWeatherMap{height:600px!important;max-height:none!important}#ricoLiveShell .ricoLiveRefresh{float:none;display:block;margin:0 0 10px}#ricoLiveShell .ricoLiveHeader{padding:13px}}
+@media(max-width:430px){#ricoLiveShell #ricoWeatherAtlas.ricoLiveAtlas .ricoWeatherMap{height:510px!important}#ricoLiveShell{padding:9px 5px 20px}}
+</style>
+<script id="rico-v1007-public-map">
+(()=>{
+ 'use strict';
+ if(!(location.pathname.endsWith('/weerkaart.html')||new URLSearchParams(location.search).get('livekaart')==='1'))return;
+ document.documentElement.classList.add('ricoLiveMode');
+ document.title='Ricoweer — Weerkaart morgen en overmorgen';
+ function localIso(){return new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Amsterdam',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())}
+ function offsetDate(n){return new Date(Date.parse(localIso()+'T12:00:00Z')+86400000*n).toISOString().slice(0,10)}
+ let openedToday=localIso();
+ let lastCheck=0;
+ function update(){
+   const holder=document.getElementById('ricoLiveShell'),atlas=document.getElementById('ricoWeatherAtlas');
+   if(!holder||!atlas)return;
+   const grid=atlas.querySelector('.ricoWeatherGrid');
+   const cards=[...grid.querySelectorAll('.ricoWeatherCard')];
+   const dates=[offsetDate(1),offsetDate(2)];
+   for(const card of cards){
+     const title=card.querySelector('.ricoWeatherTitle span:first-child');
+     if(!title)continue;
+     const i=cards.indexOf(card);
+     const label=i===0?'Morgen':i===1?'Overmorgen':'Dag';
+     if(!title.dataset.ricoLiveOriginal)title.dataset.ricoLiveOriginal=title.textContent;
+     title.textContent=label+' · '+title.dataset.ricoLiveOriginal;
+   }
+   const status=document.getElementById('ricoLiveStatus');
+   const time=(()=>{try{const c=JSON.parse(localStorage.getItem('rico-national-scan-v75-35punten')||'null');return Number(c?.savedAt)||null}catch(e){return null}})();
+   if(status){
+     const state=document.getElementById('nationalScanStatus')?.textContent||'';
+     status.textContent=cards.length===2?'Kaarten voor '+dates[0]+' en '+dates[1]+' · laatste beschikbare modelmix'+(time?' · bijgewerkt '+new Date(time).toLocaleString('nl-NL',{timeZone:'Europe/Amsterdam',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):''):(state.includes('wordt opgehaald')?'Modelgegevens worden opgehaald…':'Kaartgegevens laden…');
+   }
+   for(const card of cards){
+     const map=card.querySelector('.ricoWeatherMap');
+     if(map&&window.L){setTimeout(()=>window.dispatchEvent(new CustomEvent('rico:daily-map-visible',{detail:{element:map}})),180)}
+   }
+ }
+ function setup(){
+   if(document.getElementById('ricoLiveShell'))return;
+   document.body.classList.add('ricoLivePage');
+   const shell=document.createElement('main');shell.id='ricoLiveShell';
+   shell.innerHTML='<div class="ricoLiveHeader"><button type="button" class="ricoLiveRefresh" id="ricoLiveRefresh">↻ Controleer nieuwe run</button><h1>🌤️ Weerkaart Nederland</h1><p>De landelijke verwachting voor <b>morgen en overmorgen</b>. Weersymbolen, dagelijkse maxima/minima en windsnelheid in Beaufort.</p><p class="ricoLiveStatus" id="ricoLiveStatus" role="status">Kaarten laden…</p></div><p class="ricoLiveFooter">Ricoweer · Temperaturen uit de dagelijkse modelmix, symbolen volgens de vijfdelige zonneduurverdeling. De uurwaarden worden niet gebruikt om dagelijkse minima of maxima te vervangen. Kaart © OpenStreetMap-bijdragers.</p>';
+   document.body.prepend(shell);
+   const atlas=document.getElementById('ricoWeatherAtlas');
+   if(atlas){shell.querySelector('.ricoLiveFooter').before(atlas);atlas.classList.add('ricoLiveAtlas')}
+   const original=atlas?.firstElementChild;
+   if(original)original.textContent='Morgen & overmorgen';
+   document.getElementById('ricoLiveRefresh')?.addEventListener('click',()=>refresh());
+   const grid=atlas?.querySelector('.ricoWeatherGrid');
+   if(grid)new MutationObserver(()=>setTimeout(update,130)).observe(grid,{childList:true});
+   update();
+ }
+ async function refresh(){
+   if(typeof renderNationalScan!=='function')return;
+   lastCheck=Date.now();
+   const status=document.getElementById('ricoLiveStatus');if(status)status.textContent='Controleren of een nieuwe modelrun beschikbaar is…';
+   try{await renderNationalScan(false);update()}catch(e){if(status)status.textContent='Ophalen niet gelukt; laatste beschikbare weerkaart wordt gebruikt.';console.warn('Live kaarten',e)}
+ }
+ function start(){setup();if(typeof renderNationalScan==='function')refresh();}
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(start,80));else setTimeout(start,80);
+ document.addEventListener('rico:national-scan-updated',()=>setTimeout(update,350));
+ window.addEventListener('load',()=>setTimeout(update,450));
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&Date.now()-lastCheck>30*60000)refresh()});
+ setInterval(()=>{if(localIso()!==openedToday)location.reload()},60000);
+})();
+</script>
