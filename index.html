@@ -571,22 +571,55 @@ body{min-width:0}
 @media(max-width:650px){#rv91RandstadGraph.rv67-graph{grid-auto-columns:74px!important}#rv91RandstadGraph .rv67-day{min-width:70px}}
 </style><script>
  function ricoSharedWeatherIcon(icon,night){
-   const wet=icon==='🌧️'||icon==='🌦️';
-   const cloudy=icon==='☁️'||icon==='🌧️';
-   const partial=icon==='🌤️'||icon==='⛅'||icon==='🌦️';
+   const wet=icon==='🌧️'||icon==='🌦️'||icon==='🌨️';
+   const cloudy=icon==='☁️'||icon==='🌧️'||icon==='🌨️';
+   const heavy=icon==='🌥️';
+   const mixed=icon==='⛅';
+   const light=icon==='🌤️';
+   const partial=heavy||mixed||light||icon==='🌦️';
    const rays='<g stroke="#f6a800" stroke-width="3" stroke-linecap="round"><path d="M23 2v6M23 38v6M1 23h6M39 23h6M8 8l5 5M33 33l5 5M8 38l5-5M33 13l5-5"/></g>';
    const sun='<g>'+rays+'<circle cx="23" cy="23" r="11" fill="#ffcb37" stroke="#e9a11a" stroke-width="2"/></g>';
    const moon='<path d="M31 4A18 18 0 1 0 45 32 18 18 0 0 1 31 4Z" fill="#ffe19a" stroke="#c68b2f" stroke-width="2"/>';
    const cloud='<path d="M17 46C9 46 5 41 5 35c0-6 5-11 11-11 3-9 10-14 19-12 8 1 13 7 14 14 8-1 14 4 14 11 0 6-5 9-13 9Z" fill="#f8fbff" stroke="#587b96" stroke-width="2.8" stroke-linejoin="round"/>';
    const drops='<g stroke="#138bd1" stroke-width="4" stroke-linecap="round"><path d="M18 50l-4 8M33 50l-4 8M48 50l-4 8"/></g>';
    const sky=night?moon:sun;
-   // Bij halfbewolkt de zon zichtbaar linksboven houden, ook op kleine kaarticonen.
-   const partialSky=partial&&!night?'<g transform="translate(-9 -9) scale(1.13)">'+sun+'</g>':sky;
-   const partialCloud=partial?'<g transform="translate(9 7) scale(.87)">'+cloud+'</g>':cloud;
-   const content=(cloudy?'':partialSky)+(cloudy||partial||wet?partialCloud:'')+(wet?drops:'');
-   const label=wet?'Regen':cloudy?'Bewolkt':partial?(night?'Wolken en maan':'Zon en wolken'):(night?'Helder':'Zonnig');
+   const showSky=!cloudy;
+   const sunArt=showSky?(heavy?'<g transform="translate(-8 -12) scale(.87)">'+sky+'</g>':mixed?'<g transform="translate(-7 -9) scale(1.02)">'+sky+'</g>':light?'<g transform="translate(-5 -6) scale(1.12)">'+sky+'</g>':partial?'<g transform="translate(-8 -9) scale(1.02)">'+sky+'</g>':sky):'';
+   const cloudArt=cloudy?cloud:heavy?'<g transform="translate(0 4) scale(1)">'+cloud+'</g>':mixed?'<g transform="translate(8 9) scale(.85)">'+cloud+'</g>':light?'<g transform="translate(17 17) scale(.65)">'+cloud+'</g>':partial?'<g transform="translate(8 9) scale(.85)">'+cloud+'</g>':'';
+   const content=sunArt+cloudArt+(wet?drops:'');
+   const label=wet?'Regen':cloudy?'Bewolkt':heavy?'Veel bewolking':mixed?'Zon en wolken':light?'Vrij zonnig':night?'Helder':'Zonnig';
    return `<svg class="ricoUnifiedWeatherSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 64" width="42" height="42" role="img" aria-label="${label}">${content}</svg>`;
  }
+
+</script>
+<script id="rico-v1004-sky-bands">
+/* Uniforme vijfdelige zonneschaal. Uitkomst is een VERWACHT zonnedeel,
+   geen gemeten bewolkingspercentage; bij uurkaarten wordt bewolking als
+   afzonderlijke benadering toegepast. Geheel droog weerbeeld heeft voorrang
+   alleen wanneer regen/sneeuw niet de hoofdweersituatie bepaalt. */
+function ricoSunSky(frac){
+ if(!Number.isFinite(frac))return null;
+ const f=Math.max(0,Math.min(1,frac));
+ if(f<=.20)return {type:'cloud',icon:'☁️',label:'Geheel bewolkt'};
+ if(f<.40)return {type:'mostly_cloudy',icon:'🌥️',label:'Veel bewolking, weinig zon'};
+ if(f<.60)return {type:'partly',icon:'⛅',label:'Zon en wolken'};
+ if(f<.80)return {type:'mostly_sunny',icon:'🌤️',label:'Vrij zonnig'};
+ return {type:'sun',icon:'☀️',label:'Zonnig'};
+}
+function ricoDaylightHours(date,lat=52.1){
+ if(!date||!Number.isFinite(lat))return null;
+ const d=new Date(date+'T12:00:00Z');if(!Number.isFinite(d.getTime()))return null;
+ const n=Math.floor((d.getTime()-Date.UTC(d.getUTCFullYear(),0,0))/86400000);
+ const dec=23.44*Math.sin(2*Math.PI*(n-81)/365)*Math.PI/180,phi=lat*Math.PI/180,zenith=90.833*Math.PI/180;
+ const cosine=(Math.cos(zenith)-Math.sin(phi)*Math.sin(dec))/(Math.cos(phi)*Math.cos(dec));
+ return 24*Math.acos(Math.max(-1,Math.min(1,cosine)))/Math.PI;
+}
+function ricoDailySky(sun,date,lat=52.1,lon=5.1){
+ if(!Number.isFinite(sun)||!date)return null;
+ const duration=ricoDaylightHours(date,lat);
+ return Number.isFinite(duration)&&duration>0?ricoSunSky(sun/duration):null;
+}
+function ricoHourlyCloudSky(cloud){return Number.isFinite(cloud)?ricoSunSky((100-Math.max(0,Math.min(100,cloud)))/100):null}
 </script>
 <style id="ricoV963DailySymbols">
 #ricoWeatherAtlas .rico82Pin .ricoUnifiedWeatherSvg{display:block;width:39px;height:39px;overflow:visible;filter:drop-shadow(0 1px 2px rgba(13,40,61,.4))}
@@ -716,7 +749,7 @@ body{min-width:0}
 </style>
 </head>
 <body><div class="wrap">
-<section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v100.3</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
+<section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v100.4</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
 <nav class="quickJump" aria-label="Snel naar onderdelen"><span class="quickJumpLabel">Snel naar</span><button type="button" data-jump="todayGlancePanel">Vandaag</button><button type="button" data-jump="weatherTextPanel">Weerbericht</button><button type="button" data-jump="nationalScanPanel">Landelijk</button><button type="button" data-jump="longRangePanel">6 weken</button><button type="button" data-jump="climatePanel">Klimaat</button><button type="button" data-jump="editorialDeskPanel">Redactie</button><button type="button" data-jump="v97Cockpit">Cockpit</button><button type="button" data-jump="ricoEnergyPanel">☀️ Energie</button></nav>
 <section class="panel">
 <div class="grid">
@@ -1277,7 +1310,7 @@ function possibleDaylightHours(date){
   // relatief aan de mogelijke dagduur wordt beoordeeld (>=80%), niet met een vaste urengrens.
   try{const lat=Number($('lat')?.value);if(!Number.isFinite(lat)||!date)return null;const d=new Date(date+'T12:00:00Z'),start=new Date(Date.UTC(d.getUTCFullYear(),0,0)),n=Math.floor((d-start)/86400000);const dec=23.44*Math.sin((2*Math.PI/365)*(284+n))*Math.PI/180,phi=lat*Math.PI/180,cosH=-Math.tan(phi)*Math.tan(dec);if(cosH<=-1)return 24;if(cosH>=1)return 0;return 24*Math.acos(cosH)/Math.PI}catch(e){return null}
 }
-function sunshineFraction(r){const h=Number(r?.sun),dl=possibleDaylightHours(r?.date);return Number.isFinite(h)&&Number.isFinite(dl)&&dl>0?Math.max(0,Math.min(1,h/dl)):null}
+function sunshineFraction(r){const h=r?.sun,dl=ricoDaylightHours(r?.date,Number($('lat')?.value)||52.1);return Number.isFinite(h)&&Number.isFinite(dl)&&dl>0?Math.max(0,Math.min(1,h/dl)):null}
 function centralWeatherType(r){
   // Het hoofdicoon beschrijft het weer OVERDAG. De mediaan van de neerslag
   // is leidend: een nat minderheidsmodel of nachtelijke regen maakt de dag
@@ -1287,10 +1320,9 @@ function centralWeatherType(r){
   // Mediaan droog = altijd een droog hoofdicoon. Een minderheidssignaal kan
   // uitsluitend als nuance in de tekst terugkomen.
   if(rain<0.1){
-    if(Number.isFinite(sunFrac)&&sunFrac>=.80)return 'sun';
-    if(Number.isFinite(sunFrac)&&sunFrac>=.55)return 'partly';
-    if(codes.length){if(sunny>=.62)return 'sun';if(mixed>=.62||sunny>=.25)return 'partly';return 'cloud'}
-    if(Number.isFinite(sunHours)&&sunHours>=2.5)return 'partly';
+    const sky=ricoSunSky(sunFrac);
+    if(sky)return sky.type;
+    if(codes.length){if(sunny>=.8)return 'sun';if(sunny>=.6)return 'mostly_sunny';if(mixed>=.6)return 'partly';if(mixed>=.3)return 'mostly_cloudy';return 'cloud'}
     return 'cloud';
   }
   if(rain>=5&&wetCode>=.35)return 'rain';
@@ -1313,7 +1345,7 @@ function precipitationPhaseNote(r){const p=precipitationPhase(r);if(!p||p==='reg
 function centralForecastText(r){
  const phase=precipitationPhase(r);if(phase==='sneeuw of natte sneeuw')return 'Kans op sneeuw of natte sneeuw';if(phase==='regen of natte sneeuw mogelijk')return 'Kans op regen of natte sneeuw';if(phase.startsWith('neerslagsoort onzeker'))return 'Kans op neerslag, mogelijk winters';const t=centralWeatherType(r),rain=daytimePrecip(r),dayPop=Number.isFinite(r?.dayPop)?Number(r.dayPop):0;
  if(rain<0.1){
-   let base=t==='sun'?'Veel zon':t==='partly'?(Number.isFinite(sunshineFraction(r))&&sunshineFraction(r)>=.60?'Vrij zonnig':'Geregeld zon'):'Veel bewolking';
+   let base=({sun:'Veel zon',mostly_sunny:'Vrij zonnig',partly:'Zon en wolken',mostly_cloudy:'Veel bewolking, weinig zon',cloud:'Geheel bewolkt'})[t]||'Veel bewolking';
    // Alleen bij een duidelijke minderheid (maar droge mediaan) kort nuanceren.
    if(dayPop>=40)return base+', kleine kans op een bui';
    return base;
@@ -1375,7 +1407,7 @@ function agreementBadge(r){const txt=agreementDisplay(r.agreement,r.count||0);co
 function qualitativeAgreement(v){if(!Number.isFinite(v))return 'onbekend';if(v>=85)return 'zeer hoog';if(v>=70)return 'hoog';if(v>=55)return 'redelijk';return 'laag'}
 function forecastText(r){return r?._visualText||centralForecastText(r)}
 function mixSourceLabel(r){const m=Number(r?.count)||0,e=Number(r?.ensembleCount)||0;return `${m} model${m===1?'':'len'}${e?` + ${e} ENS-P50`:''}`}
-function iconFor(t){return {sun:'☀️',partly:'🌤️',cloud:'☁️',sunshowers:'🌦️',showers:'🌦️',rain:'🌧️',clear_night:'🌙',partly_night:'🌙',cloud_night:'☁️',rain_night:'🌧️'}[t]||'☁️'}
+function iconFor(t){return {sun:'☀️',mostly_sunny:'🌤️',partly:'⛅',mostly_cloudy:'🌥️',cloud:'☁️',sunshowers:'🌦️',showers:'🌦️',rain:'🌧️',clear_night:'🌙',partly_night:'🌙',cloud_night:'☁️',rain_night:'🌧️'}[t]||'☁️'}
 // De neerslagsoort uit de dagmix heeft voorrang op het algemene weersymbool.
 function forecastIcon(r,type){const phase=precipitationPhase(r);if(phase==='sneeuw of natte sneeuw')return '🌨️';if(phase==='regen of natte sneeuw mogelijk'||phase.startsWith('neerslagsoort onzeker'))return '🌨️';return iconFor(type||r?._visualType||r?.type||centralWeatherType(r));}
 function fmt(n,d=1){return Number.isFinite(n)?n.toFixed(d).replace('.',','):'n.b.'}
@@ -1478,7 +1510,12 @@ function hourVisualClass(r){
 }
 function hourEmoji(r){
  const h=Number(r.time?.slice(11,13)),night=Number.isFinite(h)&&(h<7||h>=20),c=Number(r.code),p=Number(r.precip)||0;
- if(c>=95)return '⛈️';if(c>=71&&c<=77)return '🌨️';if(p>=0.1||((c>=51&&c<=67)||(c>=80&&c<=82)))return night?'🌧️':'🌦️';if(c<=1)return night?'🌙':'☀️';if(c<=3)return night?'☁️':'🌤️';return '☁️';
+ if(c>=95)return'⛈️';if(c>=71&&c<=77)return'🌨️';
+ if(p>=.1||((c>=51&&c<=67)||(c>=80&&c<=82)))return night?'🌧️':'🌦️';
+ const sky=ricoHourlyCloudSky(r.cloud);
+ if(night)return !sky||sky.type==='sun'?'🌙':sky.type==='cloud'?'☁️':'🌙';
+ if(sky)return sky.icon;
+ if(c<=1)return'☀️';if(c<=3)return'⛅';return'☁️';
 }
 function relativeDayLabel(date){const base=new Date(nlToday()+'T12:00:00Z'),d=new Date(date+'T12:00:00Z'),n=Math.round((d-base)/86400000);return n<=0?'vandaag':n===1?'morgen':`over ${n} dagen`}
 function temperatureMilestones(rows){
@@ -1924,7 +1961,7 @@ async function renderFivePreview(){
  panel.classList.remove('hidden'); box.innerHTML='';
  const sunTimes=await getSunTimes(rows);
  for(const r of rows){const d=new Date(r.date+'T12:00:00'),w=isWinterDate(r.date),sun=sunTimes[r.date]||{};let extra='';const wl=windSummary(r);if(wl)extra+=`<br>${wl}`;if(Number.isFinite(r.thunderChance)&&r.thunderChance>0)extra+=`<br>⛈ onweerssignaal`; if((w||Number.isFinite(r.snowChance)&&r.snowChance>0)&&Number.isFinite(r.snowChance)&&r.snowChance>0)extra+=`<br>❄ sneeuwsignaal`; 
-   box.insertAdjacentHTML('beforeend',`<div class="previewDay clickable" data-date="${r.date}"><div class="day">${NL[d.getDay()].toUpperCase()}</div><div class="date">${d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'})}</div><div class="icon">${forecastIcon(r)}</div><div style="font-size:12px;font-weight:800;min-height:32px">${forecastText(r)}</div><div class="temps"><span class="max">${Math.round(r.max)}°</span> / <span class="min">${Math.round(r.min)}°</span></div>${trendForDate(r.date)?`<div class="trendBadge ${trendForDate(r.date).includes('▲')?'up':trendForDate(r.date).includes('▼')?'down':''}">${trendForDate(r.date)}</div>`:''}${Number.isFinite(r.txLow)&&Number.isFinite(r.txHigh)?`<div class="spread">TX ${Math.round(r.txLow)}–${Math.round(r.txHigh)}°${Number.isFinite(r.tnLow)&&Number.isFinite(r.tnHigh)?` · TN ${Math.round(r.tnLow)}–${Math.round(r.tnHigh)}°`:''}</div>`:''}${agreementBadge(r)}${Math.round((new Date(r.date+'T12:00:00Z')-new Date(base+'T12:00:00Z'))/86400000)>10?`<div class="modelCount">🔭 lange termijn</div>`:''}${r.count?`<div class="modelCount">${mixSourceLabel(r)} · centrale waarde + range</div>`:''}<div class="meta">☀ ${Number.isFinite(r.sun)?Math.round(r.sun):'—'} u${Number.isFinite(sunshinePercent(r,sun))?` · <span class="sunPct">${sunshinePercent(r,sun)>=70?'veel zon':sunshinePercent(r,sun)>=40?'geregeld zon':sunshinePercent(r,sun)>=15?'af en toe zon':'weinig zon'}</span>`:''}<br>💧 ${Number.isFinite(r.precip)?(r.precip<0.05?'droog':Math.round(r.precip)+' mm'):'—'} · ${Number.isFinite(r.pop)?(r.pop===0?'alle modellen droog':r.pop===100?'alle modellen nat':Math.round(r.pop)+'% modellen nat'):'—'}<br>UV ${Number.isFinite(r.uv)?Math.round(r.uv):'—'}${sun.rise&&sun.set?`<br>🌅 ${sun.rise} · 🌇 ${sun.set}`:''}${extra}</div></div>`);
+   box.insertAdjacentHTML('beforeend',`<div class="previewDay clickable" data-date="${r.date}"><div class="day">${NL[d.getDay()].toUpperCase()}</div><div class="date">${d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'})}</div><div class="icon">${forecastIcon(r)}</div><div style="font-size:12px;font-weight:800;min-height:32px">${forecastText(r)}</div><div class="temps"><span class="max">${Math.round(r.max)}°</span> / <span class="min">${Math.round(r.min)}°</span></div>${trendForDate(r.date)?`<div class="trendBadge ${trendForDate(r.date).includes('▲')?'up':trendForDate(r.date).includes('▼')?'down':''}">${trendForDate(r.date)}</div>`:''}${Number.isFinite(r.txLow)&&Number.isFinite(r.txHigh)?`<div class="spread">TX ${Math.round(r.txLow)}–${Math.round(r.txHigh)}°${Number.isFinite(r.tnLow)&&Number.isFinite(r.tnHigh)?` · TN ${Math.round(r.tnLow)}–${Math.round(r.tnHigh)}°`:''}</div>`:''}${agreementBadge(r)}${Math.round((new Date(r.date+'T12:00:00Z')-new Date(base+'T12:00:00Z'))/86400000)>10?`<div class="modelCount">🔭 lange termijn</div>`:''}${r.count?`<div class="modelCount">${mixSourceLabel(r)} · centrale waarde + range</div>`:''}<div class="meta">☀ ${Number.isFinite(r.sun)?Math.round(r.sun):'—'} u${Number.isFinite(sunshinePercent(r,sun))?` · <span class="sunPct">${ricoSunSky(sunshinePercent(r,sun)/100)?.label.toLowerCase()||'zon onbekend'}</span>`:''}<br>💧 ${Number.isFinite(r.precip)?(r.precip<0.05?'droog':Math.round(r.precip)+' mm'):'—'} · ${Number.isFinite(r.pop)?(r.pop===0?'alle modellen droog':r.pop===100?'alle modellen nat':Math.round(r.pop)+'% modellen nat'):'—'}<br>UV ${Number.isFinite(r.uv)?Math.round(r.uv):'—'}${sun.rise&&sun.set?`<br>🌅 ${sun.rise} · 🌇 ${sun.set}`:''}${extra}</div></div>`);
  }
  $('previewUpdated').textContent='Bijgewerkt '+new Date().toLocaleTimeString('nl-NL',{hour:'2-digit',minute:'2-digit'});
  const txBox=$('txPerformanceCompare');if(txBox){const txRows=rows.filter(r=>Number.isFinite(r.performanceTx)&&Number.isFinite(r.max)).slice(0,10);txBox.textContent=$('model').value==='mix'&&txRows.length?'🧪 TX-prestatiemix (experimenteel, Meteoproof De Bilt apr–okt 2026): '+txRows.map(r=>`${dayShort(r.date)} ${r.performanceTx.toFixed(1).replace('.',',')}° (mediaan ${r.max.toFixed(1).replace('.',',')}°, Δ${(r.performanceTx-r.max)>=0?'+':''}${(r.performanceTx-r.max).toFixed(1).replace('.',',')}°)`).join(' · '):'Prestatiemix TX: laad de volledige modelmix om te vergelijken.';}
@@ -1936,16 +1973,15 @@ async function renderFivePreview(){
 function wholeMm(v){v=Number(v)||0;if(v>0&&v<1)return 'minder dan 1';return String(Math.round(v))}
 function wholeHours(v){return String(Math.max(0,Math.round(Number(v)||0)))}
 function naturalWeatherDesc(r){
- const sun=Number.isFinite(r.sun)?r.sun:null,pr=Number.isFinite(r.precip)?r.precip:null,pop=Number.isFinite(r.pop)?Math.round(r.pop):null,daylight=possibleDaylightHours(r.date),sunFrac=Number.isFinite(sun)&&Number.isFinite(daylight)&&daylight>0?sun/daylight:null;
- if(pr!==null&&pr<0.3&&pop!==null&&pop<35&&sunFrac!==null&&sunFrac>=.8)return'zonnig';
- if(pr!==null&&pr<0.3&&pop!==null&&pop<35&&sunFrac!==null&&sunFrac>=.6)return'vrij zonnig';
- if(pr!==null&&pr<0.3&&pop!==null&&pop<35&&sunFrac!==null&&sunFrac>=.2)return'perioden met zon';
- if(pr!==null&&pr<0.3&&pop!==null&&pop<35)return sun===null?'overwegend droog, zon onzeker':'vrij veel bewolking';
- if(pr!==null&&pr>=5&&(sun===null||sun<2))return'regenachtig';
- if(sunFrac!==null&&sunFrac>=.8)return'zonnig met kans op een bui';
- if(sunFrac!==null&&sunFrac>=.3)return'zon en enkele buien';
+ const pr=Number.isFinite(r.precip)?r.precip:null,pop=Number.isFinite(r.pop)?Math.round(r.pop):null,sky=ricoSunSky(sunshineFraction(r));
+ if(pr!==null&&pr<0.3&&pop!==null&&pop<35){
+   return ({sun:'zonnig',mostly_sunny:'vrij zonnig',partly:'perioden met zon',mostly_cloudy:'veel bewolking met soms zon',cloud:'bewolkt'})[sky?.type]||'overwegend droog, zon onzeker';
+ }
+ if(pr!==null&&pr>=5&&(!sky||sky.type==='cloud'||sky.type==='mostly_cloudy'))return'regenachtig';
+ if(sky?.type==='sun'||sky?.type==='mostly_sunny')return'zonnig met kans op een bui';
+ if(sky?.type==='partly')return'zon en enkele buien';
  if(pop!==null&&pop>=60)return'bewolkt met regen of buien';
- return sun===null?'wisselend weer, zon onzeker':'bewolkt met af en toe regen';
+ return sky?'bewolkt met af en toe regen':'wisselend weer, zon onzeker';
 }
 function buildWeatherHeadline(rows){
  if(!rows.length)return'';const wet=rows.filter(r=>(r.precip||0)>=0.5||(r.pop||0)>=40).length,avgSun=rows.reduce((a,r)=>a+(r.sun||0),0)/rows.length,delta=rows.at(-1).max-rows[0].max;
@@ -1983,7 +2019,7 @@ function rainClass(r,c){const pc=c?.precip,amount=Number(r.precip)||0,pop=Number
 function rainNarrative(r,c){const k=rainClass(r,c),amount=Number(r.precip)||0,pop=Number(r.pop)||0;if(k==='dry')return'';if(k==='showers')return amount>=3?' Er kunnen enkele stevige buien vallen, maar tussendoor zijn er droge perioden.':' Een enkele bui is mogelijk, maar een groot deel van de tijd blijft het droog.';if(k==='rain')return amount>=5?' Er zijn perioden met regen en het kan een tijdlang nat zijn.':' Af en toe valt regen, soms gedurende wat langere tijd.';return pop>=45?' Af en toe kan wat regen vallen.':' Lokaal kan wat lichte regen vallen.'}
 function dayLabelLong(d){return new Date(d+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'long'})}
 function dayRangeLabel(rows){if(!rows.length)return'';const a=dayLabelLong(rows[0].date),b=dayLabelLong(rows[rows.length-1].date);return rows.length===1?a:rows.length===2?`${a} en ${b}`:`van ${a} tot en met ${b}`}
-function narrativeProfile(r,ctx){const c=contextDay(ctx,r.date),rain=rainClass(r,c),sun=Number(r.sun)||0;return{r,c,rain,sunClass:sun>=6?'sunny':sun>=2.5?'mixed':'cloudy',temp:Math.round(r.max)}}
+function narrativeProfile(r,ctx){const c=contextDay(ctx,r.date),rain=rainClass(r,c),sun=Number(r.sun)||0;return{r,c,rain,sunClass:(['sun','mostly_sunny'].includes(ricoSunSky(sunshineFraction(r))?.type)?'sunny':ricoSunSky(sunshineFraction(r))?.type==='partly'?'mixed':'cloudy'),temp:Math.round(r.max)}}
 function profilesSimilar(a,b){if(!a||!b)return false;const rainCompat=a.rain===b.rain||(['dry','showers'].includes(a.rain)&&['dry','showers'].includes(b.rain)&&Math.max(a.r.pop||0,b.r.pop||0)<55);const skyCompat=a.sunClass===b.sunClass||(['sunny','mixed'].includes(a.sunClass)&&['sunny','mixed'].includes(b.sunClass));return rainCompat&&Math.abs(a.temp-b.temp)<=4&&skyCompat}
 function makeNarrativeGroups(rows,ctx){const ps=rows.map(r=>narrativeProfile(r,ctx)),out=[];let g=[];for(const p of ps){if(!g.length||profilesSimilar(g[g.length-1],p))g.push(p);else{out.push(g);g=[p]}}if(g.length)out.push(g);return out}
 function tempStory(group,prev=null){const ts=group.map(x=>x.temp),lo=Math.min(...ts),hi=Math.max(...ts),avg=Math.round(ts.reduce((a,b)=>a+b,0)/ts.length),mid=group[Math.floor(group.length/2)]?.r?.date||group[0]?.r?.date,q=temperatureQualification(avg,mid);if(group.length===1){if(prev&&Math.abs(avg-prev)<=2)return'';return` Het wordt rond ${avg} graden${q&&q!=='normaal'?`, wat ${q} is voor de tijd van het jaar`:''}.`}if(hi-lo<=2)return` De maxima liggen rond ${avg} graden${q&&q!=='normaal'?`; dat is ${q} voor de tijd van het jaar`:''}.`;const first=ts[0],last=ts.at(-1);if(last-first>=3)return` In deze periode wordt het geleidelijk warmer, van ongeveer ${first} naar ${last} graden.`;if(first-last>=3)return` In deze periode wordt het geleidelijk koeler, van ongeveer ${first} naar ${last} graden.`;return` De maxima liggen tussen ongeveer ${lo} en ${hi} graden.`}
@@ -2361,11 +2397,8 @@ function daypartMixVisual(rows,dayMix){
  const lateWet=dayRows.some(r=>+r.time.slice(11,13)>=15&&(Number(r.precip)||0)>=.05),earlyWet=dayRows.some(r=>+r.time.slice(11,13)<12&&(Number(r.precip)||0)>=.05);
  if(medianRain<.1){
    let type,text;
-   if(Number.isFinite(sf)&&sf>=.80){type=cloud<=18?'sun':'partly';text='Veel zon'}
-   else if(Number.isFinite(sf)&&sf>=.60){type='partly';text='Vrij zonnig'}
-   else if(Number.isFinite(sf)&&sf>=.35){type='partly';text='Geregeld zon'}
-   else if(cloud<75){type='partly';text='Zon en wolken'}
-   else{type='cloud';text='Veel bewolking'}
+   const sky=ricoSunSky(sf)||ricoHourlyCloudSky(cloud);
+   type=sky?.type||'cloud';text=sky?.label||'Bewolking onbekend';
    // Een droge mediaan mag een minderheidsbui niet dominant maken, maar een
    // duidelijk (laat) dagsignaal moet wel zichtbaar blijven in icoon en tekst.
    const lateShowerSignal=lateWet&&((Number(dayMix?.precip)||0)>=.5||dayPop>=40||hourlyRain>=.1);
@@ -2778,7 +2811,19 @@ $('load').onclick=async()=>{
 };
 function download(blob,name){let a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500)}
 $('csv').onclick=()=>{let lines=['Datum;TX (°C);TN (°C);Zon (uur);Neerslag (mm);Neerslagkans (%);UV-index;Max windstoot (km/u);Kans zware windstoten (drempel >=75 km/u) (%);Sneeuwkans (%);Onweerskans (%);Hagelkans (%);Modellen'];for(const r of lastRows)lines.push([r.date,fmt(r.max),fmt(r.min),fmt(r.sun),fmt(r.precip),Number.isFinite(r.pop)?Math.round(r.pop):'',fmt(r.uv),Number.isFinite(r.gust)?Math.round(r.gust):'',Number.isFinite(r.gustChance)?r.gustChance:'',Number.isFinite(r.snowChance)?r.snowChance:'',Number.isFinite(r.thunderChance)?r.thunderChance:'',Number.isFinite(r.hailChance)?r.hailChance:'',r.count].join(';'));download(new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),`regioweer-${$('date').value}-${$('run').value}.csv`)};
-function drawWeather(ctx,t,cx,cy,s){ctx.save();ctx.lineWidth=3;ctx.lineCap='round';function sun(x,y,r){ctx.strokeStyle='#f3a712';ctx.fillStyle='#ffd54a';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();for(let a=0;a<8;a++){let q=a*Math.PI/4;ctx.beginPath();ctx.moveTo(x+Math.cos(q)*(r+5),y+Math.sin(q)*(r+5));ctx.lineTo(x+Math.cos(q)*(r+12),y+Math.sin(q)*(r+12));ctx.stroke()}}function cloud(x,y){ctx.fillStyle='#d7e0e8';ctx.strokeStyle='#91a1b2';ctx.beginPath();ctx.arc(x-18,y,15,Math.PI,0);ctx.arc(x,y-11,20,Math.PI,0);ctx.arc(x+22,y,14,Math.PI,0);ctx.lineTo(x+34,y+13);ctx.lineTo(x-30,y+13);ctx.closePath();ctx.fill();ctx.stroke()}function drops(y,heavy=false){ctx.strokeStyle='#287dcc';for(let xx=-18;xx<=18;xx+=18){ctx.beginPath();ctx.moveTo(cx+xx,y);ctx.lineTo(cx+xx-4,y+11+(heavy?5:0));ctx.stroke()}}if(t==='sun')sun(cx,cy,22);else if(t==='partly'){sun(cx-14,cy-13,17);cloud(cx+5,cy+5)}else if(t==='sunshowers'){sun(cx-17,cy-16,17);cloud(cx+6,cy+2);drops(cy+23,false)}else{cloud(cx,cy-3);if(t==='showers'||t==='rain')drops(cy+20,t==='rain')}ctx.restore()}
+function drawWeather(ctx,t,cx,cy,s){
+ ctx.save();ctx.lineWidth=3;ctx.lineCap='round';
+ function sun(x,y,r){ctx.strokeStyle='#f3a712';ctx.fillStyle='#ffd54a';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();for(let a=0;a<8;a++){let q=a*Math.PI/4;ctx.beginPath();ctx.moveTo(x+Math.cos(q)*(r+5),y+Math.sin(q)*(r+5));ctx.lineTo(x+Math.cos(q)*(r+12),y+Math.sin(q)*(r+12));ctx.stroke()}}
+ function cloud(x,y,k=1){ctx.fillStyle='#d7e0e8';ctx.strokeStyle='#91a1b2';ctx.beginPath();ctx.arc(x-18*k,y,15*k,Math.PI,0);ctx.arc(x,y-11*k,20*k,Math.PI,0);ctx.arc(x+22*k,y,14*k,Math.PI,0);ctx.lineTo(x+34*k,y+13*k);ctx.lineTo(x-30*k,y+13*k);ctx.closePath();ctx.fill();ctx.stroke()}
+ function drops(y,heavy=false){ctx.strokeStyle='#287dcc';for(let xx=-18;xx<=18;xx+=18){ctx.beginPath();ctx.moveTo(cx+xx,y);ctx.lineTo(cx+xx-4,y+11+(heavy?5:0));ctx.stroke()}}
+ if(t==='sun')sun(cx,cy,22);
+ else if(t==='mostly_sunny'){sun(cx-10,cy-8,22);cloud(cx+18,cy+12,.55)}
+ else if(t==='partly'){sun(cx-13,cy-11,18);cloud(cx+9,cy+8,.78)}
+ else if(t==='mostly_cloudy'){sun(cx-18,cy-14,14);cloud(cx+4,cy+5,1)}
+ else if(t==='sunshowers'){sun(cx-17,cy-16,17);cloud(cx+6,cy+2,.92);drops(cy+23)}
+ else{cloud(cx,cy-3);if(t==='showers'||t==='rain')drops(cy+20,t==='rain')}
+ ctx.restore();
+}
 $('png').onclick=()=>{const W=1500,H=500,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.fillStyle='#f7fbff';x.fillRect(0,0,W,H);x.fillStyle='#0b63ce';x.fillRect(0,0,W,72);x.fillStyle='white';x.font='700 31px Arial';x.fillText('Ricoweer – modelmix',32,45);let n=lastRows.length,cw=(W-40)/n;for(let i=0;i<n;i++){let r=lastRows[i],left=20+i*cw,mid=left+cw/2,d=new Date(r.date+'T12:00:00');if(i){x.strokeStyle='#d7e2ee';x.beginPath();x.moveTo(left,88);x.lineTo(left,H-24);x.stroke()}x.textAlign='center';x.fillStyle='#23344a';x.font='700 20px Arial';x.fillText(NL[d.getDay()].toUpperCase(),mid,112);x.font='16px Arial';x.fillStyle='#63748a';x.fillText(d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'}),mid,137);drawWeather(x,r.type||centralWeatherType(r),mid,190,1);x.font='700 28px Arial';x.fillStyle='#df4e3a';x.fillText(`${Math.round(r.max)}°`,mid-27,273);x.fillStyle='#2070c7';x.fillText(`${Math.round(r.min)}°`,mid+28,273);x.font='16px Arial';x.fillStyle='#394c63';x.fillText(`☀ ${fmt(r.sun)} uur`,mid,322);x.fillText(`💧 ${fmt(r.precip)} mm`,mid,352);x.font='13px Arial';x.fillStyle='#718096';if(r.count>1)x.fillText(`${r.count} modellen`,mid,386)}x.textAlign='left';x.font='13px Arial';x.fillStyle='#718096';x.fillText(`${isAutoRun()?'Auto · nieuwste run per model':('Run '+$('date').value+' '+$('run').value+' UTC')} · beste-modelmix`,24,474);c.toBlob(b=>download(b,`regioweer-verwachting-${$('date').value}.png`),'image/png')};
 
 async function getSunTimes(rows){
@@ -3102,7 +3147,12 @@ try{const saved=localStorage.getItem('rw-forecast-days');if(saved)applyForecastD
 $('forecastDays')?.addEventListener('change',e=>applyForecastDays(e.target.value,'multi'));
 $('weatherDays')?.addEventListener('change',e=>applyForecastDays(e.target.value,'weather'));
 $('forecastRangeButtons')?.addEventListener('click',e=>{const b=e.target.closest('[data-forecast-days]');if(!b)return;applyForecastDays(b.dataset.forecastDays,'buttons')});
-function drawWeatherPng(ctx,t,cx,cy,s,sunHours=null,rainMm=null){ctx.save();ctx.lineWidth=3;ctx.lineCap='round';const su=Number(sunHours),mm=Number(rainMm),hasSun=Number.isFinite(su),wet=Number.isFinite(mm)&&mm>=0.5;function sun(x,y,r){ctx.strokeStyle='#f3a712';ctx.fillStyle='#ffd54a';ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();for(let a=0;a<8;a++){const q=a*Math.PI/4;ctx.beginPath();ctx.moveTo(x+Math.cos(q)*(r+5),y+Math.sin(q)*(r+5));ctx.lineTo(x+Math.cos(q)*(r+13),y+Math.sin(q)*(r+13));ctx.stroke()}}function cloud(x,y,k=1){ctx.fillStyle='#d7e0e8';ctx.strokeStyle='#91a1b2';ctx.beginPath();ctx.arc(x-15*k,y,12*k,Math.PI,0);ctx.arc(x,y-9*k,16*k,Math.PI,0);ctx.arc(x+18*k,y,11*k,Math.PI,0);ctx.lineTo(x+27*k,y+10*k);ctx.lineTo(x-24*k,y+10*k);ctx.closePath();ctx.fill();ctx.stroke()}function drops(y,heavy=false){ctx.strokeStyle='#287dcc';for(let xx=-16;xx<=16;xx+=16){ctx.beginPath();ctx.moveTo(cx+xx,y);ctx.lineTo(cx+xx-4,y+10+(heavy?4:0));ctx.stroke()}}if(hasSun){const frac=Math.max(0,Math.min(1,su/11)),sr=13+14*frac,ck=Math.max(.58,1.02-.42*frac),sx=cx-(4+8*frac),sy=cy-(4+7*frac),cloudNeeded=wet||su<9.5||t!=='sun';if(sr>10)sun(sx,sy,sr);if(cloudNeeded)cloud(cx+12,cy+7,ck);if(wet)drops(cy+27,mm>=5);ctx.restore();return}if(t==='sun')sun(cx,cy,23);else if(t==='partly'){sun(cx-10,cy-8,22);cloud(cx+12,cy+8,.78)}else if(t==='sunshowers'){sun(cx-12,cy-10,21);cloud(cx+12,cy+7,.82);drops(cy+27,false)}else{cloud(cx,cy-3,1);if(t==='showers'||t==='rain')drops(cy+20,t==='rain')}ctx.restore()}
+function drawWeatherPng(ctx,t,cx,cy,s,sunHours=null,rainMm=null){
+ // Dagweergave: exact dezelfde typekeuze als de normale dagverwachting;
+ // geen vaste 11-uurs-zomerdag om de zon/fractie af te leiden.
+ drawWeather(ctx,t,cx,cy,s);
+}
+
 async function drawModelmixCardsPng(){
  const rows=lastRows.filter(r=>r.date>$('date').value).slice(0,forecastHorizon());if(!rows.length)return;const sunTimes=await getSunTimes(rows);const cols=Math.min(5,rows.length),cardW=336,cardH=446,gap=17,margin=32,header=110,nRows=Math.ceil(rows.length/cols),W=margin*2+cols*cardW+(cols-1)*gap,H=header+margin+nRows*cardH+(nRows-1)*gap+34,c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');x.fillStyle='#eef5fb';x.fillRect(0,0,W,H);x.fillStyle='#0b63ce';x.fillRect(0,0,W,82);x.fillStyle='#fff';x.font='700 30px Arial';x.fillText(`Ricoweer · modelmix · ${rows.length} dagen`,margin,42);x.font='15px Arial';x.fillText(`${isAutoRun()?'Auto · nieuwste run per model':('Run '+$('date').value+' '+$('run').value+' UTC')} · centrale waarde + range`,margin,67);
  for(let i=0;i<rows.length;i++){const r=rows[i],leadDay=Math.round((new Date(r.date+'T12:00:00Z')-new Date($('date').value+'T12:00:00Z'))/86400000),row=Math.floor(i/cols),col=i%cols,left=margin+col*(cardW+gap),top=header+row*(cardH+gap),mid=left+cardW/2,d=new Date(r.date+'T12:00:00');x.fillStyle='#fff';x.strokeStyle='#dce7f1';x.lineWidth=2;x.beginPath();if(x.roundRect)x.roundRect(left,top,cardW,cardH,18);else x.rect(left,top,cardW,cardH);x.fill();x.stroke();x.textAlign='center';x.fillStyle='#23344a';x.font='700 19px Arial';x.fillText(NL[d.getDay()].toUpperCase(),mid,top+30);x.font='14px Arial';x.fillStyle='#63748a';x.fillText(d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'}),mid,top+52);drawWeatherPng(x,r._visualType||r.type||centralWeatherType(r),mid,top+120,.86,r.sun,r.precip);let tr=trendForDate(r.date);if(leadDay>10&&tr)tr=tr.split(' · ').filter(v=>!v.includes('💧')).join(' · ');if(tr){x.font='700 14px Arial';x.fillStyle=tr.includes('▲')?'#c84a35':tr.includes('▼')?'#2474bd':'#52677d';x.fillText(tr,mid,top+181)}x.font='700 37px Arial';x.fillStyle='#df4e3a';x.fillText(`${Math.round(r.max)}°`,mid-30,top+224);x.fillStyle='#2070c7';x.fillText(`${Math.round(r.min)}°`,mid+35,top+224);x.font='15px Arial';x.fillStyle='#63748a';if(Number.isFinite(r.txLow)&&Number.isFinite(r.txHigh))x.fillText(`TX ${Math.round(r.txLow)}–${Math.round(r.txHigh)}°${Number.isFinite(r.tnLow)&&Number.isFinite(r.tnHigh)?` · TN ${Math.round(r.tnLow)}–${Math.round(r.tnHigh)}°`:''}`,mid,top+252);x.fillStyle='#30465f';x.font='19px Arial';x.fillText(`☀ ${Number.isFinite(r.sun)?Math.round(r.sun):'—'} u`,mid,top+291);x.fillText(`💧 ${Number.isFinite(r.precip)?(leadDay>10?(r.precip<0.25?'droogsignaal':'neerslagsignaal'):(r.precip<0.05?'droog':Math.round(r.precip)+' mm')):'—'}`,mid,top+321);const wd=Number.isFinite(r.windDir)?v100WindDir(r.windDir):'',wb=Number.isFinite(r.wind)?bftText(r.wind):'';if(wd||wb)x.fillText(`💨 ${[wd,wb].filter(Boolean).join(' ')}`,mid,top+351);const st=sunTimes[r.date]||{};if(st.rise&&st.set){x.fillStyle='#60758b';x.font='13px Arial';x.fillText(`🌅 ${st.rise} · 🌇 ${st.set}`,mid,top+380)}x.fillStyle='#60758b';x.font='13px Arial';x.fillText(`${r.count||0} model${r.count===1?'':'len'} · ${agreementDisplay(r.agreement,r.count||0)}`,mid,top+409);if(leadDay>10){x.fillStyle='#8b5b18';x.fillText('🔭 lange termijn',mid,top+430)}}x.textAlign='left';const blob=await new Promise(res=>c.toBlob(res,'image/png'));if(!blob)throw new Error('PNG kon niet worden gemaakt');download(blob,`regioweer-modelmix-${rows.length}-dagen-${$('date').value}.png`)
@@ -3924,7 +3974,7 @@ function nsMax(a){a=a.filter(Number.isFinite);return a.length?Math.max(...a):nul
 function nsCircularMean(a){a=a.filter(Number.isFinite);if(!a.length)return null;const rad=a.map(v=>v*Math.PI/180),x=rad.reduce((s,v)=>s+Math.cos(v),0)/a.length,y=rad.reduce((s,v)=>s+Math.sin(v),0)/a.length;return (Math.atan2(y,x)*180/Math.PI+360)%360}
 function nsDir(v){return Number.isFinite(v)?v100WindDir(v):'—'}
 function nsFmt(v,d=1){return Number.isFinite(v)?v.toFixed(d).replace('.',','):'—'}
-function nsWx(rain,sun){if(Number.isFinite(rain)&&rain>=8)return'🌧️ nat';if(Number.isFinite(rain)&&rain>=1)return'🌦️ buien/regen';if(Number.isFinite(sun)&&sun>=7)return'☀️ zonnig';if(Number.isFinite(sun)&&sun>=3)return'🌤️ geregeld zon';if(Number.isFinite(sun))return'☁️ veel bewolking';if(Number.isFinite(rain)&&rain<1)return'🌥️ overwegend droog';return'ℹ️ weerbeeld beperkt'}
+function nsWx(rain,sun,date){if(Number.isFinite(rain)&&rain>=8)return'🌧️ nat';if(Number.isFinite(rain)&&rain>=1)return'🌦️ buien/regen';const sky=ricoDailySky(sun,date);if(sky)return sky.icon+' '+sky.label.toLowerCase();if(Number.isFinite(rain)&&rain<1)return'🌥️ overwegend droog (zon onbekend)';return'ℹ️ weerbeeld beperkt'}
 async function nsFetchModel(code){
  const lat=NATIONAL_POINTS.map(p=>p.lat).join(','),lon=NATIONAL_POINTS.map(p=>p.lon).join(',');
  const u=`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&models=${encodeURIComponent(code)}&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,sunshine_duration,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,snowfall_sum&timezone=Europe%2FAmsterdam&forecast_days=16&wind_speed_unit=kmh`;
@@ -3987,7 +4037,7 @@ function nsRegion(day,regions){
 function nsRegionLine(label,r,date=''){
  if(!r||!Number.isFinite(r.tx))return `<div class="nationalRegion"><strong>${label} · —</strong><small>scan nog niet beschikbaar</small></div>`;
  const month=Number((date||'').slice(5,7)),winter=month>=11||month<=3;const bits=[];if(winter&&Number.isFinite(r.tn))bits.push(`TN ${Math.round(r.tn)}°`);if(Number.isFinite(r.sun))bits.push(`☀ ${Math.round(r.sun)} u`);if(Number.isFinite(r.rain))bits.push(`☔ ${Math.round(r.rain)} mm`);if(Number.isFinite(r.wind))bits.push(`💨 ${nsDir(r.dir)} ${bftText(r.wind)}`);if(Number.isFinite(r.gust)&&r.gust>=30)bits.push(`stoten ${Math.round(r.gust)} km/u`);
- return `<div class="nationalRegion ricoRegionVisual"><span class="ricoRegionName">${label}</span><span class="ricoRegionIcon">${nsWx(r.rain,r.sun).split(' ')[0]}</span><span class="ricoRegionWeather">${nsWx(r.rain,r.sun).replace(/^\S+\s*/, '')}</span><strong class="ricoRegionTemp">${Math.round(r.tx)}°</strong>${Number.isFinite(r.tn)?`<span class="ricoRegionLow">min ${Math.round(r.tn)}°</span>`:''}<span class="ricoRegionStats">${Number.isFinite(r.sun)?`<span>☀ ${Math.round(r.sun)} u</span>`:''}${Number.isFinite(r.rain)?`<span>☔ ${Math.round(r.rain)} mm</span>`:''}${Number.isFinite(r.wind)?`<span>💨 ${bftText(r.wind)}</span>`:''}</span>${Number.isFinite(r.gust)&&r.gust>=30?`<small>Windstoten ${Math.round(r.gust)} km/u</small>`:''}</div>`
+ return `<div class="nationalRegion ricoRegionVisual"><span class="ricoRegionName">${label}</span><span class="ricoRegionIcon">${nsWx(r.rain,r.sun,date).split(' ')[0]}</span><span class="ricoRegionWeather">${nsWx(r.rain,r.sun,date).replace(/^\S+\s*/, '')}</span><strong class="ricoRegionTemp">${Math.round(r.tx)}°</strong>${Number.isFinite(r.tn)?`<span class="ricoRegionLow">min ${Math.round(r.tn)}°</span>`:''}<span class="ricoRegionStats">${Number.isFinite(r.sun)?`<span>☀ ${Math.round(r.sun)} u</span>`:''}${Number.isFinite(r.rain)?`<span>☔ ${Math.round(r.rain)} mm</span>`:''}${Number.isFinite(r.wind)?`<span>💨 ${bftText(r.wind)}</span>`:''}</span>${Number.isFinite(r.gust)&&r.gust>=30?`<small>Windstoten ${Math.round(r.gust)} km/u</small>`:''}</div>`
 }
 function nsRandstadLine(label,r){return Number.isFinite(r?.tx)?`${label} <strong>${Math.round(r.tx)}°</strong>`:`${label} —`}
 function nsExtreme(arr,key,mode='max'){const a=arr.filter(x=>Number.isFinite(x[key]));if(!a.length)return null;return a.reduce((best,x)=>mode==='max'?(x[key]>best[key]?x:best):(x[key]<best[key]?x:best))}
@@ -4154,7 +4204,7 @@ function rwSunConsistency(date, sunHours, timing=null){
  return {status:conflict?'conflict':'checked',cloud,note:conflict?'Let op: dagzonuren en uurbewolking spreken elkaar tegen; het zonnige dagbeeld is onzeker.':'Dagzonuren en beschikbare uurbewolking zijn afzonderlijke modelbronnen.'};
 }
 function nsNationalDuiding(d,timing=null){
- const w=nsRegion(d,['Wadden']),n=nsRegion(d,['Noord']),m=nsRegion(d,['Midden']),z=nsRegion(d,['Zuid']),valid=d.pts.filter(x=>Number.isFinite(x.tx)||Number.isFinite(x.tn)),rain=nsRainScope(d),cf=nsConfidence(d,true),sun=nsMedian(valid.map(x=>x.sun)),sunCheck=rwSunConsistency(d.date,sun,timing),wx=sunCheck.status==='conflict'?'🌥️ wisselend bewolkt (zon onzeker)':nsWx(rain.mix,sun),top=nsTopModelSignal(d,'tx');
+ const w=nsRegion(d,['Wadden']),n=nsRegion(d,['Noord']),m=nsRegion(d,['Midden']),z=nsRegion(d,['Zuid']),valid=d.pts.filter(x=>Number.isFinite(x.tx)||Number.isFinite(x.tn)),rain=nsRainScope(d),cf=nsConfidence(d,true),sun=nsMedian(valid.map(x=>x.sun)),sunCheck=rwSunConsistency(d.date,sun,timing),wx=sunCheck.status==='conflict'?'🌥️ wisselend bewolkt (zon onzeker)':nsWx(rain.mix,sun,d.date),top=nsTopModelSignal(d,'tx');
  let a=`${wx.charAt(0).toUpperCase()+wx.slice(1)}. `+nsTempRangeSentence([n?.tx,m?.tx,z?.tx],'Landinwaarts');const expected=nsMax([n?.tx,m?.tx,z?.tx]);if(top&&Number.isFinite(expected)&&Math.round(top.value)>=Math.round(expected)+1)a+=` Lokaal is in ${nsArea({point:top.point})} ${Math.round(top.value)} graden mogelijk; het hoogste signaal komt van ${top.model}.`;
  const tt=nsNationalTimingText(timing);if(tt)a+=` ${tt}`;if(sunCheck.status==='conflict')a+=` ${sunCheck.note}`;
  if(Number.isFinite(rain.mix)){if(rain.lo===0&&rain.hi===0)a+=' Het blijft volgens alle gebruikte modellen droog.';else a+=` De landelijke neerslagmediaan ligt rond ${nsFmt(rain.mix)} mm, met een modelrange van ${nsFmt(rain.lo)}–${nsFmt(rain.hi)} mm.`}
@@ -4163,7 +4213,7 @@ function nsNationalDuiding(d,timing=null){
 }
 function nsRandstadDuiding(d,rs,rain,models,timing=null){
  const txVals=rs.map(x=>x.tx),sun=nsMedian(rs.map(x=>x.sun)),wind=nsMedian(rs.map(x=>x.wind)),gust=nsMax(rs.map(x=>x.gust)),dir=nsCircularMean(rs.map(x=>x.dir)),regions=['Randstad-kust','Randstad-west','Randstad-oost'],top=nsTopModelSignal(d,'tx',regions);
- const wx=nsWx(rain?.mix,sun),expected=nsMax(txVals);
+ const wx=nsWx(rain?.mix,sun,d.date),expected=nsMax(txVals);
  let a=`${wx.charAt(0).toUpperCase()+wx.slice(1)} in de Randstad. ${nsTempRangeSentence(txVals,'Overdag')}`;
  if(top&&Number.isFinite(expected)&&Math.round(top.value)>=Math.round(expected)+1)a+=` Lokaal kan het in ${nsArea({point:top.point})} ${Math.round(top.value)}° worden (${top.model}).`;
  const timingText=nsRandstadTimingText(timing);if(timingText)a+=` ${timingText}`;
@@ -4180,7 +4230,7 @@ async function nsOpenRandstad(date){
  const region=(name,r)=>`<div class="nationalCard"><b>${name}</b><span>${Number.isFinite(r.tx)?`TX <strong>${Math.round(r.tx)}°</strong>`:'TX —'}${Number.isFinite(r.tn)?` · TN ${Math.round(r.tn)}°`:''}</span><small>${Number.isFinite(r.sun)?`☀ ${Math.round(r.sun)} u · `:''}${Number.isFinite(r.rain)?`☔ ${nsFmt(r.rain)} mm · `:''}${Number.isFinite(r.wind)?`💨 ${nsDir(r.dir)} ${bftText(r.wind)}`:''}</small></div>`;
  $('randstadModalTitle').textContent=`🏙️ Randstad · ${dayShort(d.date)}`;
  $('randstadModalMeta').textContent=`${models.length} ${models.length===1?'model':'modellen'} · modelzekerheid ${cf.label}${cf.spread!=null?` · TX-spreiding circa ${nsFmt(cf.spread,1)}°`:''}`;
- $('randstadModalBody').innerHTML=`<section class="rico971Hero"><div><div class="rico971Eyebrow">${nsWx(rain.mix,sun)}</div><div class="rico971Lead">Randstad · ${dayShort(d.date)}</div><div class="rico971Minor">${Number.isFinite(tn)?`Minimum ${Math.round(tn)}° · `:''}${nsRainText(rain,'Neerslag')}</div></div><div class="rico971Big">${Number.isFinite(tx)?`${Math.round(tx)}°`:'—'}</div></section><div class="rico971Stats"><div><span>☀️ Zon</span><strong>${Number.isFinite(sun)?Math.round(sun)+' uur':'—'}</strong></div><div><span>🌧️ Neerslag</span><strong>${Number.isFinite(rain.mix)?nsFmt(rain.mix)+' mm':'—'}</strong></div><div><span>💨 Windstoten</span><strong>${Number.isFinite(gust)?Math.round(gust)+' km/u':'—'}</strong></div><div><span>🎯 Zekerheid</span><strong>${cf.label}</strong></div></div><h3 class="rico971Section">Verschillen binnen de Randstad</h3><div class="randstadDetailGrid rico971Regions">${region('🌊 Kust',rk)}${region('🏙️ Westelijk binnenland',rw)}${region('🌳 Utrecht/Flevoland',ro)}</div><div id="nsRandstadDayparts">${nsDaypartPanel(null)}</div><details class="rico971Detail"><summary>📝 Uitgebreide dagduiding</summary><div class="ricoRandstadConfidence">🎯 <strong>Temperatuurzekerheid: ${cf.label}</strong>${cf.spread!=null?` · TX-spreiding ${nsFmt(cf.spread,1)}°`:``} · ${models.length} modellen</div><div class="randstadDuiding" id="randstadDuidingText">${nsRandstadDuiding(d,rs,rain,models)} <small>Uurtiming wordt opgehaald…</small></div></details><details class="rico971Detail"><summary>🌡️ Extremen en hoogste modelsignalen</summary>${nsExtremePanel(d,['Randstad-kust','Randstad-west','Randstad-oost'])}<div class="nationalCard"><span>${nsSignalCards(d,['Randstad-kust','Randstad-west','Randstad-oost'])||'Geen opvallende modelsignalen.'}</span></div></details><details class="rico971Detail"><summary>🧩 ${models.length} modellen · modeldetails</summary><p>${models.join(' · ')||'Nog geen bruikbare modeldata'}</p><p>Temperatuurspreiding: ${cf.spread!=null?nsFmt(cf.spread,1)+'°':'onbekend'}</p></details>`;
+ $('randstadModalBody').innerHTML=`<section class="rico971Hero"><div><div class="rico971Eyebrow">${nsWx(rain.mix,sun,d.date)}</div><div class="rico971Lead">Randstad · ${dayShort(d.date)}</div><div class="rico971Minor">${Number.isFinite(tn)?`Minimum ${Math.round(tn)}° · `:''}${nsRainText(rain,'Neerslag')}</div></div><div class="rico971Big">${Number.isFinite(tx)?`${Math.round(tx)}°`:'—'}</div></section><div class="rico971Stats"><div><span>☀️ Zon</span><strong>${Number.isFinite(sun)?Math.round(sun)+' uur':'—'}</strong></div><div><span>🌧️ Neerslag</span><strong>${Number.isFinite(rain.mix)?nsFmt(rain.mix)+' mm':'—'}</strong></div><div><span>💨 Windstoten</span><strong>${Number.isFinite(gust)?Math.round(gust)+' km/u':'—'}</strong></div><div><span>🎯 Zekerheid</span><strong>${cf.label}</strong></div></div><h3 class="rico971Section">Verschillen binnen de Randstad</h3><div class="randstadDetailGrid rico971Regions">${region('🌊 Kust',rk)}${region('🏙️ Westelijk binnenland',rw)}${region('🌳 Utrecht/Flevoland',ro)}</div><div id="nsRandstadDayparts">${nsDaypartPanel(null)}</div><details class="rico971Detail"><summary>📝 Uitgebreide dagduiding</summary><div class="ricoRandstadConfidence">🎯 <strong>Temperatuurzekerheid: ${cf.label}</strong>${cf.spread!=null?` · TX-spreiding ${nsFmt(cf.spread,1)}°`:``} · ${models.length} modellen</div><div class="randstadDuiding" id="randstadDuidingText">${nsRandstadDuiding(d,rs,rain,models)} <small>Uurtiming wordt opgehaald…</small></div></details><details class="rico971Detail"><summary>🌡️ Extremen en hoogste modelsignalen</summary>${nsExtremePanel(d,['Randstad-kust','Randstad-west','Randstad-oost'])}<div class="nationalCard"><span>${nsSignalCards(d,['Randstad-kust','Randstad-west','Randstad-oost'])||'Geen opvallende modelsignalen.'}</span></div></details><details class="rico971Detail"><summary>🧩 ${models.length} modellen · modeldetails</summary><p>${models.join(' · ')||'Nog geen bruikbare modeldata'}</p><p>Temperatuurspreiding: ${cf.spread!=null?nsFmt(cf.spread,1)+'°':'onbekend'}</p></details>`;
  $('randstadModal').classList.remove('hidden');$('randstadModal').setAttribute('aria-hidden','false');
  try{const timing=await nsFetchRandstadTiming(d.date);const el=$('randstadDuidingText');if(el&&$('randstadModalTitle')?.textContent.includes(dayShort(d.date))){el.textContent=nsRandstadDuiding(d,rs,rain,models,timing);const p=$('nsRandstadDayparts');if(p)p.innerHTML=nsDaypartPanel(timing)}}catch(e){const el=$('randstadDuidingText');if(el)el.textContent=nsRandstadDuiding(d,rs,rain,models)}
 }
@@ -4192,7 +4242,7 @@ function nsDaypartPanel(t){
  const f=(v,unit='')=>Number.isFinite(v)?`${Math.round(v)}${unit}`:'—';
  const cards=parts.map(([name,a,b,ico])=>{
   const rows=t.hours.filter(x=>x.hour>=a&&x.hour<b),temps=rows.map(x=>x.temp).filter(Number.isFinite),cloud=nsHourMean(rows,'cloud',a,b),wind=nsHourMean(rows,'wind',a,b),dir=nsHourDir(rows,a,b),rain=rows.map(x=>x.rain).filter(Number.isFinite),sum=rain.reduce((x,y)=>x+y,0),wet=rows.some(x=>x.wet);
-  const sky=!Number.isFinite(cloud)?'Bewolking onbekend':cloud<25?'Zonnig / helder':cloud<55?'Zon en wolken':cloud<80?'Veel bewolking':'Bewolkt';
+  const sky=Number.isFinite(cloud)?(name==='Nacht'?'Bewolking: '+Math.round(cloud)+'%':(ricoHourlyCloudSky(cloud)?.label||'Bewolking onbekend')):'Bewolking onbekend';
   const tempTrend=ricoweerHourTempTrend(rows,name);
   return `<div class="nsPart"><div class="nsPartTitle">${ico} ${name}</div><strong>${temps.length?`${f(Math.min(...temps),'°')}–${f(Math.max(...temps),'°')}`:'Temperatuur —'}</strong>${tempTrend?`<span>🌡️ ${tempTrend.text}</span>`:''}<span>${sky}</span><small>${rain.length?(wet||sum>=.1?`🌧️ ${nsFmt(sum)} mm`:'☀️ Droog'):'Neerslag —'} · 💨 ${Number.isFinite(wind)?`${nsDir(dir)} ${bftText(wind)}`:'—'}</small></div>`;
  }).join('');
@@ -4215,7 +4265,7 @@ async function nsOpenNational(date){
  const d=nationalScanLastPack?.days?.find(x=>x.date===date);if(!d)return;const w=nsRegion(d,['Wadden']),n=nsRegion(d,['Noord']),m=nsRegion(d,['Midden']),z=nsRegion(d,['Zuid']),rain=nsRainScope(d),models=nsDayModels(d),cf=nsConfidence(d,true),valid=d.pts.filter(x=>Number.isFinite(x.tx)||Number.isFinite(x.tn)),sun=nsMedian(valid.map(x=>x.sun));
  const region=(name,r)=>`<div class="nationalCard"><b>${name}</b><span>${Number.isFinite(r?.tx)?`TX <strong>${Math.round(r.tx)}°</strong>`:'TX —'}${Number.isFinite(r?.tn)?` · TN ${Math.round(r.tn)}°`:''}</span><small>${Number.isFinite(r?.sun)?`☀ ${Math.round(r.sun)} u · `:''}${Number.isFinite(r?.rain)?`☔ ${nsFmt(r.rain)} mm · `:''}${Number.isFinite(r?.wind)?`💨 ${nsDir(r.dir)} ${bftText(r.wind)}`:''}${Number.isFinite(r?.gust)&&r.gust>=40?` · stoten ${Math.round(r.gust)} km/u`:''}</small></div>`;
  $('randstadModalTitle').textContent=`🇳🇱 Nederland · ${dayShort(d.date)}`;$('randstadModalMeta').textContent=`${models.length} ${models.length===1?'model':'modellen'} · modelzekerheid ${cf.label}${cf.spread!=null?` · TX-spreiding excl. Wadden circa ${nsFmt(cf.spread,1)}°`:''}`;
- $('randstadModalBody').innerHTML=`<div class="assistantCard"><b>${nsWx(rain.mix,sun)}</b><span>${nsRainText(rain,'Landelijk')}</span></div><div id="nsNationalDayparts">${nsDaypartPanel(null)}</div>${nsExtremePanel(d)}<div class="randstadDetailGrid">${region('🌊 Wadden',w)}${region('🧭 Noord',n)}${region('🏙️ Midden',m)}${region('🌳 Zuid',z)}</div><div class="nationalCard"><b>📝 Landelijke dagduiding</b><div class="randstadDuiding" id="nationalDuidingText">${nsNationalDuiding(d)} <small>Uurtiming wordt opgehaald…</small></div></div><div class="nationalCard"><b>🔎 Hoogste modelsignalen</b><span>${nsSignalCards(d)||'Geen opvallende modelsignalen.'}</span></div><div class="nationalCard"><b>🧩 Modellen voor deze dag</b><span>${models.join(' · ')||'Nog geen bruikbare modeldata'}</span></div>`;
+ $('randstadModalBody').innerHTML=`<div class="assistantCard"><b>${nsWx(rain.mix,sun,d.date)}</b><span>${nsRainText(rain,'Landelijk')}</span></div><div id="nsNationalDayparts">${nsDaypartPanel(null)}</div>${nsExtremePanel(d)}<div class="randstadDetailGrid">${region('🌊 Wadden',w)}${region('🧭 Noord',n)}${region('🏙️ Midden',m)}${region('🌳 Zuid',z)}</div><div class="nationalCard"><b>📝 Landelijke dagduiding</b><div class="randstadDuiding" id="nationalDuidingText">${nsNationalDuiding(d)} <small>Uurtiming wordt opgehaald…</small></div></div><div class="nationalCard"><b>🔎 Hoogste modelsignalen</b><span>${nsSignalCards(d)||'Geen opvallende modelsignalen.'}</span></div><div class="nationalCard"><b>🧩 Modellen voor deze dag</b><span>${models.join(' · ')||'Nog geen bruikbare modeldata'}</span></div>`;
  $('randstadModal').classList.remove('hidden');$('randstadModal').setAttribute('aria-hidden','false');try{const timing=await nsFetchNationalTiming(d.date),el=$('nationalDuidingText');if(el&&$('randstadModalTitle')?.textContent.includes(dayShort(d.date))){el.textContent=nsNationalDuiding(d,timing);const p=$('nsNationalDayparts');if(p)p.innerHTML=nsDaypartPanel(timing)}}catch(e){const el=$('nationalDuidingText');if(el)el.textContent=nsNationalDuiding(d)}
 }
 function nsBindNationalCards(){document.querySelectorAll('.nationalDayCard[data-national-date]').forEach(el=>{if(el.dataset.bound)return;el.dataset.bound='1';const open=()=>nsOpenNational(el.dataset.nationalDate);el.addEventListener('click',open);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open()}})})}
@@ -4235,7 +4285,7 @@ function nsGustSupport(day,threshold=60){
 }
 function nsCompactDay(d,prevNational){
  const valid=d.pts.filter(x=>Number.isFinite(x.tx)||Number.isFinite(x.tn)),w=nsRegion(d,["Wadden"]),n=nsRegion(d,["Noord"]),m=nsRegion(d,["Midden"]),z=nsRegion(d,["Zuid"]),rk=nsRegion(d,["Randstad-kust"]),rw=nsRegion(d,["Randstad-west"]),ro=nsRegion(d,["Randstad-oost"]);
- const ex={warm:nsExtreme(valid,"tx","max"),coldNight:nsExtreme(valid,"tn","min"),wet:nsExtreme(valid,"rain","max"),windy:nsExtreme(valid,"gust","max")},wx=nsWx(nsMedian(valid.map(x=>x.rain)),nsMedian(valid.map(x=>x.sun))),cf=nsConfidence(d,true),sig=nsScanMaxSignal(d,"tx"),runChange=nsRunChange(d,prevNational);
+ const ex={warm:nsExtreme(valid,"tx","max"),coldNight:nsExtreme(valid,"tn","min"),wet:nsExtreme(valid,"rain","max"),windy:nsExtreme(valid,"gust","max")},wx=nsWx(nsMedian(valid.map(x=>x.rain)),nsMedian(valid.map(x=>x.sun)),d.date),cf=nsConfidence(d,true),sig=nsScanMaxSignal(d,"tx"),runChange=nsRunChange(d,prevNational);
  const regs=[["Wadden",w],["noord",n],["midden",m],["zuid",z]].filter(([,r])=>Number.isFinite(r.tx)).map(([a,r])=>`${a} <strong>${Math.round(r.tx)}°</strong>`).join(" · ");
  const rs=[rk,rw,ro],rWind=nsRandstadWind(rs),randstad=[nsRandstadLine("kust",rk),nsRandstadLine("westelijk binnenland",rw),nsRandstadLine("Utrecht/Flevoland",ro)].join(" · "); const regionalWeather=[['Wadden',w],['Noord',n],['Midden',m],['Zuid',z]].filter(([,r])=>Number.isFinite(r?.tx)).map(([name,r])=>{const parts=[`${name} <strong>${Math.round(r.tx)}°</strong>`];if(Number.isFinite(r.sun))parts.push(`☀ ${Math.round(r.sun)} u`);if(Number.isFinite(r.rain))parts.push(`☔ ${Math.round(r.rain)} mm`);if(Number.isFinite(r.wind))parts.push(`💨 ${nsDir(r.dir)} ${bftText(r.wind)}`);return parts.join(' · ')}).join('<br>');
  const rainNL=nsRainScope(d),rainRS=nsRainScope(d,["Randstad-kust","Randstad-west","Randstad-oost"]),rainNLText=nsRainText(rainNL,"Landelijk"),rainRSText=nsRainText(rainRS,"Randstad");
@@ -4255,7 +4305,7 @@ function renderNationalScanData(days,models,fromCache=false){
   if(d.coverage<.35)return `<div class="nationalDay"><b style="font-size:16px">${dayShort(d.date)} · landelijke scan nog niet beschikbaar</b><div class="nationalCard"><span>Te weinig geldige scanpunten om een betrouwbaar landelijk beeld te tonen.</span><small>${d.models.length?`Beschikbare modellen: ${d.models.join(' + ')}`:'Geen bruikbare modeldekking.'}</small></div></div>`;
   const w=nsRegion(d,['Wadden']),n=nsRegion(d,['Noord']),m=nsRegion(d,['Midden']),z=nsRegion(d,['Zuid']),rk=nsRegion(d,['Randstad-kust']),rw=nsRegion(d,['Randstad-west']),ro=nsRegion(d,['Randstad-oost']);
   const ex={warm:nsExtreme(valid,'tx','max'),coolTx:nsExtreme(valid,'tx','min'),coldNight:nsExtreme(valid,'tn','min'),warmNight:nsExtreme(valid,'tn','max'),wet:nsExtreme(valid,'rain','max'),sunny:nsExtreme(valid,'sun','max'),windy:nsExtreme(valid,'gust','max')};
-  const notes=nsNotable(d,ex),stories=nsRegionalStory(d,w,n,m,z,ex),tempDiff=ex.warm&&ex.coolTx?Math.round(ex.warm.tx-ex.coolTx.tx):null,wx=nsWx(nsMedian(valid.map(x=>x.rain)),nsMedian(valid.map(x=>x.sun))),rs=[rk,rw,ro],rSun=nsMedian(rs.map(x=>x.sun)),rRain=nsMedian(rs.map(x=>x.rain)),rGust=nsMax(rs.map(x=>x.gust));
+  const notes=nsNotable(d,ex),stories=nsRegionalStory(d,w,n,m,z,ex),tempDiff=ex.warm&&ex.coolTx?Math.round(ex.warm.tx-ex.coolTx.tx):null,wx=nsWx(nsMedian(valid.map(x=>x.rain)),nsMedian(valid.map(x=>x.sun)),d.date),rs=[rk,rw,ro],rSun=nsMedian(rs.map(x=>x.sun)),rRain=nsMedian(rs.map(x=>x.rain)),rGust=nsMax(rs.map(x=>x.gust));
   const lowTx=nsShowLowTx(d,ex)?nsExtremeHtml('Laagste TX',ex.coolTx,'tx','min'):'';
   const warmSpread=nsPointSpread(ex.warm,'tx');
   const tropicalPossible=(Number.isFinite(ex.warm?.tx)&&ex.warm.tx>=30)||(warmSpread&&warmSpread.maxValue>=30);
@@ -4622,7 +4672,7 @@ function daySymbol(r){
  if(rain>=1||/regen|buien/.test(t))return r.sun>=5?'🌦️':'🌧️';
  if(rain>=.15)return r.sun>=5?'🌦️':'🌥️';
  if(/mist|nevel/.test(t))return '🌫️';
- if(Number.isFinite(r.sun))return r.sun>=8?'☀️':r.sun>=4?'🌤️':'☁️';
+ if(Number.isFinite(r.sun))return ricoDailySky(r.sun,r.date)?.icon||'☁️';
  return /bewolkt/.test(t)?'☁️':'🌤️';
 }
 function randstadRows(){
@@ -5203,25 +5253,21 @@ function ricoAtlasDailyWeather(p,date,hourly){
  const ratio=Number.isFinite(p.sun)&&dayHours>0?Math.max(0,Math.min(1,p.sun/dayHours)):null;
  const rain=Number.isFinite(p.rain)?p.rain:null;
  const daytimeWet=!!hourly&&hourly.wetHours>=2&&Number.isFinite(hourly.rain)&&hourly.rain>=.3;
- const dayDry=rain!==null&&rain<.5;
- const strongSun=dayDry&&ratio!==null&&ratio>=.80;
- const conflict=!!hourly&&((strongSun&&(hourly.cloud>=65||daytimeWet)) || (rain!==null&&rain>=5&&hourly.cloud<=25&&!daytimeWet));
- // Dagmodelmix: neerslag en relatieve zonneduur vormen het dagbeeld.
+ const sky=ricoSunSky(ratio);
+ const bright=sky&&['sun','mostly_sunny'].includes(sky.type);
+ const conflict=!!hourly&&((bright&&hourly.cloud>=65)||(sky?.type==='cloud'&&hourly.cloud<=25)||(rain!==null&&rain>=5&&hourly.cloud<=25&&!daytimeWet));
  if(rain!==null&&rain>=7)return {symbol:'🌧️',ratio,source:'dagmodelmix',conflict};
  if(rain!==null&&rain>=1)return {symbol:ratio!==null&&ratio>=.55?'🌦️':'🌧️',ratio,source:'dagmodelmix',conflict};
- if(strongSun)return {symbol:'☀️',ratio,source:'dagmodelmix (veel zon ≥80%)',conflict};
- if(ratio!==null){
-  if(ratio>=.55)return {symbol:'🌤️',ratio,source:'dagmodelmix',conflict};
-  if(ratio>=.25)return {symbol:'⛅',ratio,source:'dagmodelmix',conflict};
-  return {symbol:'☁️',ratio,source:'dagmodelmix',conflict};
- }
- // Alleen wanneer de dag-zonuren ontbreken: uurcache als expliciete fallback.
+ if(sky)return {symbol:sky.icon,ratio,source:'dagmodelmix · '+sky.label,conflict};
+ // Geen dagzonuren: uurbewolking is alleen een expliciete fallback.
  if(hourly){
-  const symbol=daytimeWet?(hourly.cloud<60?'🌦️':'🌧️'):(hourly.cloud<25?'☀️':hourly.cloud<60?'🌤️':hourly.cloud<85?'⛅':'☁️');
-  return {symbol,ratio,source:'uurcache (fallback: dagzonuren ontbreken)',conflict:false};
+   const cloudSky=ricoHourlyCloudSky(hourly.cloud);
+   const symbol=daytimeWet?(hourly.cloud<60?'🌦️':'🌧️'):(cloudSky?.icon||'🌥️');
+   return {symbol,ratio,source:'uurcache (fallback: dagzonuren ontbreken)',conflict:false};
  }
  return {symbol:rain===null?'·':'🌥️',ratio,source:'dagmodelmix zonder zonuren',conflict:false};
 }
+
 /* v100.3 — Eén geografische spreiding voor dag- en dagdeelkaarten.
    Ook de Kop van Noord-Holland krijgt expliciet prioriteit. Geen uitwisseling
    van dag- en uurwaarden: deze functie kiest uitsluitend bestaande punten. */
@@ -5334,7 +5380,7 @@ function updateWeatherAtlas(){
   const mm=rain.length?rain.sort((a,b)=>a-b)[Math.floor(rain.length/2)]:null;
   const previous=atlasHistory();const signals=atlasSignals(d);const change=atlasDayChange(d,previous);
   const extra=`<div class="ricoAtlasExtra"><div><b>Verandering sinds vorige scan:</b> ${change}</div><div class="ricoChips">${signals.length?signals.slice(0,2).map(x=>`<span class="ricoChip">${x}</span>`).join(''):'<span class="ricoSmall">Geen bijzondere signalen uit de beschikbare dagwaarden</span>'}</div></div>`;
-  return `<article class="ricoWeatherCard"><div class="ricoWeatherTitle"><span>${safe(dayLabel(d.date))}</span><span>${good.length}/${NATIONAL_POINTS.length}</span></div><div class="ricoWeatherMap" id="ricoWeatherMap${i}" aria-label="Landelijk weerbeeld ${safe(dayLabel(d.date))}"></div><div class="ricoWeatherFoot">${mm!==null?'Landelijke neerslagmediaan '+mm.toFixed(1).replace('.',',')+' mm · ':''}temperaturen TX/TN: altijd dagelijkse modelmix (nooit vervangen door uurdata) · weersymbool: dagmodelmix (zonneduur en neerslag); uurcache als extra informatie · <b>blauw = vorst</b>${i>=10?' · lange termijn, grotere onzekerheid':i>=7?' · langere termijn, grotere onzekerheid':''}</div>${extra}</article>`
+  return `<article class="ricoWeatherCard"><div class="ricoWeatherTitle"><span>${safe(dayLabel(d.date))}</span><span>${good.length}/${NATIONAL_POINTS.length}</span></div><div class="ricoWeatherMap" id="ricoWeatherMap${i}" aria-label="Landelijk weerbeeld ${safe(dayLabel(d.date))}"></div><div class="ricoWeatherFoot">${mm!==null?'Landelijke neerslagmediaan '+mm.toFixed(1).replace('.',',')+' mm · ':''}temperaturen TX/TN: altijd dagelijkse modelmix (nooit vervangen door uurdata) · weersymbool: vijfdelige zonneduurverdeling (20/40/60/80%); dagmodelmix leidend · <b>blauw = vorst</b>${i>=10?' · lange termijn, grotere onzekerheid':i>=7?' · langere termijn, grotere onzekerheid':''}</div>${extra}</article>`
  }).join('');
  const rainHost=host.querySelector('.ricoAtlasRain');if(rainHost)rainHost.remove();host.querySelector('.ricoWeatherGrid').insertAdjacentHTML('afterend',atlasRainSummary(valid));
  // Alleen bestaande kaartbibliotheek en OSM-kaarttegels. Geen weer-API-calls.
@@ -5450,7 +5496,7 @@ function install(){
  const panel=document.getElementById('nationalScanPanel');if(!panel)return;
  if(!document.getElementById('ricoWeatherAtlas')){
   const section=document.createElement('section');section.id='ricoWeatherAtlas';
-  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 15 dagen</div><div class="note">Interactieve landelijke kaart in de stijl van Weerkaart NL: direct meerdere locaties; bij inzoomen verschijnen ook regionale punten in oost en zuid. Weersymbolen, maximum- en minimumtemperatuur en wind. Tik op een symbool voor details. De aparte Weerkaart NL blijft interactief. Temperaturen uit de landelijke modelmix. Weersymbolen volgen de uurgegevens tussen zonsopkomst en zonsondergang in de eerste 72 uur, anders een voorzichtige indicatie uit dagwaarden. Bij ontbrekende zichtgegevens wordt mist niet als zeker voorspeld. Dagkaarten tonen dagelijkse modelmixwaarden (TX/TN); dagdelen tonen onafhankelijke uurwaarden. Het zijn verschillende grootheden: ze worden niet door elkaar vervangen. Het dagweersymbool volgt de dagelijkse modelmix voor neerslag en zonneduur (veel zon vanaf 80% van de daglichtduur); de uurcache wordt alleen als aanvulling gebruikt of als fallback wanneer dag-zonuren ontbreken. Tik op een locatie om de gebruikte bron te zien.</div><div class="ricoWeatherGrid"></div>';
+  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 15 dagen</div><div class="note">Interactieve landelijke kaart in de stijl van Weerkaart NL: direct meerdere locaties; bij inzoomen verschijnen ook regionale punten in oost en zuid. Weersymbolen, maximum- en minimumtemperatuur en wind. Tik op een symbool voor details. De aparte Weerkaart NL blijft interactief. Temperaturen uit de landelijke modelmix. Weersymbolen volgen de uurgegevens tussen zonsopkomst en zonsondergang in de eerste 72 uur, anders een voorzichtige indicatie uit dagwaarden. Bij ontbrekende zichtgegevens wordt mist niet als zeker voorspeld. Dagkaarten tonen dagelijkse modelmixwaarden (TX/TN); dagdelen tonen onafhankelijke uurwaarden. Het zijn verschillende grootheden: ze worden niet door elkaar vervangen. Het dagweersymbool volgt de dagelijkse modelmix voor neerslag en zonneduur (bewolkt ≤20%, veel bewolking 20–40%, zon/wolken 40–60%, vrij zonnig 60–80%, zonnig ≥80% van de daglichtduur); de uurcache wordt alleen als aanvulling gebruikt of als fallback wanneer dag-zonuren ontbreken. Tik op een locatie om de gebruikte bron te zien.</div><div class="ricoWeatherGrid"></div>';
   const map=panel.querySelector('.ricomapPanel');if(map)map.insertAdjacentElement('beforebegin',section);else panel.appendChild(section);
  }
  // Koppel aan bestaande landelijke scanweergave, inclusief cacheherstel.
@@ -5770,23 +5816,10 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
  function med(v){v=v.filter(Number.isFinite).sort((a,b)=>a-b);return v.length?(v.length%2?v[(v.length-1)/2]:(v[v.length/2-1]+v[v.length/2])/2):null}
  function fmt(v,d=0){return Number.isFinite(v)?v.toFixed(d).replace('.',','):'—'}
  function bft(kmh){if(!Number.isFinite(kmh))return '—';const ms=kmh/3.6;return [0.3,1.6,3.4,5.5,8,10.8,13.9,17.2,20.8,24.5,28.5,32.7].findIndex(x=>ms<x)===-1?12:[0.3,1.6,3.4,5.5,8,10.8,13.9,17.2,20.8,24.5,28.5,32.7].findIndex(x=>ms<x)}
- function summarize(rows){const temps=rows.map(x=>x.temp).filter(Number.isFinite),cloud=med(rows.map(x=>x.cloud)),wind=med(rows.map(x=>x.wind)),gust=rows.map(x=>x.gust).filter(Number.isFinite),snow=rows.map(x=>x.snow).filter(Number.isFinite),rain=rows.map(x=>x.rain).filter(Number.isFinite),pop=med(rows.map(x=>x.pop));if(temps.length<4)return null;const mm=rain.length>=4?rain.reduce((a,b)=>a+b,0):null;const snowCm=snow.length>=4?snow.reduce((a,b)=>a+b,0):null;const wet=(mm!==null&&mm>=.2)||(Number.isFinite(pop)&&pop>=50);const icon=wet?(cloud!==null&&cloud<60?'🌦️':'🌧️'):(cloud===null?'🌤️':cloud<25?'☀️':cloud<60?'🌤️':cloud<85?'⛅':'☁️');return {temp:med(temps),lo:Math.min(...temps),hi:Math.max(...temps),cloud,wind,gust:gust.length?Math.max(...gust):null,snow:snowCm,mm,pop,icon}}
+ function summarize(rows){const temps=rows.map(x=>x.temp).filter(Number.isFinite),cloud=med(rows.map(x=>x.cloud)),wind=med(rows.map(x=>x.wind)),gust=rows.map(x=>x.gust).filter(Number.isFinite),snow=rows.map(x=>x.snow).filter(Number.isFinite),rain=rows.map(x=>x.rain).filter(Number.isFinite),pop=med(rows.map(x=>x.pop));if(temps.length<4)return null;const mm=rain.length>=4?rain.reduce((a,b)=>a+b,0):null;const snowCm=snow.length>=4?snow.reduce((a,b)=>a+b,0):null;const wet=(mm!==null&&mm>=.2)||(Number.isFinite(pop)&&pop>=50);const icon=wet?(cloud!==null&&cloud<60?'🌦️':'🌧️'):(ricoHourlyCloudSky(cloud)?.icon||'🌥️');return {temp:med(temps),lo:Math.min(...temps),hi:Math.max(...temps),cloud,wind,gust:gust.length?Math.max(...gust):null,snow:snowCm,mm,pop,icon}}
  // v96.2: dezelfde heldere SVG-symbolen in alle dagdelen; dag/nacht verandert
  // alleen de zon in een maan, niet de wolkstijl of kleur.
- function unifiedWeatherIcon(icon,night){
-   const wet=icon==='🌧️'||icon==='🌦️';
-   const cloudy=icon==='☁️'||icon==='🌧️';
-   const partial=icon==='🌤️'||icon==='⛅'||icon==='🌦️';
-   const rays='<g stroke="#f6a800" stroke-width="3" stroke-linecap="round"><path d="M23 2v6M23 38v6M1 23h6M39 23h6M8 8l5 5M33 33l5 5M8 38l5-5M33 13l5-5"/></g>';
-   const sun='<g>'+rays+'<circle cx="23" cy="23" r="11" fill="#ffcb37" stroke="#e9a11a" stroke-width="2"/></g>';
-   const moon='<path d="M31 4A18 18 0 1 0 45 32 18 18 0 0 1 31 4Z" fill="#ffe19a" stroke="#c68b2f" stroke-width="2"/>';
-   const cloud='<path d="M17 46C9 46 5 41 5 35c0-6 5-11 11-11 3-9 10-14 19-12 8 1 13 7 14 14 8-1 14 4 14 11 0 6-5 9-13 9Z" fill="#f8fbff" stroke="#587b96" stroke-width="2.8" stroke-linejoin="round"/>';
-   const drops='<g stroke="#138bd1" stroke-width="4" stroke-linecap="round"><path d="M18 50l-4 8M33 50l-4 8M48 50l-4 8"/></g>';
-   const sky=night?moon:sun;
-   const content=(cloudy?'':sky)+(cloudy||partial||wet?cloud:'')+(wet?drops:'');
-   const label=wet?'Regen':cloudy?'Bewolkt':partial?(night?'Wolken en maan':'Zon en wolken'):(night?'Helder':'Zonnig');
-   return `<svg class="ricoUnifiedWeatherSvg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 68 64" width="42" height="42" role="img" aria-label="${label}">${content}</svg>`;
- }
+ function unifiedWeatherIcon(icon,night){return ricoSharedWeatherIcon(icon,night)}
  function ricoV100PartMetric(d,key){
    const val=({tx:d.hi,tn:d.lo,rain:d.mm,wind:d.wind,gust:d.gust,snow:d.snow})[key];
    const titles={tx:'Hoogste uurtemperatuur in dit zesuurvak',tn:'Laagste uurtemperatuur in dit zesuurvak',rain:'Neerslag in dit zesuurvak',wind:'Wind in dit zesuurvak',gust:'Hoogste windstoot in dit zesuurvak',snow:'Sneeuwval in dit zesuurvak'};
@@ -5840,7 +5873,7 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
  const toolbar=document.createElement('nav');toolbar.id='ricoV100Layers';toolbar.className='ricoV100Layers';toolbar.setAttribute('aria-label','Kies weerlaag voor de landkaarten');
  const layers=[['🌤️ Weerbeeld','wx'],['🌡️ Maxima','tx'],['🥶 Minima','tn'],['🌧️ Neerslag','rain'],['☀️ Zon','sun'],['💨 Wind','wind'],['🌪️ Windstoten','gust'],['❄️ Sneeuw','snow']];
  toolbar.innerHTML=layers.map(([label,key])=>`<button type="button" data-atlas-layer="${key}" aria-pressed="${key===(window.ricoAtlasLayer||'wx')}">${label}</button>`).join('')+'<p id="ricoV100LayerInfo" class="ricoV100LayerInfo"></p>';
- const updateInfo=()=>{const part=controls.querySelector('[data-mode="parts"]')?.getAttribute('aria-pressed')==='true';const key=window.ricoAtlasLayer||'wx';const info=document.getElementById('ricoV100LayerInfo');if(info)info.textContent=atlas.classList.contains('ricoV967Home')?'Dagkaarten: modelmix TX/TN en dagsommen. Dagdelen: uurwaarden per zes uur (maxima/minima zijn zesuuruitslagen, geen dag-TX/TN). Deze waarden worden nooit door elkaar vervangen.':part?(key==='tx'?'Maxima = hoogste uurlijkse temperatuur per 6 uur (geen dag-TX).':key==='tn'?'Minima = laagste uurlijkse temperatuur per 6 uur (geen dag-TN).':key==='sun'?'Zonuren zijn niet beschikbaar uit deze uurbron; — betekent onbekend.':'Dagdelen: uurverwachting per zesuurvak. Weerbeeld toont representatieve uurtemperatuur, geen dagmaximum.'):('Dagkaarten: dagmodelmix, TX/TN en dagsommen; uurwaarden vervangen deze cijfers nooit. Sneeuw toont alleen echte modelgegevens (eventueel na een nieuwe modelscan).');};
+ const updateInfo=()=>{const part=controls.querySelector('[data-mode="parts"]')?.getAttribute('aria-pressed')==='true';const key=window.ricoAtlasLayer||'wx';const info=document.getElementById('ricoV100LayerInfo');if(info)info.textContent=atlas.classList.contains('ricoV967Home')?'Dagkaarten: modelmix TX/TN en dagsommen. Dagdelen: uurwaarden per zes uur (maxima/minima zijn zesuuruitslagen, geen dag-TX/TN). Deze waarden worden nooit door elkaar vervangen.':part?(key==='tx'?'Maxima = hoogste uurlijkse temperatuur per 6 uur (geen dag-TX).':key==='tn'?'Minima = laagste uurlijkse temperatuur per 6 uur (geen dag-TN).':key==='sun'?'Zonuren zijn niet beschikbaar uit deze uurbron; — betekent onbekend.':'Dagdelen: weerbeeld uit uurbewolking (vijf categorieën); temperaturen per zesuurvak, geen dagmaximum.'):('Dagkaarten: dagmodelmix, TX/TN en dagsommen; uurwaarden vervangen deze cijfers nooit. Sneeuw toont alleen echte modelgegevens (eventueel na een nieuwe modelscan).');};
  toolbar.addEventListener('click',e=>{const b=e.target.closest('button[data-atlas-layer]');if(!b)return;window.ricoAtlasLayer=b.dataset.atlasLayer;toolbar.querySelectorAll('[data-atlas-layer]').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));updateInfo();window.dispatchEvent(new Event('rico:atlas-layer'));});
  window.addEventListener('rico:atlas-layer',()=>drawers.forEach(draw=>draw()));
  window.ricoV100AtlasUpdateInfo=updateInfo;const holder=document.createElement('div');holder.id='ricoDaypartMaps';holder.className='ricoDaypartHidden';const grid=atlas.querySelector('.ricoWeatherGrid');if(!grid)return;grid.before(controls,toolbar,holder);updateInfo();const note=document.createElement('div');note.className='ricoDaypartNote';note.textContent='Dagdelen: 05–11, 11–17, 17–23 en 23–05 uur. Per punt zijn dit echte uurwaarden; op de standaardkaart staat de representatieve zesuurtemperatuur, onder Maxima/Minima de uitersten van de zes uur. Dit is niet gelijk aan dagelijkse modelmix-TX/TN. 35 landelijke scanpunten voor de uurgegevens; bij inzoomen worden meer locaties zichtbaar. De dagdeelkaarten gebruiken dezelfde interactieve kaartnavigatie als Weerkaart NL. Uurverwachting uit Open-Meteo, geen afleiding uit dagwaarden. Gecachet per datum (90 minuten).';holder.before(note);note.classList.add('ricoDaypartHidden');controls.addEventListener('click',e=>{const b=e.target.closest('button[data-mode]');if(!b)return;const parts=b.dataset.mode==='parts';controls.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));holder.classList.toggle('ricoDaypartHidden',!parts);grid.classList.toggle('ricoDaypartHidden',parts);note.classList.toggle('ricoDaypartHidden',!parts);const rain=atlas.querySelector('.ricoAtlasRain');if(rain)rain.classList.toggle('ricoDaypartHidden',parts);if(parts)render();updateInfo()})}
