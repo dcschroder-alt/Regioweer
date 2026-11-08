@@ -6920,13 +6920,18 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
 #ricoWidgetFacts .rico5DayHeading{padding:13px 14px 10px;background:#e4f2fa;border:1px solid #c6deeb;border-radius:12px 12px 0 0;color:#104e73}
 #ricoWidgetFacts .rico5DayHeading b{display:block;font-size:19px;line-height:1.25}
 #ricoWidgetFacts .rico5DayHeading small{display:block;margin-top:4px;font-size:12px;color:#51718a;line-height:1.3}
-#ricoWidgetFacts .rico5DayRow{display:grid;grid-template-columns:60px 44px minmax(0,1fr) 69px;grid-template-rows:26px auto;column-gap:7px;align-items:center;background:#fff;border:1px solid #d4e3eb;border-top:0;padding:8px 9px;min-height:64px;color:#204660;font-variant-numeric:tabular-nums;}
+#ricoWidgetFacts .rico5DayRow{display:grid;grid-template-columns:60px 44px minmax(0,1fr) 69px;grid-template-rows:26px auto;column-gap:7px;align-items:center;background:#fff;border:1px solid #d4e3eb;border-top:0;padding:9px 9px;min-height:72px;color:#204660;font-variant-numeric:tabular-nums;}
 #ricoWidgetFacts .rico5DayRow:nth-child(odd){background:#f5faff}
 #ricoWidgetFacts .rico5DayDate{font-size:13px;font-weight:750;grid-column:1;grid-row:1/3;line-height:1.3}
 #ricoWidgetFacts .rico5DayIcon{font-size:32px;grid-column:2;grid-row:1/3;text-align:center;filter:drop-shadow(0 1px 1px #ffffff)}
 #ricoWidgetFacts .rico5DayDescription{grid-column:3;grid-row:1/3;min-width:0;line-height:1.25}
 #ricoWidgetFacts .rico5DayDescription b{font-size:14px;font-weight:780;display:block;overflow-wrap:anywhere}
-#ricoWidgetFacts .rico5DayDescription small{display:block;font-size:11px;line-height:1.45;color:#4c6980;margin-top:3px;overflow-wrap:anywhere}
+#ricoWidgetFacts .rico5DayDescription small{display:block;font-size:11px;line-height:1.35;color:#4c6980;margin-top:3px;overflow-wrap:anywhere}
+#ricoWidgetFacts .rico5DayDescription .rico5DayMetrics{line-height:1.32}
+#ricoWidgetFacts .rico5DayDescription .rico5DayWind{color:#2e617e;font-weight:600}
+#ricoWidgetFacts .rico5DayDescription .rico5DayCoast{color:#17647d;font-weight:750}
+#ricoWidgetFacts .rico5DayHighlights{padding:8px 13px;background:#f3faff;border:1px solid #c6deeb;border-top:0;color:#27516d;font:600 12px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+#ricoWidgetFacts .rico5DayHighlights span{display:block}
 #ricoWidgetFacts .rico5DayTemps{display:flex;flex-direction:column;align-items:flex-end;gap:2px;grid-column:4;grid-row:1/3;white-space:nowrap}
 #ricoWidgetFacts .rico5DayTemps strong{font-size:24px;line-height:1.05;color:#17476c}
 #ricoWidgetFacts .rico5DayTemps span{font-size:15px;color:#5681a4;font-weight:750}
@@ -6962,6 +6967,28 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
    }
    return bits.join(' ') || 'Weersverwachting op basis van de dagelijkse Randstad-modelmix.';
  }
+ // Extra informatie komt uitsluitend uit de dagelijkse regionale scan.
+ // De kustafwijking wordt afzonderlijk uit kust en beide binnenlandregio's afgeleid;
+ // nooit uurwaarden als dagtemperatuur gebruiken.
+ function coastNote(day){
+   if(!day||typeof nsRegion!=='function')return '';
+   const coast=nsRegion(day,['Randstad-kust']);
+   const west=nsRegion(day,['Randstad-west']);
+   const east=nsRegion(day,['Randstad-oost']);
+   const inland=[west.tx,east.tx].filter(Number.isFinite);
+   if(!Number.isFinite(coast.tx)||!inland.length)return '';
+   const diff=coast.tx-(inland.length===2?(inland[0]+inland[1])/2:inland[0]);
+   if(Math.abs(diff)<2)return '';
+   return '🌊 kust '+Math.round(Math.abs(diff))+'° '+(diff>0?'warmer':'koeler');
+ }
+ function highlights(rows){
+   const parts=[];
+   const sun=rows.filter(r=>Number.isFinite(r.sun)).sort((a,b)=>b.sun-a.sun)[0];
+   const rain=rows.filter(r=>Number.isFinite(r.rain)).sort((a,b)=>b.rain-a.rain)[0];
+   if(sun&&sun.sun>=1)parts.push('☀ Zonnigste dag: '+dayLabel(sun.date)+' ('+Math.round(sun.sun)+' uur)');
+   if(rain&&rain.rain>=0.5)parts.push('🌧 Meeste neerslag: '+dayLabel(rain.date)+' ('+fmtNum(rain.rain,1)+' mm)');
+   return parts.length?'<div class="rico5DayHighlights">'+parts.map(t=>'<span>'+t+'</span>').join('')+'</div>':'';
+ }
  function render(){
    const shell=document.getElementById('ricoLiveShell'),atlas=document.getElementById('ricoWeatherAtlas');
    if(!shell||!atlas)return;
@@ -6988,15 +7015,18 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
      const wx=ricoRandstadWeatherView(r.rain,r.sun,r.date);
      const icon=wx.icon;
      const description=wx.label;
-     const rain=Number.isFinite(r.rain)?fmtNum(r.rain,1)+' mm':'neerslag onbekend';
-     const wind=Number.isFinite(r.wind)?[Number.isFinite(r.dir)?nsDir(r.dir):'',bftText(r.wind)].filter(Boolean).join(' '):'wind onbekend';
-     return `<div class="rico5DayRow" data-date="${r.date}" data-max="${r.max}" data-min="${r.min}" data-rain="${r.rain}" data-sun="${r.sun}" data-wind="${r.wind}" data-type="${wx.type}"><div class="rico5DayDate">${i===0?'Morgen · ':''}${dayLabel(r.date)}</div><span class="rico5DayIcon" aria-hidden="true">${icon}</span><div class="rico5DayDescription"><b>${description}</b><small>☔ ${rain} · 💨 ${wind}</small></div><div class="rico5DayTemps"><strong>${Math.round(r.max)}°</strong><span>${Math.round(r.min)}°</span></div></div>`;
+     const sun=Number.isFinite(r.sun)?Math.round(r.sun)+' uur':'—';
+     const rain=Number.isFinite(r.rain)?fmtNum(r.rain,1)+' mm':'—';
+     const wind=Number.isFinite(r.wind)?[Number.isFinite(r.dir)?nsDir(r.dir):'',bftText(r.wind)].filter(Boolean).join(' '):'—';
+     const dayData=pack.days.find(d=>d.date===r.date);
+     const coast=coastNote(dayData);
+     return `<div class="rico5DayRow" data-date="${r.date}" data-max="${r.max}" data-min="${r.min}" data-rain="${r.rain}" data-sun="${r.sun}" data-wind="${r.wind}" data-type="${wx.type}"><div class="rico5DayDate">${i===0?'Morgen · ':''}${dayLabel(r.date)}</div><span class="rico5DayIcon" aria-hidden="true">${icon}</span><div class="rico5DayDescription"><b>${description}</b><small class="rico5DayMetrics">☀ ${sun} · ☔ ${rain}</small><small class="rico5DayWind">💨 ${wind}${coast?` · <span class="rico5DayCoast">${coast}</span>`:''}</small></div><div class="rico5DayTemps"><strong>${Math.round(r.max)}°</strong><span>${Math.round(r.min)}°</span></div></div>`;
    }).join('');
    const scanAt=Number(pack?.savedAt)||0;
    const scanDate=scanAt?new Date(scanAt).toLocaleString('nl-NL',{timeZone:'Europe/Amsterdam',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'onbekend';
    facts.dataset.scanSavedAt=String(scanAt);
    facts.innerHTML='<div class="rico5DayHeading"><b>🏙️ Randstad · komende 5 dagen</b><small>Kust · westelijk binnenland · Utrecht/Flevoland</small></div>'+html+
-       '<div class="rico5DaySummary">'+summary(rows)+'</div>'+
+       '<div class="rico5DaySummary">'+summary(rows)+'</div>'+highlights(rows)+
        '<div class="ricoWidgetNote">Regionale dagmodelmix · scan '+scanDate+' · morgen t/m dag 5. Dag- en uurwaarden blijven gescheiden. Kaart © OpenStreetMap-bijdragers.</div>';
    const title=first.querySelector('.ricoWeatherTitle span:first-child');
    if(title&&!title.textContent.startsWith('Morgen'))title.textContent='Morgen · '+title.textContent;
