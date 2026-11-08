@@ -752,8 +752,8 @@ function ricoHourlyCloudSky(cloud){return Number.isFinite(cloud)?ricoSunSky((100
 </style>
 </head>
 <body><div class="wrap">
-<section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v100.8</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
-<nav class="quickJump" aria-label="Snel naar onderdelen"><span class="quickJumpLabel">Snel naar</span><button type="button" data-jump="todayGlancePanel">Vandaag</button><button type="button" data-jump="weatherTextPanel">Weerbericht</button><button type="button" data-jump="nationalScanPanel">Landelijk</button><button type="button" data-jump="longRangePanel">6 weken</button><button type="button" data-jump="climatePanel">Klimaat</button><button type="button" data-jump="editorialDeskPanel">Redactie</button><button type="button" data-jump="v97Cockpit">Cockpit</button><button type="button" data-jump="ricoEnergyPanel">☀️ Energie</button></nav>
+<section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v101.2</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
+<nav class="quickJump" aria-label="Snel naar onderdelen"><span class="quickJumpLabel">Snel naar</span><button type="button" data-jump="todayGlancePanel">Vandaag</button><button type="button" data-jump="weatherTextPanel">Weerbericht</button><button type="button" data-jump="ricoRandstadOverview">🏙️ Randstad</button><button type="button" data-jump="nationalScanPanel">Landelijk</button><button type="button" data-jump="longRangePanel">6 weken</button><button type="button" data-jump="climatePanel">Klimaat</button><button type="button" data-jump="editorialDeskPanel">Redactie</button><button type="button" data-jump="v97Cockpit">Cockpit</button><button type="button" data-jump="ricoEnergyPanel">☀️ Energie</button></nav>
 <section class="panel">
 <div class="grid">
 <div class="field full"><label>Plaatsnaam</label><div style="display:grid;grid-template-columns:1fr auto;gap:8px"><input id="place" type="text" value="Houten" placeholder="Bijv. Houten, De Bilt of Amersfoort"><button class="ghost" id="findPlace" type="button">Zoek plaats</button></div><div class="ricoweer-place-picker"><label for="ricoPreset">Kies direct een plaats in Nederland</label><select id="ricoPreset"><option value="">— Kies een plaats —</option></select><div class="note">De volledige lokale modelmix en alle bestaande vergelijkingen worden voor de gekozen plaats geladen. Andere plaatsen kun je blijven zoeken.</div></div><div class="quickplaces" id="quickPlaces"><button class="placechip" data-place="Houten">Houten</button><button class="placechip hidden" id="homePlace" type="button">⌂ Thuis</button><button class="placechip" id="savePlace" type="button">☆ Bewaar plaats</button></div><div class="quickplaces"><button class="placechip" id="useGps" type="button">📍 Mijn locatie</button></div><details class="miniDetails"><summary>Locatie beheren</summary><div class="quickplaces"><button class="placechip" id="setHome" type="button">⌂ Maak thuisplaats</button><button class="placechip" id="clearRecent" type="button">Recent wissen</button></div></details><div class="quickplaces" id="recentPlaces"><span class="recentlabel">Recent:</span></div><div class="note" id="placeInfo">Houten · coördinaten worden automatisch gebruikt</div></div>
@@ -777,6 +777,16 @@ function ricoHourlyCloudSky(cloud){return Number.isFinite(cloud)?ricoSunSky((100
 <section class="panel climateStoriesPanel hidden" id="editorialDeskPanel"><details class="rv65-fold" data-rv65="editorialDeskPanel"><summary>✍️ Redactionele ideeën<span class="rv65-hint">Tik voor details</span></summary><div class="rv65-foldbody"><div class="climateStoriesHead"><div><div class="climateStoriesTitle">✍️ Redactionele assistent</div><div class="note">Redactionele invalshoeken op basis van de sterkste klimaatsignalen; alleen extra informatie die helpt bij een artikel.</div></div><span class="climateStoryPill" id="editorialDeskStatus">wacht op modelmix</span></div><div id="editorialDeskLead" class="climateStoriesLead"><b>Nog geen artikelkans</b><span>Na de modelmix koppelt de app de interessantste verhalen aan de bijbehorende daggegevens.</span></div><div id="editorialDeskGrid" class="climateStoriesGrid"></div></div></details></section>
 <section class="panel hidden" id="smartBriefPanel"><details class="rv65-fold" data-rv65="smartBriefPanel"><summary>📊 Meteorologische briefing<span class="rv65-hint">Tik voor details</span></summary><div class="rv65-foldbody"><div class="previewHead"><div><div style="font-weight:900;font-size:18px">📊 Meteorologische briefing · komende 10 dagen</div><div class="note">Omslag, afzonderlijke modelzekerheid en opvallende signalen · uitsluitend op basis van de geladen modelmix</div></div><div class="smallstatus" id="smartBriefStatus"></div></div><div id="smartBriefCards" class="smartBriefCards"></div><div id="smartBriefChart" class="smartBriefChart"></div><div class="note">De lijn toont de verwachte maxima; gekleurde markeringen geven betekenisvolle temperatuurveranderingen aan. Neerslag en onzekerheid blijven apart beoordeeld.</div></div></details></section>
 <section class="panel assistantPanel hidden" id="assistantPanel"><details class="rv65-fold" data-rv65="assistantPanel"><summary>🧭 Meteorologische assistent<span class="rv65-hint">Tik voor details</span></summary><div class="rv65-foldbody"><div class="previewHead"><div><div style="font-weight:900;font-size:18px">🧭 Meteorologische assistent</div><div class="note">Wat veranderde, waar zit de omslag en wat verdient nu aandacht? Alleen betekenisvolle signalen uit de modelmix.</div></div><div class="smallstatus" id="assistantStatus">wacht op modelmix</div></div><div class="assistantLead"><div class="assistantCard emphasis" id="assistantMorning"><b>🔄 Sinds de ochtendrun</b><span>Vergelijking wordt opgebouwd.</span></div><div class="assistantCard turn" id="assistantTurn"><b>⏱️ Omslagmoment</b><span>Wordt uit de komende dagen bepaald.</span></div></div><div class="assistantCard" style="margin-top:9px"><b>🎯 Verwachtingsvenster</b><span>Vanaf de middellange termijn toont de app liever bandbreedtes dan schijnprecisie.</span><div id="assistantWindows" class="assistantWindowGrid"></div></div><div class="assistantLead"><div class="assistantCard" id="assistantOutlier"><b>🧭 Model-afwijker</b><span>Geen duidelijke afwijker vastgesteld.</span></div><div class="assistantCard" id="assistantFollow"><b>📰 Dit zou ik vandaag volgen</b><span>De belangrijkste aandachtspunten verschijnen hier.</span></div></div></div></details></section>
+<section class="panel hidden" id="ricoRandstadOverview" aria-label="Interactieve Randstadverwachting">
+  <div class="previewHead"><div><div style="font-weight:900;font-size:19px">🏙️ Randstad · komende dagen</div><div class="note">De regionale modelmix voor kust, westelijk binnenland en Utrecht/Flevoland · dezelfde gegevens als de Randstad-PNG en WordPress-widget.</div></div><span class="smallstatus" id="ricoRSStatus" aria-live="polite">Wacht op landelijke scan</span></div>
+  <div class="ricoRSControls" role="group" aria-label="Periode Randstadverwachting">
+    <span>Toon</span><button type="button" data-rs-days="5">5 dagen</button><button type="button" data-rs-days="6">6 dagen</button><button type="button" data-rs-days="7">7 dagen</button><button type="button" data-rs-days="10">10 dagen</button><button type="button" data-rs-days="15">15 dagen</button>
+  </div>
+  <div id="ricoRSLead" class="ricoRSLead">De verwachting verschijnt zodra de landelijke modelmix is geladen.</div>
+  <div id="ricoRSFirstFive" class="ricoRSFirstFive"></div>
+  <div id="ricoRSExtra" class="ricoRSExtra"></div>
+  <div class="ricoRSFootnote">Bron: regionale dagwaarden uit de landelijke Ricoweer-scan. Dagmaxima en -minima worden niet vervangen door uurwaarden. Vanaf dag 11 is de verwachting nadrukkelijk indicatief. Tik op een dag voor meer details.</div>
+</section>
 <section class="panel hidden" id="nationalScanPanel"><div class="previewHead"><div><div style="font-weight:900;font-size:18px">🇳🇱 Landelijke weerscan</div><div class="note">Los van de gekozen plaats. Nederland + Randstad, 5/7/10/15 dagen vooruit. Dag 1–10 in dezelfde uitgebreide indeling: landelijk weerbeeld, vier regio’s, Randstad, extremen en modelovereenstemming. De gebruikte modellen verschillen per termijn: regionale modellen vooral in de eerste dagen, grotere modellen vanaf dag 6. Dag 11–15 is indicatiever.</div></div><div class="smallstatus" id="nationalScanStatus">wacht op scan</div></div><div class="nationalScanControls" id="nationalScanControls"><button type="button" data-nsdays="5">5 dagen</button><button type="button" data-nsdays="7">7 dagen</button><button type="button" data-nsdays="10">10 dagen</button><button type="button" data-nsdays="15">15 dagen</button></div><div class="ricomapPanel"><div class="ricomapHeader"><strong>🗺️ Weerkaart Nederland</strong><small>Temperatuur, neerslag, zon en wind · echte modelmixwaarden per scanpunt</small></div><div class="ricomapControls"><label for="ricomapDay">Dag <select id="ricomapDay" aria-label="Dag temperatuurkaart"></select></label><label for="ricomapType">Weerlaag <select id="ricomapType"><option value="tx">Maximum (TX)</option><option value="tn">Minimum (TN)</option><option value="rain">Neerslag (mm)</option><option value="sun">Zon (uur)</option><option value="wind">Wind (Bft)</option><option value="gust">Windstoten (km/u)</option><option value="snow">Sneeuwval (cm/dag)</option></select></label><button id="ricomapRefresh" type="button">Kaart vernieuwen</button></div><div id="ricomapStatus" class="note">Kaart verschijnt zodra de landelijke scan beschikbaar is.</div><div id="ricomapHint" class="note" style="margin:4px 0">35 landelijke scanpunten · zoom in voor meer meetpunten. Een grotere locatiebatch kan extra API-kosten veroorzaken.</div><div id="ricomapCanvas" role="img" aria-label="Nederlandse landkaart met modelmix temperaturen"></div><div class="note">Kaartondergrond © OpenStreetMap-bijdragers. Getoonde waarden zijn modelmixverwachtingen op de scanpunten; tussenliggende gebieden worden niet als gemeten of berekend voorgesteld. Voor de kaartondergrond is een internetverbinding nodig.</div></div><div id="nationalScanLead" class="assistantCard"><b>Landelijk weerbeeld</b><span>Dag 1–2 gebruiken vooral HARMONIE, ICON-D2 en AROME. Daarna nemen de grotere modellen het over.</span></div><div id="nationalScanDays"></div></section>
 
 <section class="panel longRangePanel hidden" id="longRangePanel"><div class="previewHead"><div><div style="font-weight:900;font-size:18px">🔭 6-wekenverwachting</div><div class="note">ECMWF EC46 · weekgemiddelden tot circa 46 dagen vooruit. Gericht op patroon, afwijking van normaal en mogelijke omslagen; geen dagverwachting.</div></div><div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><div class="smallstatus" id="longRangeStatus">wacht op lange termijn</div><button class="ghost" id="longRangeRefresh" type="button">↻ EC46</button></div></div><div id="longRangeLead" class="longRangeLead"><b>Lange termijn in één oogopslag</b><span>Na het ophalen verschijnt hier het belangrijkste patroon voor de komende zes weken.</span></div><div id="longRangeChanges" class="longRangeChanges hidden"></div><div id="ec46TrendVisual" class="rwPhase2"></div><div id="ec46RegimeVisual" class="rwPhase2"></div><div class="note" style="margin:8px 0 12px;padding:10px 13px;border:1px solid var(--line,#d5e0ed);border-radius:12px">🔎 <b>Controleer het officiële ensemble:</b> <a href="https://charts.ecmwf.int/products/opencharts_extended_meteogram?lat=52.11&amp;lon=5.18056&amp;station_name=De%20Bilt" target="_blank" rel="noopener noreferrer">ECMWF Extended Meteogram · De Bilt ↗</a>. De boxplot toont ensemblemediaan en spreiding t.o.v. ECMWF-modelklimaat; een losse dagelijkse afwijking is daarmee niet gelijk te stellen.</div><div id="longRangeWeeks" class="longRangeGrid"></div><div class="longRangeMeta" id="longRangeMeta">Temperatuur, neerslag en zon worden waar mogelijk vergeleken met het klimaatgemiddelde 1996–2025 uit de bestaande KNMI-klimaatreeks. Kanssignalen/EFI van EC46 zijn modelklimatologisch en worden alleen als aanvullende ensemble-indicatie gebruikt.</div></section>
@@ -6963,5 +6973,119 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(start,500));else setTimeout(start,500);
  document.addEventListener('rico:national-scan-updated',()=>setTimeout(render,250));
+})();
+</script>
+
+<style id="rico-v1012-randstad-css">
+#ricoRandstadOverview{scroll-margin-top:70px}
+#ricoRandstadOverview .ricoRSControls{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:12px 0;font-weight:800}
+#ricoRandstadOverview .ricoRSControls span{color:var(--text,#16334a);font-size:13px;margin-right:3px}
+#ricoRandstadOverview .ricoRSControls button{border:1px solid #b7d3e9;color:#124b7b;background:#eef8ff;border-radius:12px;padding:9px 13px;font-weight:800;font-size:13px;cursor:pointer}
+#ricoRandstadOverview .ricoRSControls button.active{color:white;background:#14589e;border-color:#14589e}
+#ricoRandstadOverview .ricoRSControls button:focus-visible,#ricoRandstadOverview .ricoRSModal:focus-visible{outline:3px solid #f1a62b;outline-offset:2px}
+#ricoRandstadOverview .ricoRSLead{background:linear-gradient(110deg,#dff1ff,#f1f8fc);border:1px solid #c1e2f5;border-radius:12px;padding:12px 14px;font-size:14px;color:#123b5b;line-height:1.5;margin:11px 0}
+#ricoRandstadOverview .ricoRSFirstFive{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin-top:12px}
+#ricoRandstadOverview .ricoRSDay{border:1px solid #bfd9ed;border-radius:14px;background:#fff;color:#153d5b;min-width:0;overflow:hidden}
+#ricoRandstadOverview .ricoRSDay summary{list-style:none;cursor:pointer;padding:12px 9px 13px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
+#ricoRandstadOverview .ricoRSDay summary::-webkit-details-marker{display:none}
+#ricoRandstadOverview .ricoRSDate{font-size:13px;font-weight:900;letter-spacing:.01em;color:#144b79}
+#ricoRandstadOverview .ricoRSIcon{font-size:30px;line-height:1.3;min-height:38px}
+#ricoRandstadOverview .ricoRSTemps{display:flex;justify-content:center;align-items:baseline;gap:10px}
+#ricoRandstadOverview .ricoRSTemps strong{color:#d43e43;font-size:28px;line-height:1.12}
+#ricoRandstadOverview .ricoRSTemps small{font-weight:850;color:#1665a6;font-size:20px}
+#ricoRandstadOverview .ricoRSWx{font-size:12px;font-weight:750;line-height:1.3;min-height:32px;color:#144b79}
+#ricoRandstadOverview .ricoRSStats{font-size:12px;line-height:1.6;color:#235477;text-align:center}
+#ricoRandstadOverview .ricoRSDetail{font-size:12px;line-height:1.5;background:#f0f7fc;border-top:1px solid #d6e4ed;padding:10px}
+#ricoRandstadOverview .ricoRSDetail p{margin:0 0 7px}
+#ricoRandstadOverview .ricoRSDetail p:last-child{margin-bottom:0}
+#ricoRandstadOverview .ricoRSModal{font:inherit;font-size:12px;cursor:pointer;background:#1766a7;color:white;border:0;padding:6px 8px;border-radius:7px;width:100%;margin-top:8px}
+#ricoRandstadOverview .ricoRSBadge{font-size:10px;border-radius:7px;padding:2px 5px;background:#fff2d5;color:#80511b;font-weight:750}
+#ricoRandstadOverview .ricoRSExtra{margin-top:14px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#ricoRandstadOverview .ricoRSExtra>h3{grid-column:1/-1;font-size:15px;margin:4px 0 0;color:var(--text,#173e60)}
+#ricoRandstadOverview .ricoRSExtra .ricoRSDay summary{display:grid;grid-template-columns:52px 35px minmax(0,1fr) auto;align-items:center;text-align:left;gap:7px;padding:10px}
+#ricoRandstadOverview .ricoRSExtra .ricoRSIcon{font-size:25px;min-height:0}
+#ricoRandstadOverview .ricoRSExtra .ricoRSWx{min-height:0}
+#ricoRandstadOverview .ricoRSExtra .ricoRSTemps strong{font-size:21px}
+#ricoRandstadOverview .ricoRSExtra .ricoRSTemps small{font-size:16px}
+#ricoRandstadOverview .ricoRSExtra .ricoRSStats{grid-column:3/-1;text-align:left;font-size:12px}
+#ricoRandstadOverview .ricoRSUnavailable{font-size:12px;color:#6b7381;padding:6px}
+#ricoRandstadOverview .ricoRSFootnote{font-size:12px;color:var(--muted,#536d7c);line-height:1.5;margin-top:15px}
+@media(max-width:900px){#ricoRandstadOverview .ricoRSFirstFive{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:560px){#ricoRandstadOverview .ricoRSFirstFive{grid-template-columns:repeat(2,minmax(0,1fr))}#ricoRandstadOverview .ricoRSFirstFive>.ricoRSDay:last-child:nth-child(odd){grid-column:span 2}#ricoRandstadOverview .ricoRSExtra{grid-template-columns:minmax(0,1fr)}#ricoRandstadOverview .ricoRSFirstFive .ricoRSIcon{font-size:28px}#ricoRandstadOverview .ricoRSExtra .ricoRSDay summary{grid-template-columns:54px 32px minmax(0,1fr) auto;gap:5px}}
+.dark #ricoRandstadOverview .ricoRSDay{background:#183143;color:#e4f2f7;border-color:#406278}.dark #ricoRandstadOverview .ricoRSDate,.dark #ricoRandstadOverview .ricoRSWx{color:#d9f1ff}.dark #ricoRandstadOverview .ricoRSLead{background:#1c4053;color:#e1f4ff;border-color:#416a7b}.dark #ricoRandstadOverview .ricoRSDetail{background:#203e50;border-color:#3c6275;color:#e4f1f8}.dark #ricoRandstadOverview .ricoRSStats{color:#b5d8ee}
+</style>
+<script id="rico-v1012-randstad-overview">
+(()=>{
+ 'use strict';
+ const key='rico-randstad-overview-days';
+ const allowed=[5,6,7,10,15];
+ let range=5;
+ try{const saved=Number(localStorage.getItem(key));if(allowed.includes(saved))range=saved}catch(e){}
+ const $id=id=>document.getElementById(id);
+ const regions=['Randstad-kust','Randstad-west','Randstad-oost'];
+ const fmt=(v,unit,dec=0)=>Number.isFinite(v)?v.toFixed(dec).replace('.',',')+unit:'—';
+ const bft=v=>Number.isFinite(v)&&typeof bftText==='function'?bftText(v):'—';
+ const dateLabel=(date,i)=>{const d=new Date(date+'T12:00:00Z');return (i===0?'Morgen · ':'')+d.toLocaleDateString('nl-NL',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'})};
+ function data(){
+  if(typeof nlToday!=='function'||typeof isoDatePlus!=='function'||typeof ricoRandstadSharedRows!=='function')return null;
+  const first=isoDatePlus(nlToday(),1);
+  const scan=(typeof nationalScanLastPack!=='undefined'&&nationalScanLastPack?.days?.length?nationalScanLastPack:null);
+  if(!scan)return {first,scan:null,rows:new Map(),byDate:new Map()};
+  const byDate=new Map(scan.days.map(d=>[d.date,d]));
+  const rows=new Map(ricoRandstadSharedRows(first,15).map(r=>[r.date,r]));
+  return {first,scan,rows,byDate};
+ }
+ function dayDetails(date,d){
+  if(!d||!Array.isArray(d.pts)||typeof nsRegion!=='function')return '';
+  const regionText=[['Kust','Randstad-kust'],['Westelijk binnenland','Randstad-west'],['Utrecht/Flevoland','Randstad-oost']].map(([label,name])=>{
+   const r=nsRegion(d,[name]);
+   return r.n>0&&Number.isFinite(r.tx)?`${label}: ${fmt(r.tx,'°')} / ${fmt(r.tn,'°')} · ☀ ${fmt(r.sun,' u')} · 🌧 ${fmt(r.rain,' mm',1)}`:`${label}: nog geen bruikbare regionale gegevens`;
+  });
+  const coast=nsRegion(d,['Randstad-kust']);const inland=nsRegion(d,['Randstad-west','Randstad-oost']);
+  const delta=Number.isFinite(coast.tx)&&Number.isFinite(inland.tx)?coast.tx-inland.tx:null;
+  const contrast=Number.isFinite(delta)&&Math.abs(delta)>=2?`Kust ${Math.round(Math.abs(delta))}° ${delta>0?'warmer':'kouder'} dan binnenland.`:'';
+  const meta=date<=isoDatePlus(nlToday(),10)?'<button type="button" class="ricoRSModal" data-rs-modal="'+date+'">Bekijk uitgebreide Randstadduiding</button>':'';
+  return `<div class="ricoRSDetail">${regionText.map(t=>`<p>${t}</p>`).join('')}${contrast?`<p><strong>${contrast}</strong></p>`:''}${date>isoDatePlus(nlToday(),10)?'<p><strong>Langere termijn:</strong> indicatiever, geen uurtiming.</p>':''}${meta}</div>`;
+ }
+ function card(date,i,model){
+  const d=model.byDate.get(date);const r=model.rows.get(date);
+  const ok=!!d&&!!r&&r.regions>=2&&Number.isFinite(r.max)&&Number.isFinite(r.min)&&d.coverage>=0.35;
+  if(!ok)return `<div class="ricoRSDay" data-rs-date="${date}"><div class="ricoRSUnavailable"><b>${dateLabel(date,i)}</b><p>Regionale modelmix nog niet volledig beschikbaar.</p></div></div>`;
+  const wx=typeof ricoRandstadWeatherView==='function'?ricoRandstadWeatherView(r.rain,r.sun,date):{icon:'🌤️',label:'weerbeeld',type:'unknown'};
+  const wind=Number.isFinite(r.wind)?`${Number.isFinite(r.dir)?nsDir(r.dir)+' ':''}${bft(r.wind)}`:'—';
+  const indicative=i>=10;
+  return `<details class="ricoRSDay" data-rs-date="${date}" data-rs-type="${wx.type}"><summary><span class="ricoRSDate">${dateLabel(date,i)}</span><span class="ricoRSIcon" aria-hidden="true">${wx.icon}</span><span class="ricoRSWx">${wx.label}</span><span class="ricoRSTemps"><strong>${fmt(Math.round(r.max),'°')}</strong><small>${fmt(Math.round(r.min),'°')}</small></span><span class="ricoRSStats">☀ ${fmt(r.sun,' u')} · ☔ ${fmt(r.rain,' mm',1)}<br>💨 ${wind}</span>${indicative?'<span class="ricoRSBadge">Indicatief</span>':''}</summary>${dayDetails(date,d)}</details>`;
+ }
+ function render(){
+  const section=$id('ricoRandstadOverview');if(!section)return;
+  const model=data();if(!model)return;
+  section.classList.remove('hidden');
+  section.querySelectorAll('[data-rs-days]').forEach(b=>{const on=Number(b.dataset.rsDays)===range;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on))});
+  if(!model.scan){$id('ricoRSStatus').textContent='Wachten op landelijke scan';$id('ricoRSFirstFive').innerHTML='';$id('ricoRSExtra').innerHTML='';$id('ricoRSLead').textContent='De Randstadverwachting gebruikt de bestaande landelijke modelscan en vraagt geen extra gegevens op.';return}
+  const dates=Array.from({length:range},(_,i)=>isoDatePlus(model.first,i));
+  const usable=dates.filter(date=>{const d=model.byDate.get(date),r=model.rows.get(date);return d&&r&&d.coverage>=0.35&&r.regions>=2&&Number.isFinite(r.max)&&Number.isFinite(r.min)});
+  const rows=usable.map(date=>model.rows.get(date));
+  const tx=rows.map(r=>r.max).filter(Number.isFinite);const min=tx.length?Math.min(...tx):null,max=tx.length?Math.max(...tx):null;
+  const wet=rows.filter(r=>Number.isFinite(r.rain)&&r.rain>=0.25).length;
+  $id('ricoRSStatus').textContent=`${usable.length} van ${range} dagen beschikbaar${model.scan.fromCache?' · cache':''}`;
+  $id('ricoRSLead').innerHTML=tx.length?`<strong>🌦️ Randstad in één oogopslag:</strong> overdag circa <strong>${Math.round(min)}–${Math.round(max)}°</strong> · op ${wet} van de ${usable.length} beschikbare dagen neerslag voorzien. ${range>=11?'Vanaf dag 11 is dit een globale indicatie.':''}`:'Nog onvoldoende regionale daggegevens om een verwachting te tonen.';
+  $id('ricoRSFirstFive').innerHTML=dates.slice(0,5).map((date,i)=>card(date,i,model)).join('');
+  $id('ricoRSExtra').innerHTML=range>5?`<h3>Verder vooruit · dag 6 t/m ${range}</h3>`+dates.slice(5).map((date,i)=>card(date,i+5,model)).join(''):'';
+ }
+ function start(){
+  const el=$id('ricoRandstadOverview');if(!el)return;
+  el.querySelectorAll('[data-rs-days]').forEach(button=>button.addEventListener('click',()=>{
+    const next=Number(button.dataset.rsDays);if(!allowed.includes(next))return;range=next;
+    try{localStorage.setItem(key,String(range))}catch(e){}
+    render();
+  }));
+  el.addEventListener('click',e=>{
+    const button=e.target.closest('[data-rs-modal]');if(!button)return;
+    if(typeof nsOpenRandstad==='function')nsOpenRandstad(button.dataset.rsModal);
+  });
+  document.addEventListener('rico:national-scan-updated',render);
+  render();
+ }
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
 })();
 </script>
