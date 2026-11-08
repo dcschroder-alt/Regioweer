@@ -676,6 +676,44 @@ body{min-width:0}
 #randstadModalBody .randstadDuiding{font-size:clamp(14px,3.5vw,17px);line-height:1.65}
 @media(max-width:700px){#nationalScanDays .ricoRegionWeather{font-size:clamp(12px,3.7vw,16px)}#nationalScanDays .ricoRegionVisual{gap:5px}}
 </style>
+
+<style id="rico-v1001-uniform-map-pins">
+/* Consistent visual design between daily overview and six-hour maps. */
+#ricoWeatherAtlas .ricoPartMapPin.rico82Pin{
+  width:70px!important;height:58px!important;filter:drop-shadow(0 1px 2px rgba(255,255,255,.9))!important;
+}
+#ricoWeatherAtlas .ricoPartMapPin.rico82Pin .ricoWeatherSymbol{
+  display:flex!important;justify-content:center!important;align-items:center!important;
+  font-size:20px!important;line-height:23px!important;height:24px!important;
+  filter:drop-shadow(0 1px 2px #fff)!important;
+}
+#ricoWeatherAtlas .ricoPartMapPin.rico82Pin .ricoUnifiedWeatherSvg{
+  display:block;width:39px;height:39px;overflow:visible;
+  filter:drop-shadow(0 1px 2px rgba(13,40,61,.4));
+}
+#ricoWeatherAtlas .ricoPartMapPin.rico82Pin .ricoWeatherTemp{
+  display:flex;justify-content:center;align-items:center;gap:2px;
+  font-size:16px!important;font-weight:850!important;
+  background:#a9d98b!important;color:#132e23!important;
+  border:2px solid #fff!important;border-radius:15px!important;
+  box-shadow:0 2px 7px #163a4c66!important;padding:4px 6px!important;
+  white-space:nowrap;
+}
+#ricoWeatherAtlas .ricoPartMapPin.rico82Pin.ricoFrostPin .ricoWeatherTemp{background:#dbeeff!important}
+#ricoWeatherAtlas .ricoPartMapPin.rico82Pin .ricoDailyWind{
+  display:inline-flex;align-items:center;justify-content:center;margin-top:2px;
+  padding:1px 5px!important;background:#fff!important;color:#124563!important;
+  border-radius:8px;font-size:10px!important;font-weight:800!important;line-height:14px!important;
+  box-shadow:0 1px 3px #1c405844;
+}
+#ricoWeatherAtlas .ricoPartMapCanvas .leaflet-control-zoom{
+  border:2px solid #a1b4bb!important;box-shadow:0 1px 3px #0003!important;
+}
+@media(max-width:600px){
+ #ricoWeatherAtlas .ricoPartMapPin.rico82Pin .ricoUnifiedWeatherSvg{width:32px;height:32px}
+ #ricoWeatherAtlas .ricoPartMapPin.rico82Pin .ricoWeatherTemp{font-size:15px!important;padding:3px 4px!important}
+}
+</style>
 </head>
 <body><div class="wrap">
 <section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v100.0</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
@@ -5295,7 +5333,7 @@ function updateWeatherAtlas(){
    // De modelmix en de bestaande 35 scanpunten blijven de bron.
    const all=d.pts.filter(p=>Number.isFinite(p.tx)&&Number.isFinite(p.point?.lat)&&Number.isFinite(p.point?.lon));
    const layer=L.layerGroup().addTo(map);
-   const preferred=['Terschelling','Groningen','IJmuiden','Emmeloord','Enschede','Rotterdam','Houten','Eindhoven','Vlissingen','Maastricht'];
+   const preferred=['Terschelling','Groningen','IJmuiden','Emmeloord','Enschede','Rotterdam','Houten','Apeldoorn','Vlissingen','Maastricht'];
    function drawDailyMarkers(){
      layer.clearLayers();
      const zoom=map.getZoom(),size=map.getSize();
@@ -5319,6 +5357,7 @@ function updateWeatherAtlas(){
        const pt=map.latLngToContainerPoint([p.point.lat,p.point.lon]);
        if(pt.x<30||pt.y<40||pt.x>size.x-30||pt.y>size.y-40)continue;
        if(occupied.some(q=>Math.hypot(pt.x-q.x,pt.y-q.y)<gap))continue;
+       if(zoom<=7&&occupied.length>=10)break; // gedeeld compact NL-overzicht
        occupied.push(pt);
        const hourly=ricoCachedDaytime(p.point.n,d.date,p.point);
        // Prefer the actual 05-17 cloud and precipitation summary where available.
@@ -5744,16 +5783,22 @@ window.addEventListener('rico-knmi-ready',()=>{if(!ready)init();else{temp=window
    return Math.hypot(pa.x-size.x/2,pa.y-size.y/2)-Math.hypot(pb.x-size.x/2,pb.y-size.y/2);
   });
   const occupied=[];
+  const windShown=[];
+  const windSites=['IJmuiden','Terschelling','Groningen','Rotterdam','Houten','Apeldoorn','Vlissingen','Enschede','Maastricht'];
   for(const {point,data:d} of ordered){
    const pt=map.latLngToContainerPoint([point.lat,point.lon]);
    if(occupied.some(q=>Math.hypot(pt.x-q.x,pt.y-q.y)<gap))continue;
+   if(zoom<=7&&occupied.length>=10)break; // gedeeld compact NL-overzicht
    occupied.push(pt);
    const temp=Math.round(d.temp),symbol=daypartIcon(d.icon,slot),chosen=window.ricoAtlasLayer||'wx';
    const comparable=slot.name!=='Nacht'?(nationalScanLastPack?.days||[]).find(x=>x.date===slot.date)?.pts?.find(p=>p.point?.n===point.n):null;
    const compareText=Number.isFinite(comparable?.tx)&&Number.isFinite(comparable?.tn)?`<br>Dagmodelmix (andere bron): TX ${Math.round(comparable.tx)}° / TN ${Math.round(comparable.tn)}°${d.hi>comparable.tx+1.5||d.lo<comparable.tn-1.5?' · ⚠ uurverloop wijkt af van dagmodelmix':''}`:'';
    const metric=ricoV100PartMetric(d,chosen);
-   const body=chosen==='wx'?`<span class="ricoWeatherSymbol">${symbol}</span><span class="ricoWeatherTemp">${temp}°</span>`:`<span class="ricoV100Value ${metric.missing?'ricoV100Missing':''}">${metric.label}</span>`;
-   const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin ricoPartMapPin ricoV100Pin">${body}</div>`,iconSize:[86,66],iconAnchor:[43,33]});
+   const windEligible=chosen==='wx'&&Number.isFinite(d.wind)&&windSites.includes(point.n)&&windShown.length<3&&windShown.every(w=>Math.hypot(pt.x-w.x,pt.y-w.y)>130);
+   if(windEligible)windShown.push({x:pt.x,y:pt.y});
+   const windHtml=windEligible?`<span class="ricoWeatherWind ricoDailyWind">${bft(d.wind)} Bft</span>`:'';
+   const body=chosen==='wx'?`<span class="ricoWeatherSymbol">${symbol}</span><span class="ricoWeatherTemp"><span class="ricoTx">${temp}°</span></span>${windHtml}`:`<span class="ricoV100Value ${metric.missing?'ricoV100Missing':''}">${metric.label}</span>`;
+   const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin ricoPartMapPin rico82Pin ricoV100Pin${temp<0?' ricoFrostPin':''}">${body}</div>`,iconSize:[82,windEligible?84:62],iconAnchor:[41,windEligible?42:31]});
    L.marker([point.lat,point.lon],{icon}).bindPopup(`<b>${point.n}</b><br><b>${slot.name} · ${String(slot.start.getUTCHours()).padStart(2,'0')}:00–${String(slot.end.getUTCHours()).padStart(2,'0')}:00 (uurbron)</b><br>Gemiddelde uurlijkse temperatuur ${temp}° · minimum ${Math.round(d.lo)}° · maximum ${Math.round(d.hi)}°${chosen!=='wx'?'<br>'+metric.title+': '+metric.label:''}<br>Neerslag ${fmt(d.mm,1)} mm · sneeuw ${fmt(d.snow,1)} cm (6 uur)<br>Wind ${bft(d.wind)} Bft · windstoot ${Number.isFinite(d.gust)?Math.round(d.gust)+' km/u':'—'}${compareText}<br>Dagkaart TX/TN wordt nooit met uurwaarden overschreven.`).addTo(layer);
   }
  }
