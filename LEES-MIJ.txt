@@ -1,0 +1,23 @@
+RICOWEER v100.8 - WordPress-zijbalkwidget
+
+Dit pakket is voor je BESTAANDE GitHub-repository: dcschroder-alt/Regioweer
+
+Upload naar de hoofdmap (main) van die repository:
+- index.html (vervang bestaande app)
+- weerkaart.html (vervang bestaande bron voor morgen/overmorgen)
+- widgetkaart.html (nieuw: compacte live widget van morgen)
+
+Gebruik in Ricoweer de optie 'WordPress-zijbalkwidget' bij 'Meer · exporteren & delen'.
+De live preview gebruikt de bestaande landelijke dagmodelmix en 8-10 verspreide kaartpunten.
+Dag-TX/TN wordt nooit uit uurwaarden overgenomen.
+
+Voor WordPress.com gratis gebruik je NIET deze HTML-link of HTML-code,
+maar de automatisch gepubliceerde afbeelding in de aparte repository:
+https://dcschroder-alt.github.io/ricoweer-kaarten/widget.png
+
+Om die afbeelding automatisch te produceren, moet ook het losse publicatie-updatebestand
+scripts/maak_kaarten.py in ricoweer-kaarten worden vervangen.
+Dit publicatiepakket wordt apart meegeleverd.
+
+Let op: de actuele data en kaarttegels kunnen alleen in de live GitHub Pages-omgeving
+worden getest. De code is gecontroleerd, de daadwerkelijke GitHub Actions-run nog niet.
