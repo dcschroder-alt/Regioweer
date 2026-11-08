@@ -716,7 +716,7 @@ body{min-width:0}
 </style>
 </head>
 <body><div class="wrap">
-<section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v100.2</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
+<section class="hero"><div class="heroTop"><div class="heroBrandWrap"><img class="appBrandIcon" src="./icon-192.png" alt=""><div class="heroBrand"><div class="heroEyebrow">RICOWEER</div><h1>Ricoweer</h1></div></div><span class="versionBadge">v100.3</span></div><p>Jouw weer in één oogopslag · modellen · verwachtingen · klimaat</p><div class="v34toolbar heroToolsMain"><button class="ghost" id="themeToggle" type="button">🌙 Donker</button><button class="ghost" id="compactToggle" type="button">▦ Compact</button><button class="ghost" id="autoRefreshToggle" type="button">⏱ Auto verversen uit</button></div><details class="heroMore"><summary>Meer</summary><div class="v34toolbar"><button class="ghost" id="appRefresh" type="button">↻ App bijwerken</button><button class="ghost" id="jumpGfs" type="button">↓ GFS Excel</button></div></details><div class="healthbar"><span class="healthpill" id="onlinePill">Netwerk controleren…</span><span class="healthpill" id="freshPill">Nog geen nieuwe data</span><span class="healthpill" id="nextRefreshPill">Handmatig verversen</span></div></section>
 <nav class="quickJump" aria-label="Snel naar onderdelen"><span class="quickJumpLabel">Snel naar</span><button type="button" data-jump="todayGlancePanel">Vandaag</button><button type="button" data-jump="weatherTextPanel">Weerbericht</button><button type="button" data-jump="nationalScanPanel">Landelijk</button><button type="button" data-jump="longRangePanel">6 weken</button><button type="button" data-jump="climatePanel">Klimaat</button><button type="button" data-jump="editorialDeskPanel">Redactie</button><button type="button" data-jump="v97Cockpit">Cockpit</button><button type="button" data-jump="ricoEnergyPanel">☀️ Energie</button></nav>
 <section class="panel">
 <div class="grid">
@@ -5193,55 +5193,70 @@ function ricoV100DailyMetric(p,key){
 }
 const ricoAtlasDailyDrawers=[];
 window.addEventListener('rico:atlas-layer',()=>ricoAtlasDailyDrawers.forEach(draw=>draw()));
-function weatherSymbol(p){
- if(Number.isFinite(p.rain)&&p.rain>=7)return '🌧️';
- if(Number.isFinite(p.rain)&&p.rain>=1)return '🌦️';
- if(Number.isFinite(p.sun)&&p.sun>=7)return '☀️';
- if(Number.isFinite(p.sun)&&p.sun>=3)return '🌤️';
- if(Number.isFinite(p.sun))return '☁️';
- if(Number.isFinite(p.rain))return '🌥️';
- return '·';
+/* v100.3: Het DAGsymbool moet uit de dagelijkse modelmix komen. 
+   Gebruik de mogelijke daglichtduur bij dit scanpunt i.p.v. een vaste
+   zomergrens van 7 zonuren. Uur-bewolking is aanvullende nuance en mag
+   een droge, zeer zonnige DAG niet ongemerkt halfbewolkt maken. */
+function ricoAtlasDailyWeather(p,date,hourly){
+ const sw=ricoSolarWindow(date,p.point.lat,p.point.lon);
+ const dayHours=sw.set-sw.rise;
+ const ratio=Number.isFinite(p.sun)&&dayHours>0?Math.max(0,Math.min(1,p.sun/dayHours)):null;
+ const rain=Number.isFinite(p.rain)?p.rain:null;
+ const daytimeWet=!!hourly&&hourly.wetHours>=2&&Number.isFinite(hourly.rain)&&hourly.rain>=.3;
+ const dayDry=rain!==null&&rain<.5;
+ const strongSun=dayDry&&ratio!==null&&ratio>=.80;
+ const conflict=!!hourly&&((strongSun&&(hourly.cloud>=65||daytimeWet)) || (rain!==null&&rain>=5&&hourly.cloud<=25&&!daytimeWet));
+ // Dagmodelmix: neerslag en relatieve zonneduur vormen het dagbeeld.
+ if(rain!==null&&rain>=7)return {symbol:'🌧️',ratio,source:'dagmodelmix',conflict};
+ if(rain!==null&&rain>=1)return {symbol:ratio!==null&&ratio>=.55?'🌦️':'🌧️',ratio,source:'dagmodelmix',conflict};
+ if(strongSun)return {symbol:'☀️',ratio,source:'dagmodelmix (veel zon ≥80%)',conflict};
+ if(ratio!==null){
+  if(ratio>=.55)return {symbol:'🌤️',ratio,source:'dagmodelmix',conflict};
+  if(ratio>=.25)return {symbol:'⛅',ratio,source:'dagmodelmix',conflict};
+  return {symbol:'☁️',ratio,source:'dagmodelmix',conflict};
+ }
+ // Alleen wanneer de dag-zonuren ontbreken: uurcache als expliciete fallback.
+ if(hourly){
+  const symbol=daytimeWet?(hourly.cloud<60?'🌦️':'🌧️'):(hourly.cloud<25?'☀️':hourly.cloud<60?'🌤️':hourly.cloud<85?'⛅':'☁️');
+  return {symbol,ratio,source:'uurcache (fallback: dagzonuren ontbreken)',conflict:false};
+ }
+ return {symbol:rain===null?'·':'🌥️',ratio,source:'dagmodelmix zonder zonuren',conflict:false};
 }
-/* v100.2 — Gebalanceerde selectie voor beide landelijke weerkaarttypen.
-   De weergegevens blijven exact uit hun eigen bron komen; alleen de plaatsen op
-   de kaart worden geselecteerd. Geen limiet van tien die gaten veroorzaakt. */
+/* v100.3 — Eén geografische spreiding voor dag- en dagdeelkaarten.
+   Ook de Kop van Noord-Holland krijgt expliciet prioriteit. Geen uitwisseling
+   van dag- en uurwaarden: deze functie kiest uitsluitend bestaande punten. */
 function ricoAtlasBalancedPoints(items,map){
  const sz=map.getSize(),zoom=map.getZoom();
- // Screenshotreferentie: vaste dekking in midden, west, oost, noorden en zuiden.
- // Gebruik dezelfde prioriteit bij dagelijkse waarden en bij zesuurswaarden.
- const first=['Houten','Emmeloord','Arnhem','Rotterdam','Enschede',
-   'Terschelling','Groningen','Vlissingen','Eindhoven','Maastricht',
-   'Den Helder','Venlo','Emmen','Breda','IJmuiden','Leeuwarden',
-   'Apeldoorn','Hoorn','Winterswijk','Schiermonnikoog','Roermond',
-   'Lelystad','Texel','Almere','Gouda','Doetinchem','Den Bosch',
-   'Scheveningen','Leiden','Amsterdam','Harlingen','Nijmegen'];
- const padX=sz.x<450?34:42,padY=sz.y<540?42:46;
- const candidate=items.map(item=>{
+ const priority=[
+   'Den Helder','Hoorn','IJmuiden',  // Kop en kust van Noord-Holland
+   'Houten','Emmeloord','Rotterdam','Enschede',
+   'Terschelling','Groningen','Vlissingen','Maastricht',
+   'Arnhem','Eindhoven','Emmen','Breda','Apeldoorn',
+   'Leeuwarden','Venlo','Almere','Lelystad','Harlingen',
+   'Schiermonnikoog','Texel','Roermond','Den Bosch',
+   'Scheveningen','Leiden','Amsterdam','Gouda',
+   'Winterswijk','Doetinchem','Nijmegen','Roosendaal',
+   'Hoek van Holland','Middelburg'
+ ];
+ const padX=sz.x<450?33:39,padY=sz.y<540?38:43;
+ const candidates=items.map(item=>{
    const p=item.point;
    if(!p||!Number.isFinite(p.lat)||!Number.isFinite(p.lon))return null;
    const xy=map.latLngToContainerPoint([p.lat,p.lon]);
    if(xy.x<padX||xy.y<padY||xy.x>sz.x-padX||xy.y>sz.y-padY)return null;
    return {item,xy,name:p.n||''};
  }).filter(Boolean);
- const ordered=[...candidate].sort((a,b)=>{
-   const ai=first.indexOf(a.name),bi=first.indexOf(b.name);
-   return (ai<0?first.length:ai)-(bi<0?first.length:bi)||a.name.localeCompare(b.name);
- });
- // Markers met weersymbool + temperatuurbadge vragen meer ruimte dan de losse
- // groene cijfers op de referentiekaart. Bij grotere zoom automatisch dichter.
- const width=zoom>=9?55:zoom===8?64:sz.x<550?64:72;
- const height=zoom>=9?52:zoom===8?59:sz.y<580?62:66;
- // Laat op een volledige Nederlandse kaart ongeveer 16–20 punten toe,
- // op een smal scherm minder. Inzoomen toont extra regionale locaties.
- const cap=sz.x<420?11:sz.x<600?14:zoom>=9?35:20;
+ const pr=name=>{const k=priority.indexOf(name);return k<0?priority.length:k};
+ const ordered=candidates.sort((a,b)=>pr(a.name)-pr(b.name)||a.name.localeCompare(b.name));
+ // Weersymbolen zijn hoger dan de eenvoudige cijferlabels. De ruimte hier
+ // betreft de PINs, niet de locatie van de onderliggende modelwaarde.
+ const width=zoom>=9?54:zoom===8?60:sz.x<550?59:65;
+ const height=zoom>=9?53:zoom===8?58:sz.y<580?57:63;
+ const cap=sz.x<420?12:sz.x<600?16:zoom>=9?35:23;
  const selected=[];
- const place=c=>{
-   if(selected.length>=cap)return false;
-   if(selected.some(q=>Math.abs(c.xy.x-q.xy.x)<width&&Math.abs(c.xy.y-q.xy.y)<height))return false;
-   selected.push(c);return true;
- };
- ordered.forEach(place);
- return selected.map(c=>c.item);
+ const collision=c=>selected.some(q=>Math.abs(c.xy.x-q.xy.x)<width&&Math.abs(c.xy.y-q.xy.y)<height);
+ for(const p of ordered){if(selected.length>=cap)break;if(!collision(p))selected.push(p)}
+ return selected.map(p=>p.item);
 }
 window.ricoAtlasBalancedPoints=ricoAtlasBalancedPoints;
 function distance(a,b){const dx=(a.point.lon-b.point.lon)*Math.cos(a.point.lat*Math.PI/180),dy=a.point.lat-b.point.lat;return Math.hypot(dx,dy)}
@@ -5319,7 +5334,7 @@ function updateWeatherAtlas(){
   const mm=rain.length?rain.sort((a,b)=>a-b)[Math.floor(rain.length/2)]:null;
   const previous=atlasHistory();const signals=atlasSignals(d);const change=atlasDayChange(d,previous);
   const extra=`<div class="ricoAtlasExtra"><div><b>Verandering sinds vorige scan:</b> ${change}</div><div class="ricoChips">${signals.length?signals.slice(0,2).map(x=>`<span class="ricoChip">${x}</span>`).join(''):'<span class="ricoSmall">Geen bijzondere signalen uit de beschikbare dagwaarden</span>'}</div></div>`;
-  return `<article class="ricoWeatherCard"><div class="ricoWeatherTitle"><span>${safe(dayLabel(d.date))}</span><span>${good.length}/${NATIONAL_POINTS.length}</span></div><div class="ricoWeatherMap" id="ricoWeatherMap${i}" aria-label="Landelijk weerbeeld ${safe(dayLabel(d.date))}"></div><div class="ricoWeatherFoot">${mm!==null?'Landelijke neerslagmediaan '+mm.toFixed(1).replace('.',',')+' mm · ':''}temperaturen TX/TN: altijd dagelijkse modelmix (nooit vervangen door uurdata) · symbool: uurgegevens tussen zonsopkomst en zonsondergang (eerste 72 uur), anders indicatief · <b>blauw = vorst</b>${i>=10?' · lange termijn, grotere onzekerheid':i>=7?' · langere termijn, grotere onzekerheid':''}</div>${extra}</article>`
+  return `<article class="ricoWeatherCard"><div class="ricoWeatherTitle"><span>${safe(dayLabel(d.date))}</span><span>${good.length}/${NATIONAL_POINTS.length}</span></div><div class="ricoWeatherMap" id="ricoWeatherMap${i}" aria-label="Landelijk weerbeeld ${safe(dayLabel(d.date))}"></div><div class="ricoWeatherFoot">${mm!==null?'Landelijke neerslagmediaan '+mm.toFixed(1).replace('.',',')+' mm · ':''}temperaturen TX/TN: altijd dagelijkse modelmix (nooit vervangen door uurdata) · weersymbool: dagmodelmix (zonneduur en neerslag); uurcache als extra informatie · <b>blauw = vorst</b>${i>=10?' · lange termijn, grotere onzekerheid':i>=7?' · langere termijn, grotere onzekerheid':''}</div>${extra}</article>`
  }).join('');
  const rainHost=host.querySelector('.ricoAtlasRain');if(rainHost)rainHost.remove();host.querySelector('.ricoWeatherGrid').insertAdjacentHTML('afterend',atlasRainSummary(valid));
  // Alleen bestaande kaartbibliotheek en OSM-kaarttegels. Geen weer-API-calls.
@@ -5384,11 +5399,11 @@ function updateWeatherAtlas(){
      for(const p of ordered){
        const pt=map.latLngToContainerPoint([p.point.lat,p.point.lon]);
        const hourly=ricoCachedDaytime(p.point.n,d.date,p.point);
-       // Prefer the actual 05-17 cloud and precipitation summary where available.
-       // Where hourly cache is absent, avoid a definitive full-sun icon inferred from daily sunshine alone.
-       const sunFraction=Number.isFinite(p.sun)&&typeof possibleDaylightHours==='function'?p.sun/Math.max(1,possibleDaylightHours(d.date)):null;
-       const disagreement=!!hourly&&Number.isFinite(sunFraction)&&sunFraction>=0.65&&hourly.cloud>=65;
-       const sym=hourly?(hourly.wetHours>=2&&Number.isFinite(hourly.rain)&&hourly.rain>=.3?(hourly.cloud<60?'🌦️':'🌧️'):(hourly.cloud<25?'☀️':hourly.cloud<60?'🌤️':hourly.cloud<85?'⛅':'☁️')):(weatherSymbol(p)==='☀️'?'🌤️':weatherSymbol(p));
+       // Een dagicoon beschrijft de héle dag: dagmodelmix eerst, uurcache
+       // alleen als verduidelijking of expliciete fallback (geen TX/TN-override).
+       const dailySky=ricoAtlasDailyWeather(p,d.date,hourly);
+       const disagreement=dailySky.conflict;
+       const sym=dailySky.symbol;
        // v100: dagmaxima en dagminima komen ALTIJD uit de dagelijkse modelmix.
        // Uurwaarden mogen dit niet vervangen: zelfs bij dezelfde locatie is de
        // uurbron (Open-Meteo best_match) niet de dagmodelmix.
@@ -5419,7 +5434,7 @@ function updateWeatherAtlas(){
        const metric=ricoV100DailyMetric(p,chosen);
        const body=chosen==='wx'?weatherHTML:`<span class="ricoV100Value ${metric.missing?'ricoV100Missing':''}">${metric.label}</span>`;
        const icon=L.divIcon({className:'',html:`<div class="ricoWeatherPin rico82Pin ricoV100Pin${frost?' ricoFrostPin':''}">${body}</div>`,iconSize:[82,chosen==='wx'&&showWind?84:62],iconAnchor:[41,chosen==='wx'&&showWind?42:31]});
-       const popup=`<b>${safe(p.point.n)}</b><br><b>Dagmodelmix</b> · maximum ${max}° · minimum ${min===null?'—':min+'°'}<br>${chosen==='wx'?'Weersymbool: '+(hourly?'daglichturen uit uurcache ('+hourly.count+' uren)':'indicatie uit daggegevens'):metric.title+': '+metric.label}${disagreement?'<br>⚠ Zonuren en bewolking spreken elkaar tegen':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen${hourDifference}`;
+       const popup=`<b>${safe(p.point.n)}</b><br><b>Dagmodelmix</b> · maximum ${max}° · minimum ${min===null?'—':min+'°'}<br>${chosen==='wx'?'Weersymbool: '+dailySky.source+(Number.isFinite(dailySky.ratio)?' · '+Math.round(dailySky.ratio*100)+'% mogelijke zonneschijn':'')+(hourly?'<br>Uurcache: '+hourly.count+' daglichturen, bewolking circa '+Math.round(hourly.cloud)+'%':''):metric.title+': '+metric.label}${disagreement?'<br>⚠ Uurcache en dagmodelmix geven een verschillend weerbeeld; symbool volgt de dagmodelmix':''}<br>${Number.isFinite(p.rain)?p.rain.toFixed(1).replace('.',',')+' mm neerslag<br>':''}${Number.isFinite(p.wind)?'Wind '+Math.round(p.wind)+' km/u<br>':''}${(p.models||[]).length} modellen${hourDifference}`;
        L.marker([p.point.lat,p.point.lon],{icon}).bindPopup(popup).addTo(layer);
      }
    }
@@ -5435,7 +5450,7 @@ function install(){
  const panel=document.getElementById('nationalScanPanel');if(!panel)return;
  if(!document.getElementById('ricoWeatherAtlas')){
   const section=document.createElement('section');section.id='ricoWeatherAtlas';
-  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 15 dagen</div><div class="note">Interactieve landelijke kaart in de stijl van Weerkaart NL: direct meerdere locaties; bij inzoomen verschijnen ook regionale punten in oost en zuid. Weersymbolen, maximum- en minimumtemperatuur en wind. Tik op een symbool voor details. De aparte Weerkaart NL blijft interactief. Temperaturen uit de landelijke modelmix. Weersymbolen volgen de uurgegevens tussen zonsopkomst en zonsondergang in de eerste 72 uur, anders een voorzichtige indicatie uit dagwaarden. Bij ontbrekende zichtgegevens wordt mist niet als zeker voorspeld. Dagkaarten tonen dagelijkse modelmixwaarden (TX/TN); dagdelen tonen onafhankelijke uurwaarden. Het zijn verschillende grootheden: ze worden niet door elkaar vervangen. De uurcache heeft uitsluitend voor het weersymbool overdag voorrang. Tik op een locatie om de gebruikte bron te zien.</div><div class="ricoWeatherGrid"></div>';
+  section.innerHTML='<div style="font-weight:900;font-size:19px">🌦️ Nederland in één oogopslag · 15 dagen</div><div class="note">Interactieve landelijke kaart in de stijl van Weerkaart NL: direct meerdere locaties; bij inzoomen verschijnen ook regionale punten in oost en zuid. Weersymbolen, maximum- en minimumtemperatuur en wind. Tik op een symbool voor details. De aparte Weerkaart NL blijft interactief. Temperaturen uit de landelijke modelmix. Weersymbolen volgen de uurgegevens tussen zonsopkomst en zonsondergang in de eerste 72 uur, anders een voorzichtige indicatie uit dagwaarden. Bij ontbrekende zichtgegevens wordt mist niet als zeker voorspeld. Dagkaarten tonen dagelijkse modelmixwaarden (TX/TN); dagdelen tonen onafhankelijke uurwaarden. Het zijn verschillende grootheden: ze worden niet door elkaar vervangen. Het dagweersymbool volgt de dagelijkse modelmix voor neerslag en zonneduur (veel zon vanaf 80% van de daglichtduur); de uurcache wordt alleen als aanvulling gebruikt of als fallback wanneer dag-zonuren ontbreken. Tik op een locatie om de gebruikte bron te zien.</div><div class="ricoWeatherGrid"></div>';
   const map=panel.querySelector('.ricomapPanel');if(map)map.insertAdjacentElement('beforebegin',section);else panel.appendChild(section);
  }
  // Koppel aan bestaande landelijke scanweergave, inclusief cacheherstel.
