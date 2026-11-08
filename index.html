@@ -6454,11 +6454,17 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #ricoRain14 .r88scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
 #ricoRain14 .r88plot{display:flex;align-items:flex-end;gap:5px;min-width:590px;height:225px;border-bottom:1px solid #8eaec4;padding:10px 3px 0;background:repeating-linear-gradient(to top,transparent 0,transparent calc(25% - 1px),#d9e7ef 25%)}
 #ricoRain14 .r88day{flex:1;min-width:37px;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;height:100%;gap:4px}
-#ricoRain14 .r88bars{height:174px;display:flex;align-items:flex-end;justify-content:center;gap:2px;width:100%}
-#ricoRain14 .r88bar{width:28%;min-height:0;border-radius:3px 3px 0 0;position:relative}
-#ricoRain14 .r88bar[data-p]:hover:after{content:attr(data-p);position:absolute;bottom:100%;left:0;background:#173d59;color:white;font-size:11px;padding:3px 5px;border-radius:4px;z-index:2;white-space:nowrap}
+#ricoRain14 .r88bars{height:174px;display:flex;align-items:flex-end;justify-content:center;width:100%}
+/* One bar per day. The stacked slices are disjoint probabilities: 1–<3, 3–<10 and >=10 mm.
+   The combined bar height is therefore the probability of >=1 mm, never the sum of three nested probabilities. */
+#ricoRain14 .r88stack{width:min(36px,72%);display:flex;flex-direction:column-reverse;overflow:hidden;border-radius:5px 5px 0 0;box-shadow:inset 0 0 0 1px rgba(9,58,92,.09)}
+#ricoRain14 .r88slice{display:block;flex-shrink:0;width:100%}
+#ricoRain14 .r88stack:hover{filter:brightness(.93);cursor:help}
+#ricoRain14 .r88day:focus-visible{outline:2px solid #155b87;outline-offset:2px;border-radius:4px}
+#ricoRain14 .r88nodata{font-size:11px;color:#657e91;align-self:flex-end;padding-bottom:3px}
 #ricoRain14 .r88label{font-size:11px;white-space:nowrap;color:#385e76}
 #ricoRain14 .r88note{font-size:12px;line-height:1.5;color:#536b7c;margin-top:12px}
+#ricoRain14 .r88detail{font-size:13px;color:#164f71;font-weight:650;min-height:19px;margin-top:9px}
 </style>
 <script id="rico-v88-rain-script">
 (function(){'use strict';
@@ -6469,10 +6475,28 @@ const COLORS=['#2476bd','#42a6d9','#e4a32d'];
 let last=null;
 function root(){return document.getElementById(ID)}
 function dateNL(s){const d=new Date(s+'T12:00:00');return ['zo','ma','di','wo','do','vr','za'][d.getDay()]+' '+d.getDate()}
+/* p1 >= p3 >= p10: the three mutually exclusive slices are p1-p3, p3-p10, p10.
+   We do not stack p1+p3+p10 because those are overlapping (nested) probabilities. */
+function rain14Slices(values){
+ if(!Array.isArray(values)||values.length!==3||!values.every(Number.isFinite))return null;
+ const [p1,p3,p10]=values;
+ if(p1<0||p1>100||p3<0||p3>p1||p10<0||p10>p3)return null;
+ return [p1-p3,p3-p10,p10];
+}
+function rain14Bar(day){
+ const label=dateNL(day.date),vals=day.values,slices=rain14Slices(vals);
+ if(!slices)return `<div class="r88day" tabindex="0" data-details="${label}: niet alle drempelkansen beschikbaar" title="${label}: niet alle drempelkansen beschikbaar"><div class="r88bars"><span class="r88nodata">—</span></div><span class="r88label">${label}</span></div>`;
+ const [p1,p3,p10]=vals;
+ const details=`${label}: ≥ 1 mm ${p1}%, ≥ 3 mm ${p3}%, ≥ 10 mm ${p10}%`;
+ // The visible bar represents a single daily probability (>=1 mm); subdivisions do not add probability.
+ const segs=p1>0?slices.map((v,j)=>`<span class="r88slice" style="height:${(100*v/p1).toFixed(5)}%;background:${COLORS[j]}"></span>`).join(''):'';
+ return `<div class="r88day" tabindex="0" data-details="${details}" title="${details}" aria-label="${details}"><div class="r88bars"><div class="r88stack" style="height:${p1}%" title="${details}">${segs}</div></div><span class="r88label">${label}</span></div>`;
+}
 function render(data,notes){const r=root();if(!r)return;const plot=r.querySelector('.r88plot');if(!data.length){plot.innerHTML='<p>Geen bruikbare ensemble-neerslaggegevens beschikbaar.</p>';return}
- plot.innerHTML=data.map(day=>`<div class="r88day"><div class="r88bars">${THRESH.map((t,j)=>{const p=day.values[j];return p===null?'<div class="r88bar" title="Geen gegevens"></div>':`<div class="r88bar" data-p="≥${t} mm: ${p}%" title="${dateNL(day.date)}: ≥${t} mm ${p}%" style="height:${Math.max(p>0?2:0,p)}%;background:${COLORS[j]}"></div>`}).join('')}</div><span class="r88label">${dateNL(day.date)}</span></div>`).join('');
+ plot.innerHTML=data.map(rain14Bar).join('');
+ const detail=r.querySelector('.r88detail');if(detail)detail.textContent='Tik of klik op een dagstaaf om alle drie de kansen te zien.';
  r.querySelector('.r88status').textContent=notes;
- r.querySelector('.r88note').textContent='Percentage = gemiddeld aandeel ensembleleden per beschikbaar ensemblesysteem (ECMWF ENS en GEFS), voor de gekozen plaats. Geen gekalibreerde kans. Ontbrekende waarden zijn niet als 0% geteld. Horizontaal schuiven voor alle 14 dagen.';
+ r.querySelector('.r88note').textContent='Totale staaf = kans op ≥ 1 mm. Kleurdelen zijn de kansen op 1 tot <3 mm, 3 tot <10 mm en ≥10 mm. Beweeg over een staaf (of selecteer met toetsenbord) voor alle drempelkansen. Percentage = gemiddeld aandeel ensembleleden per beschikbaar ensemblesysteem (ECMWF ENS en GEFS), voor de gekozen plaats; geen gekalibreerde kans. Ontbrekende waarden zijn niet als 0% geteld. Horizontaal schuiven voor alle 14 dagen.';
 }
 async function load(allowNetwork){const r=root();if(!r)return;const b=r.querySelector('.r88load');b.disabled=true;r.querySelector('.r88status').textContent='Ensemblegegevens '+(allowNetwork?'ophalen':'uit cache lezen')+'…';
  try{const results=await Promise.allSettled(MODELS.map(m=>getEnsembleDataset(m,{allowNetwork,days:ensembleForecastDays(m)})));
@@ -6484,9 +6508,11 @@ async function load(allowNetwork){const r=root();if(!r)return;const b=r.querySel
  const data=dates.map(date=>({date,values:THRESH.map(th=>{const vals=usable.map(u=>{const members=(u.daily[date]||[]).filter(Number.isFinite);return members.length?100*members.filter(v=>v>=th).length/members.length:null}).filter(Number.isFinite);return vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):null})}));
  last=data;render(data,usable.map(u=>(u.model.startsWith('ecmwf')?'ECMWF ENS':'GEFS')+' ('+(u.source||'cache')+')').join(' · ')+(issues.length?' · '+issues.join('; '):''));
  }catch(e){r.querySelector('.r88status').textContent='Niet beschikbaar: '+String(e.message||e)}finally{b.disabled=false}}
-function init(){if(root())return;const panel=document.getElementById('riskPanel');if(!panel)return;const div=document.createElement('section');div.id=ID;div.innerHTML=`<div class="r88head">🌧️ Neerslagkansen · 14 dagen</div><div>Dagkans op minstens 1, 3 of 10 mm, op basis van ensembleleden.</div><div class="r88ctrl"><button type="button" class="r88load">↻ Vernieuwen</button><button type="button" class="r88cache">Opgeslagen gegevens</button></div><div class="r88status" aria-live="polite">Tik op Vernieuwen om de ensemblekansen te berekenen voor de gekozen plaats.</div><div class="r88legend">${THRESH.map((t,i)=>`<span style="--c:${COLORS[i]}">≥ ${t} mm</span>`).join('')}</div><div class="r88scroll"><div class="r88plot"></div></div><div class="r88note">De grafiek gebruikt echte ensembleleden; ontbrekende gegevens worden niet verzonnen.</div>`;
+function init(){if(root())return;const panel=document.getElementById('riskPanel');if(!panel)return;const div=document.createElement('section');div.id=ID;div.innerHTML=`<div class="r88head">🌧️ Neerslagkansen · 14 dagen</div><div>Eén staaf per dag: totale hoogte = kans op minstens 1 mm. De kleuren verdelen die kans naar neerslaghoeveelheid.</div><div class="r88ctrl"><button type="button" class="r88load">↻ Vernieuwen</button><button type="button" class="r88cache">Opgeslagen gegevens</button></div><div class="r88status" aria-live="polite">Tik op Vernieuwen om de ensemblekansen te berekenen voor de gekozen plaats.</div><div class="r88legend">${['1 tot <3 mm','3 tot <10 mm','≥ 10 mm'].map((name,i)=>`<span style="--c:${COLORS[i]}">${name}</span>`).join('')}</div><div class="r88scroll"><div class="r88plot"></div></div><div class="r88detail" role="status">Tik of klik op een dagstaaf om alle drie de kansen te zien.</div><div class="r88note">De grafiek gebruikt echte ensembleleden; ontbrekende gegevens worden niet verzonnen.</div>`;
  const anchor=panel.querySelector('.riskcontrols');anchor?.parentNode?.insertBefore(div,anchor);
  div.querySelector('.r88load').addEventListener('click',()=>load(true));div.querySelector('.r88cache').addEventListener('click',()=>load(false));
+ const showDetails=e=>{const day=e.target.closest?.('.r88day');if(day)div.querySelector('.r88detail').textContent=day.dataset.details||day.title||'Geen gegevens';};
+ div.querySelector('.r88plot').addEventListener('click',showDetails);div.querySelector('.r88plot').addEventListener('focusin',showDetails);
  const place=document.getElementById('place');place?.addEventListener('change',()=>{last=null;div.querySelector('.r88plot').innerHTML='';div.querySelector('.r88status').textContent='Locatie gewijzigd: laad de neerslagkansen opnieuw.'});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
