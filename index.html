@@ -577,14 +577,17 @@ body{min-width:0}
    const mixed=icon==='⛅';
    const light=icon==='🌤️';
    const partial=heavy||mixed||light||icon==='🌦️';
-   const rays='<g stroke="#f6a800" stroke-width="3" stroke-linecap="round"><path d="M23 2v6M23 38v6M1 23h6M39 23h6M8 8l5 5M33 33l5 5M8 38l5-5M33 13l5-5"/></g>';
-   const sun='<g>'+rays+'<circle cx="23" cy="23" r="11" fill="#ffcb37" stroke="#e9a11a" stroke-width="2"/></g>';
+   // v100.5: stevigere oranje stralen en een grotere, goed afgetekende zon;
+   // het wolsymbool, de vijf zonklassen en de uur-/dagbronlogica blijven gelijk.
+   const raysPath='M23 1v6M23 39v6M1 23h6M39 23h6M7 7l5 5M34 34l5 5M7 39l5-5M34 12l5-5';
+   const rays='<g fill="none" stroke-linecap="round"><path d="'+raysPath+'" stroke="#fff4d0" stroke-width="5.8"/><path d="'+raysPath+'" stroke="#ee8900" stroke-width="3.6"/></g>';
+   const sun='<g class="ricoSunMark">'+rays+'<circle cx="23" cy="23" r="14" fill="#ffc928" stroke="#e68300" stroke-width="2.8"/></g>';
    const moon='<path d="M31 4A18 18 0 1 0 45 32 18 18 0 0 1 31 4Z" fill="#ffe19a" stroke="#c68b2f" stroke-width="2"/>';
    const cloud='<path d="M17 46C9 46 5 41 5 35c0-6 5-11 11-11 3-9 10-14 19-12 8 1 13 7 14 14 8-1 14 4 14 11 0 6-5 9-13 9Z" fill="#f8fbff" stroke="#587b96" stroke-width="2.8" stroke-linejoin="round"/>';
    const drops='<g stroke="#138bd1" stroke-width="4" stroke-linecap="round"><path d="M18 50l-4 8M33 50l-4 8M48 50l-4 8"/></g>';
    const sky=night?moon:sun;
    const showSky=!cloudy;
-   const sunArt=showSky?(heavy?'<g transform="translate(-8 -12) scale(.87)">'+sky+'</g>':mixed?'<g transform="translate(-7 -9) scale(1.02)">'+sky+'</g>':light?'<g transform="translate(-5 -6) scale(1.12)">'+sky+'</g>':partial?'<g transform="translate(-8 -9) scale(1.02)">'+sky+'</g>':sky):'';
+   const sunArt=showSky?(heavy?'<g transform="translate(-8 -12) scale(.87)">'+sky+'</g>':mixed?'<g transform="translate(-7 -9) scale(1.02)">'+sky+'</g>':light?'<g transform="translate(-5 -6) scale(1.12)">'+sky+'</g>':partial?'<g transform="translate(-8 -9) scale(1.02)">'+sky+'</g>':night?sky:'<g transform="translate(9 3) scale(1.08)">'+sky+'</g>'):'';
    const cloudArt=cloudy?cloud:heavy?'<g transform="translate(0 4) scale(1)">'+cloud+'</g>':mixed?'<g transform="translate(8 9) scale(.85)">'+cloud+'</g>':light?'<g transform="translate(17 17) scale(.65)">'+cloud+'</g>':partial?'<g transform="translate(8 9) scale(.85)">'+cloud+'</g>':'';
    const content=sunArt+cloudArt+(wet?drops:'');
    const label=wet?'Regen':cloudy?'Bewolkt':heavy?'Veel bewolking':mixed?'Zon en wolken':light?'Vrij zonnig':night?'Helder':'Zonnig';
