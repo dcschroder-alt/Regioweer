@@ -1,23 +1,23 @@
-RICOWEER v100.8 - WordPress-zijbalkwidget
+Ricoweer v101.0 - consistente Randstadverwachting
 
-Dit pakket is voor je BESTAANDE GitHub-repository: dcschroder-alt/Regioweer
+Bestemming: GitHub-repository dcschroder-alt/Regioweer
 
-Upload naar de hoofdmap (main) van die repository:
-- index.html (vervang bestaande app)
-- weerkaart.html (vervang bestaande bron voor morgen/overmorgen)
-- widgetkaart.html (nieuw: compacte live widget van morgen)
+Upload de drie bestanden in deze ZIP in de hoofdmap van je bestaande app-repository:
+- index.html
+- weerkaart.html
+- widgetkaart.html
 
-Gebruik in Ricoweer de optie 'WordPress-zijbalkwidget' bij 'Meer · exporteren & delen'.
-De live preview gebruikt de bestaande landelijke dagmodelmix en 8-10 verspreide kaartpunten.
-Dag-TX/TN wordt nooit uit uurwaarden overgenomen.
+Vervang bij alle drie de bestaande bestanden en bevestig met Commit changes.
+De bestaande Ricoweer-instellingen en modelmix zijn niet gewijzigd.
 
-Voor WordPress.com gratis gebruik je NIET deze HTML-link of HTML-code,
-maar de automatisch gepubliceerde afbeelding in de aparte repository:
-https://dcschroder-alt.github.io/ricoweer-kaarten/widget.png
+Correcties:
+- De Randstad-vijfdaagse gebruikt dezelfde symboolfunctie als de grote Randstad-PNG.
+- Beide gebruiken dezelfde vijf zonklassen en dezelfde dagelijkse neerslagdata.
+- Dag-TX/TN worden niet door uurwaarden vervangen.
+- De handmatig gemaakte Randstad-PNG krijgt een scanaanduiding zodat je
+  kunt zien of een verschil komt door een andere modelrun.
+- De exporter kan de grote Randstad-PNG maken uit exact dezelfde scan
+  als de automatische vijfdaagse, en valideert het regionale datagebruik.
 
-Om die afbeelding automatisch te produceren, moet ook het losse publicatie-updatebestand
-scripts/maak_kaarten.py in ricoweer-kaarten worden vervangen.
-Dit publicatiepakket wordt apart meegeleverd.
-
-Let op: de actuele data en kaarttegels kunnen alleen in de live GitHub Pages-omgeving
-worden getest. De code is gecontroleerd, de daadwerkelijke GitHub Actions-run nog niet.
+Let op: na deze upload is ook het TWEEDE pakket nodig in de andere
+repository ricoweer-kaarten, anders is de automatische publicatie nog oud.

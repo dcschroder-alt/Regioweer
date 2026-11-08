@@ -3162,18 +3162,22 @@ async function drawModelmixCardsPng(){
 }
 $('modelmixPng')?.addEventListener('click',()=>drawModelmixCardsPng().catch(e=>setStatus('PNG maken lukte niet: '+e.message,100)));
 
-function randstadPngWeatherType(rain,sun){
- const mm=Number(rain?.mix),su=Number(sun);
- const hasSun=Number.isFinite(su)&&su>=4;
- const someSun=Number.isFinite(su)&&su>=2;
- const wet=Number.isFinite(mm)&&mm>=0.25;
- // Zonnige dagen met enkele buien: de hoeveelheid regen alleen bepaalt niet het dagbeeld.
- if(wet&&hasSun)return 'sunshowers';
- if(wet&&someSun)return 'sunshowers';
- if(wet)return mm>=3?'rain':'showers';
- if(Number.isFinite(su)&&su>=7)return 'sun';
- if(Number.isFinite(su)&&su>=3)return 'partly';
- return 'cloud';
+/* v101.0 — één Randstad-weertype voor de app-PNG en vijfdaagse widget.
+   Dagelijks: neerslag en fractie van de astronomisch mogelijke zonneschijn;
+   nooit uurwaarden als vervanging van de dagmodelmix. */
+function ricoRandstadWeatherView(rain,sun,date){
+ const mm=(rain&&typeof rain==='object')?rain.mix:rain;
+ const sky=ricoDailySky(sun,date,52.10,4.70);
+ if(Number.isFinite(mm)&&mm>=0.25){
+  if(sky&&['sun','mostly_sunny','partly'].includes(sky.type))
+   return {type:'sunshowers',icon:'🌦️',label:'zon en buien'};
+  return mm>=3?{type:'rain',icon:'🌧️',label:'regenachtig'}:{type:'showers',icon:'🌧️',label:'buien'};
+ }
+ if(sky)return {type:sky.type,icon:sky.icon,label:sky.label.toLowerCase()};
+ return {type:'cloud',icon:'☁️',label:'zonneschijn onbekend'};
+}
+function randstadPngWeatherType(rain,sun,date){
+ return ricoRandstadWeatherView(rain,sun,date).type;
 }
 async function getRandstadSunTimes(rows){
  try{
@@ -3229,7 +3233,7 @@ function ricoRandstadSharedRows(start,limit=15){
   return {date:d.date,max:nsMedian(vals.map(r=>r.tx)),min:nsMedian(vals.map(r=>r.tn)),sun:nsMedian(vals.map(r=>r.sun)),rain:nsMedian(vals.map(r=>r.rain)),regions:vals.length,source:'landelijke scan · Randstadpunten'};
  }).filter(Boolean);
 }
-async function drawRandstadCardsPng(){
+async function drawRandstadCardsPng(options={}){
  // De landelijke scan wordt onafhankelijk geladen. Gebruik direct de beschikbare
  // modelmix als de regionale scan nog niet gereed is, zonder extra API-verzoeken.
  const pngStart=isoDatePlus(appBaseDate(),1); // Randstad-PNG altijd vanaf morgen
@@ -3246,6 +3250,14 @@ async function drawRandstadCardsPng(){
  }
  const rows=days.slice(0,10);
  if(!rows.length)throw new Error('Er zijn nog geen modelmixgegevens geladen. Kies Modelmix en vernieuw de verwachting.');
+ // Automatische publicatie: nooit ongemerkt terugvallen op een Houten- of
+ // landelijke locatieverwachting. Exact dezelfde regionale scan is vereist.
+ if(options.strict){
+  if(fallback||rows.length!==10)throw new Error('Geen complete Randstad-scan voor 10 dagen');
+  const required=Array.from({length:10},(_,i)=>isoDatePlus(pngStart,i));
+  if(rows.some((d,i)=>d.date!==required[i]||!ricoRandstadSharedRow(d)||ricoRandstadSharedRow(d).regions<2))
+   throw new Error('Inconsistente Randstad-datums of onvoldoende regio’s in scan');
+ }
  // De bestaande daggegevens worden hergebruikt; geen extra model-API-verzoeken.
  const sunTimes=await getRandstadSunTimes(rows),cols=Math.min(5,rows.length),cardW=376,cardH=565,gap=18,margin=34,header=118;
  const nRows=Math.ceil(rows.length/cols),W=margin*2+cols*cardW+(cols-1)*gap,H=header+margin+nRows*cardH+(nRows-1)*gap+50;
@@ -3253,6 +3265,11 @@ async function drawRandstadCardsPng(){
  x.fillStyle='#eaf2fa';x.fillRect(0,0,W,H);x.fillStyle='#1159bd';x.fillRect(0,0,W,94);
  x.textAlign='left';x.fillStyle='#fff';x.font='bold 38px Arial';x.fillText(`Ricoweer · Randstad · ${rows.length} dagen`,margin,51);
  x.font='20px Arial';x.fillText(fallback?'Modelmix · regionale scan nog niet geladen':'Regionale modelmix  |  kust · westelijk binnenland · Utrecht/Flevoland',margin,80);
+ // Toon de scanklok: PNG's uit verschillende modelmomenten kunnen verschillen.
+ let scanDate='';try{const stamp=JSON.parse(localStorage.getItem(NATIONAL_SCAN_CACHE)||'null')?.savedAt;
+   if(Number.isFinite(stamp))scanDate=new Date(stamp).toLocaleString('nl-NL',{timeZone:'Europe/Amsterdam',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
+ }catch(e){}
+ if(scanDate){x.font='15px Arial';x.textAlign='right';x.fillText('Scan '+scanDate,W-margin,80);x.textAlign='left'}
  function label(t,px,py,font='22px Arial',color='#263f5b'){x.font=font;x.fillStyle=color;x.fillText(t,px,py)}
  function box(l,t,w,h,fill,stroke){x.fillStyle=fill;x.strokeStyle=stroke;x.lineWidth=2;x.beginPath();if(x.roundRect)x.roundRect(l,t,w,h,18);else x.rect(l,t,w,h);x.fill();x.stroke()}
  const prepared=rows.map(d=>{
@@ -3269,7 +3286,7 @@ async function drawRandstadCardsPng(){
   box(left,top,cardW,cardH,'#fff','#cbdbea');
   x.textAlign='center';label(NL[dt.getDay()].toUpperCase(),mid,top+37,'bold 27px Arial','#183b64');
   label(dt.toLocaleDateString('nl-NL',{day:'numeric',month:'long'}),mid,top+66,'19px Arial','#5c7088');
-  drawWeatherPng(x,randstadPngWeatherType(rain,sun),mid,top+145,1.04,sun,mm);
+  drawWeatherPng(x,randstadPngWeatherType(rain,sun,d.date),mid,top+145,1.04,sun,mm);
   label(Number.isFinite(tx)?`${Math.round(tx)}°`:'—',mid-57,top+250,'bold 44px Arial','#d63736');
   label(Number.isFinite(tn)?`${Math.round(tn)}°`:'—',mid+63,top+250,'bold 37px Arial','#1468b8');
   const txs=rs.map(q=>q?.tx).filter(Number.isFinite),tns=rs.map(q=>q?.tn).filter(Number.isFinite);
@@ -3321,6 +3338,11 @@ async function drawRandstadCardsPng(){
  }
  x.textAlign='left';x.fillStyle='#4e637b';x.font='17px Arial';x.fillText('Zonnetijden per datum in Nederlandse tijd (wintertijd vanaf 25 oktober) · kust en binnenland apart berekend',margin,H-20);
  const blob=await new Promise(res=>c.toBlob(res,'image/png'));if(!blob)throw new Error('PNG kon niet worden gemaakt');
+ if(options.returnDataUrl){
+  const url=await new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=()=>reject(fr.error);fr.readAsDataURL(blob)});
+  return {dataUrl:url,rows:prepared.map(v=>({date:v.d.date,max:v.tx,min:v.tn,rain:v.rain?.mix,sun:v.sun,wind:v.wind,
+         type:randstadPngWeatherType(v.rain,v.sun,v.d.date)}))};
+ }
  download(blob,`regioweer-randstad-${rows.length}-dagen-${$('date').value}.png`);
 }
 $('randstadPng')?.addEventListener('click',()=>drawRandstadCardsPng().catch(e=>{setStatus('Randstad-PNG maken lukte niet: '+e.message,100);alert('Randstad-PNG: '+e.message)}));
