@@ -3236,7 +3236,7 @@ function ricoRandstadSharedRows(start,limit=15){
 async function drawRandstadCardsPng(options={}){
  // De landelijke scan wordt onafhankelijk geladen. Gebruik direct de beschikbare
  // modelmix als de regionale scan nog niet gereed is, zonder extra API-verzoeken.
- const pngStart=isoDatePlus(appBaseDate(),1); // Randstad-PNG altijd vanaf morgen
+ const pngStart=isoDatePlus(appBaseDate(),Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Amsterdam',hour:'2-digit',hourCycle:'h23'}).format(new Date()))>=18?1:0); // Randstad: vanaf 18:00 morgen
  let days=(nationalScanLastPack?.days||[]).filter(d=>d?.date>=pngStart);
  if(!days.length){
   try{const cached=JSON.parse(localStorage.getItem(NATIONAL_SCAN_CACHE)||'null');days=(cached?.days||[]).filter(d=>d?.date>=pngStart)}catch(e){}
@@ -6952,6 +6952,8 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
  const iso=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Amsterdam',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
  const nextDate=(base,add)=>new Date(Date.parse(base+'T12:00:00Z')+add*86400000).toISOString().slice(0,10);
  const tomorrow=()=>nextDate(iso(),1);
+ const startDate=()=>{const hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Amsterdam',hour:'2-digit',hourCycle:'h23'}).format(new Date()));return nextDate(iso(),hour>=18?1:0)};
+ const startLabel=()=>startDate()===iso()?'Vandaag':'Morgen';
  const fmtNum=(v,dec=0)=>Number.isFinite(v)?v.toFixed(dec).replace('.',','):'—';
  const bft=kmh=>{if(!Number.isFinite(kmh))return '—';const limits=[1,6,12,20,29,39,50,62,75,89,103,118];return limits.filter(x=>kmh>=x).length+' Bft'};
  const dayLabel=date=>new Intl.DateTimeFormat('nl-NL',{weekday:'short',day:'numeric',month:'short',timeZone:'Europe/Amsterdam'}).format(new Date(date+'T12:00:00Z'));
@@ -6997,9 +6999,9 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
    if(!shell||!atlas)return;
    const header=shell.querySelector('.ricoLiveHeader');
    if(header){const h=header.querySelector('h1');if(h)h.textContent='🌤️ Weer morgen & Randstad';
-     header.querySelector('p')?.replaceChildren(document.createTextNode('Landelijke kaart van morgen · tiendaagse Randstadverwachting'));}
+     header.querySelector('p')?.replaceChildren(document.createTextNode('Landelijke kaart van morgen · Randstad vanaf '+startLabel().toLowerCase()));}
    let pack=null;try{pack=JSON.parse(localStorage.getItem(key)||'null')}catch(e){}
-   const date=tomorrow();const day=pack?.days?.find(d=>d.date===date);
+   const date=startDate();const day=pack?.days?.find(d=>d.date===date);
    const cards=[...atlas.querySelectorAll('.ricoWeatherGrid > .ricoWeatherCard')];
    let facts=document.getElementById('ricoWidgetFacts');
    if(!facts){facts=document.createElement('section');facts.id='ricoWidgetFacts';atlas.insertAdjacentElement('afterend',facts)}
@@ -7023,14 +7025,14 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
      const wind=Number.isFinite(r.wind)?[Number.isFinite(r.dir)?nsDir(r.dir):'',bftText(r.wind)].filter(Boolean).join(' '):'—';
      const dayData=pack.days.find(d=>d.date===r.date);
      const coast=coastNote(dayData);
-     return `${i===5?'<div class="rico5DayDivider">Dag 6–10 · verwachting verder vooruit, grotere onzekerheid</div>':''}<div class="rico5DayRow" data-date="${r.date}" data-max="${r.max}" data-min="${r.min}" data-rain="${r.rain}" data-sun="${r.sun}" data-wind="${r.wind}" data-type="${wx.type}"><div class="rico5DayDate">${i===0?'Morgen · ':''}${dayLabel(r.date)}</div><span class="rico5DayIcon" aria-hidden="true">${icon}</span><div class="rico5DayDescription"><b>${description}</b><small class="rico5DayMetrics">☀ ${sun} · ☔ ${rain}</small><small class="rico5DayWind">💨 ${wind}${coast?` · <span class="rico5DayCoast">${coast}</span>`:''}</small></div><div class="rico5DayTemps"><strong>${Math.round(r.max)}°</strong><span>${Math.round(r.min)}°</span></div></div>`;
+     return `${i===5?'<div class="rico5DayDivider">Dag 6–10 · verwachting verder vooruit, grotere onzekerheid</div>':''}<div class="rico5DayRow" data-date="${r.date}" data-max="${r.max}" data-min="${r.min}" data-rain="${r.rain}" data-sun="${r.sun}" data-wind="${r.wind}" data-type="${wx.type}"><div class="rico5DayDate">${i===0?startLabel()+' · ':''}${dayLabel(r.date)}</div><span class="rico5DayIcon" aria-hidden="true">${icon}</span><div class="rico5DayDescription"><b>${description}</b><small class="rico5DayMetrics">☀ ${sun} · ☔ ${rain}</small><small class="rico5DayWind">💨 ${wind}${coast?` · <span class="rico5DayCoast">${coast}</span>`:''}</small></div><div class="rico5DayTemps"><strong>${Math.round(r.max)}°</strong><span>${Math.round(r.min)}°</span></div></div>`;
    }).join('');
    const scanAt=Number(pack?.savedAt)||0;
    const scanDate=scanAt?new Date(scanAt).toLocaleString('nl-NL',{timeZone:'Europe/Amsterdam',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'onbekend';
    facts.dataset.scanSavedAt=String(scanAt);
    facts.innerHTML='<div class="rico5DayHeading"><b>🏙️ Randstad · komende 10 dagen</b><small>Kust · westelijk binnenland · Utrecht/Flevoland</small></div>'+html+
        '<div class="rico5DaySummary">'+summary(rows)+'</div>'+highlights(rows)+
-       '<div class="ricoWidgetNote">Regionale dagmodelmix · scan '+scanDate+' · morgen t/m dag 10. Dag 6–10 indicatiever. Dag- en uurwaarden blijven gescheiden. Kaart © OpenStreetMap-bijdragers.</div>';
+       '<div class="ricoWidgetNote">Regionale dagmodelmix · scan '+scanDate+' · '+startLabel().toLowerCase()+' t/m dag 10. Dag 6–10 indicatiever. Dag- en uurwaarden blijven gescheiden. Kaart © OpenStreetMap-bijdragers.</div>';
    const title=first.querySelector('.ricoWeatherTitle span:first-child');
    if(title&&!title.textContent.startsWith('Morgen'))title.textContent='Morgen · '+title.textContent;
    const map=first.querySelector('.ricoWeatherMap');
