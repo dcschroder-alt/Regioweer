@@ -782,6 +782,8 @@ function ricoHourlyCloudSky(cloud){return Number.isFinite(cloud)?ricoSunSky((100
   <div class="ricoRSControls" role="group" aria-label="Periode Randstadverwachting">
     <span>Toon</span><button type="button" data-rs-days="5">5 dagen</button><button type="button" data-rs-days="6">6 dagen</button><button type="button" data-rs-days="7">7 dagen</button><button type="button" data-rs-days="10">10 dagen</button><button type="button" data-rs-days="15">15 dagen</button>
   </div>
+  <div class="ricoRSImageTools"><button type="button" id="ricoRSShowPng">🖼️ Toon 5-daagse PNG</button><button type="button" id="ricoRSSavePng">⬇ Download 5-daagse PNG</button><span id="ricoRSImageStatus" role="status" aria-live="polite"></span></div>
+  <div id="ricoRSImagePreview" class="ricoRSImagePreview" hidden><img id="ricoRSImage" alt="Ricoweer Randstad vijfdaagse verwachting met regionale modelmix" /></div>
   <div id="ricoRSLead" class="ricoRSLead">De verwachting verschijnt zodra de landelijke modelmix is geladen.</div>
   <div id="ricoRSFirstFive" class="ricoRSFirstFive"></div>
   <div id="ricoRSExtra" class="ricoRSExtra"></div>
@@ -3258,7 +3260,7 @@ async function drawRandstadCardsPng(options={}){
    _mixFallback:r,pts:[]
   }));
  }
- const rows=days.slice(0,10);
+ const rows=days.slice(0,options.days===5?5:10);
  if(!rows.length)throw new Error('Er zijn nog geen modelmixgegevens geladen. Kies Modelmix en vernieuw de verwachting.');
  // Automatische publicatie: nooit ongemerkt terugvallen op een Houten- of
  // landelijke locatieverwachting. Exact dezelfde regionale scan is vereist.
@@ -3355,6 +3357,28 @@ async function drawRandstadCardsPng(options={}){
  }
  download(blob,`regioweer-randstad-${rows.length}-dagen-${$('date').value}.png`);
 }
+// Randstad-vijfdaagse: dezelfde canvasrenderer en regionale dagwaarden als de PNG-export.
+// Preview en download gebruiken exact dezelfde tekenfunctie, zonder extra weer-API-calls.
+async function ricoRandstadFivePng(preview){
+ const status=document.getElementById('ricoRSImageStatus');
+ const btn=document.getElementById(preview?'ricoRSShowPng':'ricoRSSavePng');
+ if(btn)btn.disabled=true;
+ if(status)status.textContent='5-daagse kaart wordt opgebouwd…';
+ try{
+  if(preview){
+   const result=await drawRandstadCardsPng({days:5,returnDataUrl:true});
+   document.getElementById('ricoRSImage').src=result.dataUrl;
+   document.getElementById('ricoRSImagePreview').hidden=false;
+   if(status)status.textContent='5-daagse kaart bijgewerkt';
+  }else{
+   await drawRandstadCardsPng({days:5});
+   if(status)status.textContent='PNG-download gestart';
+  }
+ }catch(e){if(status)status.textContent='Kaart niet beschikbaar: '+e.message}
+ finally{if(btn)btn.disabled=false}
+}
+document.getElementById('ricoRSShowPng')?.addEventListener('click',()=>ricoRandstadFivePng(true));
+document.getElementById('ricoRSSavePng')?.addEventListener('click',()=>ricoRandstadFivePng(false));
 $('randstadPng')?.addEventListener('click',()=>drawRandstadCardsPng().catch(e=>{setStatus('Randstad-PNG maken lukte niet: '+e.message,100);alert('Randstad-PNG: '+e.message)}));
 
 
@@ -6984,6 +7008,13 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
 #ricoRandstadOverview .ricoRSControls button.active{color:white;background:#14589e;border-color:#14589e}
 #ricoRandstadOverview .ricoRSControls button:focus-visible,#ricoRandstadOverview .ricoRSModal:focus-visible{outline:3px solid #f1a62b;outline-offset:2px}
 #ricoRandstadOverview .ricoRSLead{background:linear-gradient(110deg,#dff1ff,#f1f8fc);border:1px solid #c1e2f5;border-radius:12px;padding:12px 14px;font-size:14px;color:#123b5b;line-height:1.5;margin:11px 0}
+#ricoRandstadOverview .ricoRSImageTools{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:12px 0 8px}
+#ricoRandstadOverview .ricoRSImageTools button{border:1px solid #bfd2e8;background:#eef6ff;color:#174d8b;border-radius:10px;padding:10px 14px;font-weight:700;cursor:pointer}
+#ricoRandstadOverview .ricoRSImageTools button:disabled{opacity:.5;cursor:wait}
+#ricoRandstadOverview .ricoRSImageTools span{font-size:12px;color:#597087}
+#ricoRandstadOverview .ricoRSImagePreview[hidden]{display:none}
+#ricoRandstadOverview .ricoRSImagePreview{overflow-x:auto;border:1px solid #d7e5f4;border-radius:12px;background:#eaf2fa;padding:8px}
+#ricoRandstadOverview .ricoRSImagePreview img{display:block;width:100%;height:auto;min-width:640px}
 #ricoRandstadOverview .ricoRSFirstFive{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin-top:12px}
 #ricoRandstadOverview .ricoRSDay{border:1px solid #bfd9ed;border-radius:14px;background:#fff;color:#153d5b;min-width:0;overflow:hidden}
 #ricoRandstadOverview .ricoRSDay summary{list-style:none;cursor:pointer;padding:12px 9px 13px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px}
