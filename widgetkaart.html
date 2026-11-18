@@ -7027,7 +7027,6 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
  const riskDefs=[
   {id:'frost',label:'❄️ Vorst',criterion:'minimum < 0 °C',test:m=>m.tn<0,field:'tn'},
   {id:'snow',label:'🌨️ Sneeuw',criterion:'sneeuwval ≥ 0,1 cm',test:m=>m.snow>=0.1,field:'snow'},
-  {id:'thunder',label:'⛈️ Onweer',criterion:'onweersignaal',test:null,field:'thunder'},
   {id:'storm',label:'🌪️ Storm',criterion:'wind ≥ 75 km/u (9 Bft)',test:m=>m.wind>=75,field:'wind'},
   {id:'gust75',label:'💨 Zware windstoten',criterion:'windstoten ≥ 75 km/u',test:m=>m.gust>=75,field:'gust'},
   {id:'gust100',label:'💨 Zeer zware windstoten',criterion:'windstoten ≥ 100 km/u',test:m=>m.gust>=100,field:'gust'}
