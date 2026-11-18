@@ -6958,6 +6958,8 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
 #ricoWidgetFacts .ricoRiskItem{padding:9px;border:1px solid #d2e5ef;border-radius:9px;background:#fff;font-size:12px;line-height:1.4}
 #ricoWidgetFacts .ricoRiskItem b{display:block;font-size:13px;color:#104e73}
 #ricoWidgetFacts .ricoRiskItem small{display:block;margin-top:3px;color:#637789}
+#ricoWidgetFacts .ricoRiskItem strong{display:block;margin-top:3px;color:#254f6b;font-size:12px;line-height:1.35}
+#ricoWidgetFacts .rico5DayDescription .rico5DayConfidence{font-weight:750;line-height:1.35}
 #ricoWidgetFacts .ricoRiskNote{font-size:10px;line-height:1.4;color:#506c80;margin:9px 0 0}
 </style>
 <script id="rico-v1009-sidebar-widget">
@@ -7035,7 +7037,8 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
   {id:'snow',label:'🌨️ Sneeuw',criterion:'sneeuwval ≥ 0,1 cm',test:m=>m.snow>=0.1,field:'snow'},
   {id:'storm',label:'🌪️ Storm',criterion:'wind ≥ 75 km/u (9 Bft)',test:m=>m.wind>=75,field:'wind'},
   {id:'gust75',label:'💨 Zware windstoten',criterion:'windstoten ≥ 75 km/u',test:m=>m.gust>=75,field:'gust'},
-  {id:'gust100',label:'💨 Zeer zware windstoten',criterion:'windstoten ≥ 100 km/u',test:m=>m.gust>=100,field:'gust'}
+  {id:'gust100',label:'💨 Zeer zware windstoten',criterion:'windstoten ≥ 100 km/u',test:m=>m.gust>=100,field:'gust'},
+  {id:'rainHeavy',label:'🌧️ Zware neerslag',criterion:'20 of 30 mm in 24 uur',field:'rain'}
  ];
  // Modelrange: uiterste dagmaxima van onafhankelijke regionale modelmedianen.
  // Dit zijn GEEN ECMWF-ensemblepercentielen en ook geen statistische kansgrenzen.
@@ -7052,8 +7055,8 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
    // Alleen tonen bij minstens twee werkelijke windwaarden.
    const windBfts=wind.map(v=>Number(bftText(v).replace(/[^0-9]/g,''))).filter(Number.isFinite);
    const windRange=windBfts.length>=2?(Math.min(...windBfts)===Math.max(...windBfts)?Math.min(...windBfts)+' Bft':Math.min(...windBfts)+'–'+Math.max(...windBfts)+' Bft'):'';
-   const high=tx.length>=3&&ts<=2.5&&(rs===null||rs<=4)&&lead<5;
-   const low=ts>5||(rs!==null&&rs>12)||(lead>=7&&ts>3.5);
+   const high=tx.length>=3&&rain.length>=2&&wind.length>=2&&ts<=2.5&&rs!==null&&rs<=4&&(ws===null||ws<=18)&&lead<5;
+   const low=ts>5||(rs!==null&&rs>12)||(ws!==null&&ws>30)||(lead>=7&&ts>3.5);
    const level=low?'laag':high?'hoog':'redelijk';
    const reasons=[];
    if(ts>3.5)reasons.push('temperatuur');
@@ -7061,32 +7064,38 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
    if(ws!==null&&ws>18)reasons.push('wind');
    if(gs!==null&&gs>25&&!reasons.includes('wind'))reasons.push('windstoten');
    let reason='';
-   if(reasons.length)reason='Modellen verschillen vooral in '+reasons.slice(0,2).join(' en ');
-   else if(lead>=5)reason='Langere termijn; beperkte modeldekking en mogelijk veranderend weerbeeld';
-   else if(tx.length<4)reason='Beperkt aantal beschikbare weermodellen';
-   else reason='Modellen liggen voor de beschikbare dagwaarden dicht bij elkaar';
+   if(reasons.length)reason='Vooral '+reasons.slice(0,2).map(x=>x==='neerslaghoeveelheid'?'neerslag':x).join(' en ')+' onzeker';
+   else if(lead>=5)reason='Langere termijn: modeldekking beperkter';
+   else if(tx.length<4)reason='Weinig beschikbare modellen';
+   else reason='Modellen liggen dicht bij elkaar';
    return {label:level==='hoog'?'hoog':level==='laag'?'beperkt':'redelijk',level,range,windRange,
      reason,note:tx.length+' modellen · TX-spreiding '+Math.round(ts)+'°'};
  }
  function riskSummary(rows){
    const byDate=rows.map(r=>({date:r.date,models:regionalModelData(r.date)}));
-   const items=riskDefs.map(def=>{
-     if(!def.test)return {...def,available:false};
+   const dailyBest=(field,test)=>{
      const daily=byDate.map(d=>{
-       const vals=d.models.filter(m=>Number.isFinite(m[def.field]));
+       const vals=d.models.filter(m=>Number.isFinite(m[field]));
        if(vals.length<2)return null;
-       return {date:d.date,yes:vals.filter(def.test).length,total:vals.length};
+       return {date:d.date,yes:vals.filter(test).length,total:vals.length};
      }).filter(Boolean);
-     if(!daily.length)return {...def,available:false};
-     const best=daily.reduce((a,b)=>b.yes/b.total>a.yes/a.total?b:a);
-     return {...def,available:true,percent:Math.round(best.yes/best.total*100),yes:best.yes,
-       total:best.total,date:best.date,days:daily.length};
-   });
-   const html=items.map(x=>`<div class="ricoRiskItem" data-risk="${x.id}"><b>${x.label}</b>${x.available?
-     `<strong>${x.percent}% modelondersteuning</strong><small>Hoogste dag: ${dayLabel(x.date)} · ${x.yes}/${x.total} modellen · ${x.criterion}</small>`:
-     `<strong>Niet berekenbaar</strong><small>Geen bruikbare afzonderlijke modelgegevens</small>`}</div>`).join('');
-   return '<section class="ricoRiskBox" aria-label="Weerkansen komende tien dagen"><div class="ricoRiskTitle">🎯 Weerkansen · komende 10 dagen</div><div class="ricoRiskGrid">'+html+'</div><p class="ricoRiskNote">Hoogste modelondersteuning op één dag binnen deze 10-daagse. Aandeel van beschikbare weermodellen, geen gekalibreerde ensemblekans. Niet alle modellen zijn onafhankelijk. Storm is gemiddelde wind ≥ 9 Bft; windstoten worden apart beoordeeld. Geen grondvorst. Ontbrekende gegevens tellen niet als 0%.</p></section>';
+     return daily.length?daily.reduce((a,b)=>b.yes/b.total>a.yes/a.total?b:a):null;
+   };
+   const counts=x=>x?`${Math.round(100*x.yes/x.total)}% modelondersteuning · ${x.yes}/${x.total} modellen`:'Geen vergelijkbare modelwaarden';
+   const items=riskDefs.map(def=>{
+     if(def.id==='rainHeavy'){
+       const a=dailyBest('rain',m=>m.rain>=20),b=dailyBest('rain',m=>m.rain>=30);
+       if(!a&&!b)return `<div class="ricoRiskItem" data-risk="rainHeavy"><b>${def.label}</b><strong>Geen betrouwbare modelvergelijking</strong><small>Dagelijkse neerslagwaarden ontbreken.</small></div>`;
+       return `<div class="ricoRiskItem" data-risk="rainHeavy"><b>${def.label}</b><strong>≥ 20 mm: ${counts(a)}</strong><small>Hoogste dag: ${a?dayLabel(a.date):'—'}</small><strong>≥ 30 mm: ${counts(b)}</strong><small>Hoogste dag: ${b?dayLabel(b.date):'—'} · per 24 uur</small></div>`;
+     }
+     const x=dailyBest(def.field,def.test);
+     return `<div class="ricoRiskItem" data-risk="${def.id}"><b>${def.label}</b>${x?
+       `<strong>${Math.round(100*x.yes/x.total)}% modelondersteuning</strong><small>Hoogste dag: ${dayLabel(x.date)} · ${x.yes}/${x.total} modellen · ${def.criterion}</small>`:
+       `<strong>Geen betrouwbare modelvergelijking</strong><small>Onvoldoende afzonderlijke modelwaarden</small>`}</div>`;
+   }).join('');
+   return '<section class="ricoRiskBox" aria-label="Weerkansen komende tien dagen"><div class="ricoRiskTitle">🎯 Weerkansen · komende 10 dagen</div><div class="ricoRiskGrid">'+items+'</div><p class="ricoRiskNote">Hoogste modelondersteuning op één dag binnen deze 10-daagse. Per tegel en drempel zijn de aantallen modellen vermeld. Geen gekalibreerde ensemblekansen; modellen zijn niet volledig onafhankelijk. Zware neerslag: 20 en 30 mm per etmaal. Storm: gemiddelde wind ≥ 9 Bft; windstoten apart. Geen grondvorst of onweer. Ontbrekende gegevens zijn niet als 0% geteld.</p></section>';
  }
+
  function render(){
    const shell=document.getElementById('ricoLiveShell'),atlas=document.getElementById('ricoWeatherAtlas');
    if(!shell||!atlas)return;
@@ -7119,7 +7128,7 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
      const dayData=pack.days.find(d=>d.date===r.date);
      const coast=coastNote(dayData);
      const certainty=modelAgreement(regionalModelData(r.date),i);
-     return `${i===5?'<div class="rico5DayDivider">Dag 6–10 · verwachting verder vooruit, grotere onzekerheid</div>':''}<div class="rico5DayRow" data-date="${r.date}" data-max="${r.max}" data-min="${r.min}" data-rain="${r.rain}" data-sun="${r.sun}" data-wind="${r.wind}" data-type="${wx.type}"><div class="rico5DayDate">${i===0?startLabel()+' · ':''}${dayLabel(r.date)}</div><span class="rico5DayIcon" aria-hidden="true">${icon}</span><div class="rico5DayDescription"><b>${description}</b><small class="rico5DayMetrics">☀ ${sun} · ☔ ${rain}</small><small class="rico5DayWind">💨 ${wind}${coast?` · <span class="rico5DayCoast">${coast}</span>`:''}</small><small class="rico5DayWindRange">${certainty.windRange?'💨 Windrange '+certainty.windRange:''}</small><small class="rico5DayRange">🌡️ ${certainty.range?'Modelrange maxima '+certainty.range:'Modelrange niet beschikbaar'}</small><small class="rico5DayConfidence" data-level="${certainty.level}" title="${certainty.note}">🎯 Zekerheid ${certainty.label} · ${certainty.note}</small><small class="rico5DayReason">${certainty.reason}</small></div><div class="rico5DayTemps"><strong>${Math.round(r.max)}°</strong><span>${Math.round(r.min)}°</span></div></div>`;
+     return `${i===5?'<div class="rico5DayDivider">Dag 6–10 · verwachting verder vooruit, grotere onzekerheid</div>':''}<div class="rico5DayRow" data-date="${r.date}" data-max="${r.max}" data-min="${r.min}" data-rain="${r.rain}" data-sun="${r.sun}" data-wind="${r.wind}" data-type="${wx.type}"><div class="rico5DayDate">${i===0?startLabel()+' · ':''}${dayLabel(r.date)}</div><span class="rico5DayIcon" aria-hidden="true">${icon}</span><div class="rico5DayDescription"><b>${description}</b><small class="rico5DayMetrics">☀ ${sun} · ☔ ${rain}</small><small class="rico5DayWind">💨 ${wind}${coast?` · <span class="rico5DayCoast">${coast}</span>`:''}</small><small class="rico5DayWindRange">${certainty.windRange?'💨 Windrange '+certainty.windRange:''}</small><small class="rico5DayRange">🌡️ ${certainty.range?'Modelrange maxima '+certainty.range:'Modelrange niet beschikbaar'}</small><small class="rico5DayConfidence" data-level="${certainty.level}" title="Indicatieve modelzekerheid voor temperatuur, neerslag en wind; ${certainty.note}">🎯 Zekerheid ${certainty.label} · ${certainty.reason}</small></div><div class="rico5DayTemps"><strong>${Math.round(r.max)}°</strong><span>${Math.round(r.min)}°</span></div></div>`;
    }).join('');
    const scanAt=Number(pack?.savedAt)||0;
    const scanDate=scanAt?new Date(scanAt).toLocaleString('nl-NL',{timeZone:'Europe/Amsterdam',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'onbekend';
