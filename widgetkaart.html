@@ -3248,13 +3248,13 @@ async function drawRandstadCardsPng(options={}){
    _mixFallback:r,pts:[]
   }));
  }
- const rows=days.slice(0,10);
+ const rows=days.slice(0,options.strict?15:15);
  if(!rows.length)throw new Error('Er zijn nog geen modelmixgegevens geladen. Kies Modelmix en vernieuw de verwachting.');
  // Automatische publicatie: nooit ongemerkt terugvallen op een Houten- of
  // landelijke locatieverwachting. Exact dezelfde regionale scan is vereist.
  if(options.strict){
-  if(fallback||rows.length!==10)throw new Error('Geen complete Randstad-scan voor 10 dagen');
-  const required=Array.from({length:10},(_,i)=>isoDatePlus(pngStart,i));
+  if(fallback||rows.length!==15)throw new Error('Geen complete Randstad-scan voor 15 dagen');
+  const required=Array.from({length:15},(_,i)=>isoDatePlus(pngStart,i));
   if(rows.some((d,i)=>d.date!==required[i]||!ricoRandstadSharedRow(d)||ricoRandstadSharedRow(d).regions<2))
    throw new Error('Inconsistente Randstad-datums of onvoldoende regio’s in scan');
  }
