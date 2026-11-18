@@ -6920,7 +6920,7 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
 #ricoWidgetFacts .rico5DayHeading{padding:13px 14px 10px;background:#e4f2fa;border:1px solid #c6deeb;border-radius:12px 12px 0 0;color:#104e73}
 #ricoWidgetFacts .rico5DayHeading b{display:block;font-size:19px;line-height:1.25}
 #ricoWidgetFacts .rico5DayHeading small{display:block;margin-top:4px;font-size:12px;color:#51718a;line-height:1.3}
-#ricoWidgetFacts .rico5DayRow{display:grid;grid-template-columns:60px 44px minmax(0,1fr) 69px;grid-template-rows:26px auto;column-gap:7px;align-items:center;background:#fff;border:1px solid #d4e3eb;border-top:0;padding:9px 9px;min-height:72px;color:#204660;font-variant-numeric:tabular-nums;}
+#ricoWidgetFacts .rico5DayRow{display:grid;grid-template-columns:60px 44px minmax(0,1fr) 76px;grid-template-rows:26px auto;column-gap:7px;align-items:center;background:#fff;border:1px solid #d4e3eb;border-top:0;padding:9px 9px;min-height:72px;color:#204660;font-variant-numeric:tabular-nums;}
 #ricoWidgetFacts .rico5DayRow:nth-child(odd){background:#f5faff}
 #ricoWidgetFacts .rico5DayDate{font-size:13px;font-weight:750;grid-column:1;grid-row:1/3;line-height:1.3}
 #ricoWidgetFacts .rico5DayIcon{font-size:32px;grid-column:2;grid-row:1/3;text-align:center;filter:drop-shadow(0 1px 1px #ffffff)}
@@ -6933,8 +6933,8 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
 #ricoWidgetFacts .rico5DayHighlights{padding:8px 13px;background:#f3faff;border:1px solid #c6deeb;border-top:0;color:#27516d;font:600 12px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
 #ricoWidgetFacts .rico5DayHighlights span{display:block}
 #ricoWidgetFacts .rico5DayTemps{display:flex;flex-direction:column;align-items:flex-end;gap:2px;grid-column:4;grid-row:1/3;white-space:nowrap}
-#ricoWidgetFacts .rico5DayTemps strong{font-size:24px;line-height:1.05;color:#17476c}
-#ricoWidgetFacts .rico5DayTemps span{font-size:15px;color:#5681a4;font-weight:750}
+#ricoWidgetFacts .rico5DayTemps strong{font-size:30px;line-height:1.02;color:#b53932;font-weight:850}
+#ricoWidgetFacts .rico5DayTemps span{font-size:16px;color:#2675aa;font-weight:800}
 #ricoWidgetFacts .rico5DaySummary{font-size:14px;line-height:1.45;padding:12px 14px;background:#eaf5fc;border:1px solid #c6deeb;border-top:0;color:#1f526f;font-weight:600}
 #ricoWidgetFacts .ricoWidgetNote{grid-column:auto;font-size:11px;line-height:1.4;background:#f7fbfe;padding:9px 12px;border:1px solid #d4e3eb;border-top:0;border-radius:0 0 12px 12px}
 
@@ -6949,6 +6949,8 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
 #ricoWidgetFacts .rico5DayRange{color:#215f83!important;font-size:11px!important;font-weight:750;line-height:1.35}
 #ricoWidgetFacts .rico5DayReason{color:#536f83!important;font-size:10px!important;line-height:1.35}
 #ricoWidgetFacts .rico5DayTemps .rico5DayTempRange{font-size:10px;color:#376782;font-weight:700;white-space:nowrap;text-align:right}
+#ricoWidgetFacts .rico5DayWindRange{color:#33677e!important;font-size:11px!important;font-weight:700;line-height:1.35}
+#ricoWidgetFacts .rico5DayTemps strong, #ricoWidgetFacts .rico5DayTemps span{font-variant-numeric:tabular-nums}
 
 #ricoWidgetFacts .ricoRiskBox{padding:13px;background:#f4f9fd;border:1px solid #c6deeb;border-top:0;color:#204e6b}
 #ricoWidgetFacts .ricoRiskTitle{font-weight:850;font-size:16px;margin:0 0 8px}
@@ -7044,8 +7046,12 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
    const gust=models.map(m=>m.gust).filter(Number.isFinite);
    const spread=arr=>arr.length>=2?Math.max(...arr)-Math.min(...arr):null;
    const ts=spread(tx),rs=spread(rain),ws=spread(wind),gs=spread(gust);
-   if(tx.length<2)return {label:'onbekend',level:'onbekend',note:tx.length+' model'+(tx.length===1?'':'len'),range:'',reason:'Onvoldoende afzonderlijke modelwaarden'};
+   if(tx.length<2)return {label:'onbekend',level:'onbekend',note:tx.length+' model'+(tx.length===1?'':'len'),range:'',windRange:'',reason:'Onvoldoende afzonderlijke modelwaarden'};
    const range=Math.floor(Math.min(...tx))+'–'+Math.ceil(Math.max(...tx))+'°';
+   // Windrange uit dezelfde afzonderlijke dagmodellen, afgerond naar hele Bft.
+   // Alleen tonen bij minstens twee werkelijke windwaarden.
+   const windBfts=wind.map(v=>Number(bftText(v).replace(/[^0-9]/g,''))).filter(Number.isFinite);
+   const windRange=windBfts.length>=2?(Math.min(...windBfts)===Math.max(...windBfts)?Math.min(...windBfts)+' Bft':Math.min(...windBfts)+'–'+Math.max(...windBfts)+' Bft'):'';
    const high=tx.length>=3&&ts<=2.5&&(rs===null||rs<=4)&&lead<5;
    const low=ts>5||(rs!==null&&rs>12)||(lead>=7&&ts>3.5);
    const level=low?'laag':high?'hoog':'redelijk';
@@ -7059,7 +7065,7 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
    else if(lead>=5)reason='Langere termijn; beperkte modeldekking en mogelijk veranderend weerbeeld';
    else if(tx.length<4)reason='Beperkt aantal beschikbare weermodellen';
    else reason='Modellen liggen voor de beschikbare dagwaarden dicht bij elkaar';
-   return {label:level==='hoog'?'hoog':level==='laag'?'beperkt':'redelijk',level,range,
+   return {label:level==='hoog'?'hoog':level==='laag'?'beperkt':'redelijk',level,range,windRange,
      reason,note:tx.length+' modellen · TX-spreiding '+Math.round(ts)+'°'};
  }
  function riskSummary(rows){
@@ -7113,14 +7119,14 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
      const dayData=pack.days.find(d=>d.date===r.date);
      const coast=coastNote(dayData);
      const certainty=modelAgreement(regionalModelData(r.date),i);
-     return `${i===5?'<div class="rico5DayDivider">Dag 6–10 · verwachting verder vooruit, grotere onzekerheid</div>':''}<div class="rico5DayRow" data-date="${r.date}" data-max="${r.max}" data-min="${r.min}" data-rain="${r.rain}" data-sun="${r.sun}" data-wind="${r.wind}" data-type="${wx.type}"><div class="rico5DayDate">${i===0?startLabel()+' · ':''}${dayLabel(r.date)}</div><span class="rico5DayIcon" aria-hidden="true">${icon}</span><div class="rico5DayDescription"><b>${description}</b><small class="rico5DayMetrics">☀ ${sun} · ☔ ${rain}</small><small class="rico5DayWind">💨 ${wind}${coast?` · <span class="rico5DayCoast">${coast}</span>`:''}</small><small class="rico5DayRange">🌡️ ${certainty.range?'Modelrange maxima '+certainty.range:'Modelrange niet beschikbaar'}</small><small class="rico5DayConfidence" data-level="${certainty.level}" title="${certainty.note}">🎯 Zekerheid ${certainty.label} · ${certainty.note}</small><small class="rico5DayReason">${certainty.reason}</small></div><div class="rico5DayTemps"><strong>${Math.round(r.max)}°</strong><span>${Math.round(r.min)}°</span></div></div>`;
+     return `${i===5?'<div class="rico5DayDivider">Dag 6–10 · verwachting verder vooruit, grotere onzekerheid</div>':''}<div class="rico5DayRow" data-date="${r.date}" data-max="${r.max}" data-min="${r.min}" data-rain="${r.rain}" data-sun="${r.sun}" data-wind="${r.wind}" data-type="${wx.type}"><div class="rico5DayDate">${i===0?startLabel()+' · ':''}${dayLabel(r.date)}</div><span class="rico5DayIcon" aria-hidden="true">${icon}</span><div class="rico5DayDescription"><b>${description}</b><small class="rico5DayMetrics">☀ ${sun} · ☔ ${rain}</small><small class="rico5DayWind">💨 ${wind}${coast?` · <span class="rico5DayCoast">${coast}</span>`:''}</small><small class="rico5DayWindRange">${certainty.windRange?'💨 Windrange '+certainty.windRange:''}</small><small class="rico5DayRange">🌡️ ${certainty.range?'Modelrange maxima '+certainty.range:'Modelrange niet beschikbaar'}</small><small class="rico5DayConfidence" data-level="${certainty.level}" title="${certainty.note}">🎯 Zekerheid ${certainty.label} · ${certainty.note}</small><small class="rico5DayReason">${certainty.reason}</small></div><div class="rico5DayTemps"><strong>${Math.round(r.max)}°</strong><span>${Math.round(r.min)}°</span></div></div>`;
    }).join('');
    const scanAt=Number(pack?.savedAt)||0;
    const scanDate=scanAt?new Date(scanAt).toLocaleString('nl-NL',{timeZone:'Europe/Amsterdam',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'onbekend';
    facts.dataset.scanSavedAt=String(scanAt);
    facts.innerHTML='<div class="rico5DayHeading"><b>🏙️ Randstad · komende 10 dagen</b><small>Kust · westelijk binnenland · Utrecht/Flevoland</small></div>'+html+
        '<div class="rico5DaySummary">'+summary(rows)+'</div>'+highlights(rows)+riskSummary(rows)+
-       '<div class="ricoWidgetNote">Regionale dagmodelmix · scan '+scanDate+' · '+startLabel().toLowerCase()+' t/m dag 10. De range toont de uiterste maxima van beschikbare dagmodellen (geen ensemble-P20/P80 of kansinterval). Modelzekerheid is indicatief en weersafhankelijk; geen officiële kans. Dag- en uurwaarden blijven gescheiden. Kaart © OpenStreetMap-bijdragers.</div>';
+       '<div class="ricoWidgetNote">Regionale dagmodelmix · scan '+scanDate+' · '+startLabel().toLowerCase()+' t/m dag 10. Temperatuur- en windrange tonen de uitersten van beschikbare regionale dagmodellen (geen ensemble-P20/P80 of kansinterval). Modelzekerheid is indicatief en weersafhankelijk; geen officiële kans. Dag- en uurwaarden blijven gescheiden. Kaart © OpenStreetMap-bijdragers.</div>';
    const title=first.querySelector('.ricoWeatherTitle span:first-child');
    if(title&&!title.textContent.startsWith('Morgen'))title.textContent='Morgen · '+title.textContent;
    const map=first.querySelector('.ricoWeatherMap');
