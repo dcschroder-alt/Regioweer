@@ -764,7 +764,7 @@ function ricoHourlyCloudSky(cloud){return Number.isFinite(cloud)?ricoSunSky((100
 <div class="field full"><label>Datum modelrun</label><input id="date" type="date"></div>
 </div></details>
 <div class="actionPrimary"><button class="primary" id="load">Gegevens ophalen</button><button class="ghost todayQuick" id="todayDetailBtn" type="button" title="Vandaag uitgebreid bekijken">☀ Vandaag</button><button class="ghost" id="refreshAll" type="button" title="Alles opnieuw ophalen">↻</button></div>
-<div class="quickActions"><button class="ghost" id="plumeOpen" type="button">📈 Pluim</button><button class="ghost" id="riskOpen" type="button">⚠️ Kansen</button><button class="ghost" id="copyWeatherText" type="button" disabled>✍️ Weertekst</button><button class="ghost" id="compareOpen" type="button">↔ Plaatsen</button></div>
+<div class="quickActions"><button class="ghost" id="plumeOpen" type="button">📈 Pluimen</button><button class="ghost" id="riskOpen" type="button">🎯 Dagkansen</button><button class="ghost" id="copyWeatherText" type="button" disabled>✍️ Weertekst</button><button class="ghost" id="compareOpen" type="button">↔ Plaatsen</button></div>
 <details class="toolDetails"><summary>Meer · exporteren & delen</summary><div class="toolGrid"><button class="ghost" id="csv" disabled>Excel/CSV</button><button class="secondary" id="png" disabled>Website-PNG</button><button class="secondary" id="fivepng" disabled>5-daagse PNG</button><button class="ghost" id="shareFive" type="button" disabled>↗ Deel 5-daagse</button><button class="ghost" id="shareModeOpen" type="button" disabled>📱 Deelmodus</button><button class="ghost" id="sitePack" type="button" disabled>🌐 Sitepakket</button><button class="ghost" id="copySummary" type="button" disabled>📋 Meerdaagse tekst</button><a class="secondary ricoWidgetLaunch" href="./widgetkaart.html" target="_blank" rel="noopener">🌤️ WordPress-zijbalkwidget</a><button class="ghost" id="exportSettings" type="button">⬇ Instellingen</button><button class="ghost" id="importSettings" type="button">⬆ Instellingen</button><input id="importSettingsFile" type="file" accept="application/json" class="hidden"><button class="ghost hidden" id="install">📲 App installeren</button></div></details>
 <div class="bar"><span id="prog"></span></div><div class="status" id="status">Auto gebruikt per model de nieuwste beschikbare run.</div>
 </section>
@@ -2943,7 +2943,7 @@ function ensembleForecastDays(model){
  if(model==='dwd_icon_eu_eps')return 5;
  return 10;
 }
-$('plumeOpen').onclick=async()=>{$('plumePanel').classList.toggle('hidden');if(!$('plumePanel').classList.contains('hidden')){await loadPlume({allowNetwork:false});$('plumePanel').scrollIntoView({behavior:'smooth',block:'start'})}};
+$('plumeOpen').onclick=()=>window.ricoOpenMotion?.('temp');
 function plumePercentile(a,p){const b=a.filter(Number.isFinite).sort((x,y)=>x-y);if(!b.length)return null;const q=(b.length-1)*p,i=Math.floor(q),f=q-i;return b[i+1]!==undefined?b[i]+f*(b[i+1]-b[i]):b[i]}
 function ensembleKeys(hourly,prefix){return Object.keys(hourly||{}).filter(k=>k===prefix||k.startsWith(prefix+'_member'))}
 function ensembleFallbacks(selected){const order=['ecmwf_ifs025_ensemble','ecmwf_aifs025_ensemble','ncep_gefs025','dwd_icon_eu_eps','ncep_gefs05'];return [selected,...order.filter(x=>x!==selected)]}
@@ -2981,7 +2981,7 @@ $('plumeSave').onclick=()=>{if(!lastPlumeCanvas)return;lastPlumeCanvas.toBlob(b=
 
 
 let lastRiskCanvas=null;
-$('riskOpen').onclick=async()=>{$('riskPanel').classList.toggle('hidden');if(!$('riskPanel').classList.contains('hidden')){await loadRisks({allowNetwork:false});$('riskPanel').scrollIntoView({behavior:'smooth',block:'start'})}};
+$('riskOpen').onclick=()=>window.ricoOpenMotion?.('rainchance');
 function probabilityColor(p){
   if(!Number.isFinite(p))return '#f5f7fa';
   if(p>=80)return '#ff6958'; if(p>=60)return '#ff9f59'; if(p>=40)return '#ffd45f'; if(p>=20)return '#fff09a'; if(p>0)return '#fffbe0'; return '#f5f7fa';
@@ -6808,8 +6808,8 @@ document.getElementById('model')?.addEventListener('change',start);
 
 
 <style id="rico-motion-style">
-#ricoMotionPanel{margin:15px 0;padding:16px;border:1px solid #bfdaeb;border-radius:17px;background:#f1f8fe;color:#153a59}
-#ricoMotionPanel summary{cursor:pointer;font-size:19px;font-weight:850}
+#ricoMotionPanel{margin:15px 0;padding:18px;border:1px solid #c5ddeb;border-radius:20px;background:linear-gradient(150deg,#f5fbff,#e7f4ff);color:#153a59;box-shadow:0 12px 32px #0a639513}
+#ricoMotionPanel summary{cursor:pointer;font-size:20px;font-weight:850;color:#094e76}
 #ricoMotionPanel .rm-controls{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
 #ricoMotionPanel label{min-width:0;max-width:100%}
 #ricoMotionPanel select{max-width:100%;min-width:0}
@@ -6820,28 +6820,33 @@ document.getElementById('model')?.addEventListener('change',start);
 #ricoMotionPanel button:disabled{opacity:.5;cursor:default}
 #ricoMotionPanel canvas{display:block;width:100%;max-width:900px;height:auto;background:#0763bb;border-radius:12px}
 #ricoMotionPanel .rm-note{font-size:12px;color:#526c81;line-height:1.4;margin:8px 0}
-#ricoMotionPanel .rm-status{font-size:13px;font-weight:650;margin:7px 0}
+#ricoMotionPanel .rm-status{font-size:13px;font-weight:650;margin:10px 0;padding:10px 12px;background:#ffffffac;border-radius:10px}#ricoMotionPanel .rm-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}#ricoMotionPanel .rm-tab{border-radius:30px;padding:9px 13px;background:#fff}#ricoMotionPanel .rm-tab.active{background:#0876cb;color:white;border-color:#0876cb}#ricoMotionPanel .rm-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;font-weight:650;margin:8px 0}#ricoMotionPanel .rm-dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px}#ricoMotionPanel .rm-advanced{margin-top:14px;border-top:1px solid #c7dfed;padding-top:9px}#ricoMotionPanel .rm-advanced summary{font-size:14px}#ricoMotionPanel .rm-controls button.primary{background:#0876cb;color:#fff}#ricoMotionPanel .rm-model-note{padding:8px 12px;border-radius:10px;background:#e4effa;font-size:12px}
 </style>
-<details id="ricoMotionPanel"><summary>🎬 Weeranimaties · pluimen en dagkansen</summary>
-<p class="rm-note">Maak een weeranimatie met de ECMWF-ensemblegegevens voor de gekozen plaats. De app gebruikt de opgeslagen ensemble-run van de pluimen; bij ontbrekende gegevens kan hij de nieuwste run ophalen. Grafieken tonen uitsluitend beschikbare variabelen. Geen aangepaste of verzonnen kansen.</p>
+<details id="ricoMotionPanel"><summary>📈 Pluimen, kansen & weeranimaties</summary>
+<p class="rm-note">Dezelfde ensemblebron als in Ricoweer. Vergelijk ECMWF met GFS, volg de onzekerheid of maak een animatie. ICON-EU is een kortetermijndagmodel en wordt niet als ensemble weergegeven. Ontbrekende gegevens worden nooit ingevuld.</p>
+<div class="rm-tabs" aria-label="Soort grafiek"><button type="button" class="rm-tab active" data-rm-group="plume">📈 Pluimen</button><button type="button" class="rm-tab" data-rm-group="chance">🎯 Dagkansen</button></div>
 <div class="rm-controls">
+<label>Model <select id="rmModel"><option value="ecmwf_ifs025_ensemble">ECMWF ENS</option><option value="ncep_gefs05">GFS GEFS</option><option value="compare">Vergelijk EC + GFS</option><option value="icon_ref">ICON-EU · dagmodel</option></select></label>
 <label>Grafiek <select id="rmType"><option value="temp">🌡️ Temperatuurpluim</option><option value="rainplume">🌧️ Neerslagpluim</option><option value="wind">💨 Windpluim</option><option value="gustplume">🌪️ Windstotenpluim</option><option value="direction">🧭 Windrichting</option><option value="rainchance">🌦️ Neerslagkans</option><option value="snow">🌨️ Sneeuwkans</option><option value="frost">❄️ Vorstkans</option><option value="warmth">☀️ Warmtekans</option><option value="gustchance">💨 Windstotenkans</option></select></label>
 <label id="rmModeWrap">Weergave <select id="rmMode"><option id="rmModeLines" value="lines">Alle scenario’s (lijntjes)</option><option id="rmModeBand" value="band" selected>Alleen de spreiding</option></select></label>
 <label>Dagen <select id="rmDays"><option value="10">10 dagen</option><option value="15" selected>15 dagen</option></select></label>
 <label>Formaat <select id="rmFormat"><option value="landscape">16:9</option><option value="portrait">9:16</option></select></label>
 <label>Duur <select id="rmDuration"><option value="9">9 seconden</option><option value="20">20 seconden</option></select></label>
 </div>
+<div class="rm-model-note" id="rmModelNote">ECMWF: ensemble tot 15 dagen. GFS: GEFS-ensemble. Vergelijk toont de afzonderlijke medianen; ICON-EU is uitsluitend een deterministische dagverwachting.</div>
 <div class="rm-controls"><button id="rmLoad" type="button">↻ Gegevens laden</button><button id="rmPlay" type="button" disabled>▶ Afspelen</button><button id="rmVideo" type="button" disabled>⬇ Video (WebM)</button><button id="rmImage" type="button" disabled>⬇ PNG</button></div>
 <p id="rmModeHint" class="rm-note">Toon alle ensembleleden of alleen de percentielbanden.</p>
 <div class="rm-status" id="rmStatus" role="status">Kies een pluim of dagkans en laad de ensemblegegevens. Ontbrekende variabelen worden niet ingevuld.</div>
+<div class="rm-legend" id="rmLegend"><span><i class="rm-dot" style="background:#0876cb"></i>ECMWF / geselecteerd model</span><span><i class="rm-dot" style="background:#f29134"></i>GFS bij vergelijken</span><span><i class="rm-dot" style="background:#b9dcf1"></i>Spreidingsband</span></div>
 <canvas id="rmCanvas" width="1280" height="720"></canvas>
+<details class="rm-advanced"><summary>↔ Bestaande analyses en vorige modelrun</summary><p class="rm-note">De oorspronkelijke Ricoweer-pluim (met vorige run) en kansenmatrix blijven beschikbaar. Deze gebruiken hun eigen opgeslagen ensemblebron en bestaande validaties.</p><div class="rm-controls"><button type="button" id="rmOldPlume">📈 Vorige run vergelijken</button><button type="button" id="rmOldRisks">🎯 Uitgebreide kansenmatrix</button></div></details>
 <p class="rm-note">Video-opslag werkt in browsers die WebM-opname ondersteunen. Op andere apparaten blijft de PNG-export beschikbaar. De animatie is een visualisatie van één bestaande modelrun, geen opeenvolging van nieuwe runs.</p>
 </details>
 <script id="rico-motion-script">
 (()=>{'use strict';
 const el=id=>document.getElementById(id),panel=el('ricoMotionPanel');if(!panel)return;
 const canvas=el('rmCanvas'),ctx=canvas.getContext('2d');
-let ensemble=null,raf=0,playing=false;
+let ensemble=null,comparison=null,raf=0,playing=false;const ensembleModels={ecmwf_ifs025_ensemble:'ECMWF ENS',ncep_gefs05:'GFS GEFS'};
 const get=id=>el(id).value,show=s=>{el('rmStatus').textContent=s},isnum=x=>x!==null&&x!==undefined&&x!==''&&Number.isFinite(Number(x));
 const fields={
  temp:{title:'TEMPERATUURPLUIM',kind:'plume',field:'temperature_2m',unit:'°C',aggregation:'hour',note:'Mediaan, P10–P90 en P25–P75 · °C'},
@@ -6861,7 +6866,7 @@ const fmt=s=>{const d=new Date(String(s).slice(0,10)+'T12:00:00Z');return new In
 function keys(h,field){return Object.keys(h||{}).filter(k=>k===field||k.startsWith(field+'_member')||k.startsWith(field+'_control')).filter(k=>Array.isArray(h[k]));}
 function perDay(times){const group=new Map();times.forEach((tm,i)=>{const day=String(tm).slice(0,10);if(day){if(!group.has(day))group.set(day,[]);group.get(day).push(i)}});return [...group.entries()].slice(0,Number(get('rmDays')))}
 function aggregate(vals,how){if(!vals.length)return null;if(how==='sum')return vals.reduce((x,y)=>x+y,0);if(how==='min')return Math.min(...vals);if(how==='max')return Math.max(...vals);if(how==='direction'){const sx=vals.reduce((s,v)=>s+Math.cos(v*Math.PI/180),0),sy=vals.reduce((s,v)=>s+Math.sin(v*Math.PI/180),0);return (Math.atan2(sy,sx)*180/Math.PI+360)%360}return vals[0]}
-function getSeries(){if(!ensemble)return null;const spec=fields[get('rmType')],h=ensemble.h,times=ensemble.times,ks=keys(h,spec.field);if(ks.length<2)return {spec,rows:[],missing:`${spec.field}: onvoldoende ensembleleden in deze run`};
+function getSeries(dataset=ensemble){if(!dataset)return null;const spec=fields[get('rmType')],h=dataset.h,times=dataset.times,ks=keys(h,spec.field);if(ks.length<2)return {spec,rows:[],missing:`${spec.field}: onvoldoende ensembleleden in deze run`};
  const days=perDay(times);let rows=[];
  if(spec.aggregation==='hour'||spec.aggregation==='direction'){
   const allowed=new Set(days.map(x=>x[0])),ix=times.map((time,i)=>({time:String(time),i,day:String(time).slice(0,10)})).filter(x=>allowed.has(x.day)&&(x.i%3===0||spec.aggregation==='direction'&&x.i%3===0));
@@ -6876,11 +6881,11 @@ function getSeries(){if(!ensemble)return null;const spec=fields[get('rmType')],h
  });
  const enough=rows.some(r=>r.n>=2);return {spec,rows,missing:enough?null:`${spec.field}: geen bruikbare modelwaarden`};
 }
-function modeSync(){const spec=fields[get('rmType')];el('rmModeWrap').hidden=spec.kind!=='plume';const direction=spec.field==='wind_direction_10m';el('rmModeLines').disabled=direction?false:false;el('rmModeBand').disabled=direction; if(direction&&get('rmMode')==='band')el('rmMode').value='lines'; el('rmModeHint').textContent=direction?'Windrichting: alleen scenario’s; een gewone percentielband is rond 0°/360° misleidend.':spec.kind==='chance'?'Dagkansen worden als percentages weergegeven.':'Toon alle beschikbare ensembleleden of alleen de percentielbanden.'}
+function modeSync(){const spec=fields[get('rmType')];el('rmModeWrap').hidden=spec.kind!=='plume';const direction=spec.field==='wind_direction_10m';el('rmModeLines').disabled=direction?false:false;el('rmModeBand').disabled=direction; if(direction&&get('rmMode')==='band')el('rmMode').value='lines'; el('rmModeHint').textContent=direction?'Windrichting: uitsluitend afzonderlijke scenario’s, geen gewone percentielband over 0°/360°.':spec.kind==='chance'?'Dagkansen zijn percentages per beschikbare ensemble; geen gekalibreerde kans.':'Toon alle beschikbare ensembleleden of alleen de percentielbanden.'}
 function box(x,y,w,h,r,c){ctx.fillStyle=c;ctx.beginPath();ctx.roundRect(x,y,Math.max(0,w),Math.max(0,h),r);ctx.fill()}
 function line(points,color,width=2){if(points.length<2)return;ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();let started=false;for(const [x,y,ok] of points){if(!ok){started=false;continue}if(!started){ctx.moveTo(x,y);started=true}else ctx.lineTo(x,y)}ctx.stroke()}
 function plot(progress=1){const portrait=get('rmFormat')==='portrait',w=portrait?720:1280,h=portrait?1280:720;canvas.width=w;canvas.height=h;
- const spec=fields[get('rmType')],D=getSeries();ctx.fillStyle='#0876cb';ctx.fillRect(0,0,w,h);ctx.fillStyle='#0766ba';ctx.beginPath();ctx.arc(w*.91,0,w*.34,0,Math.PI*2);ctx.fill();
+ const spec=fields[get('rmType')],D=getSeries(),C=comparison?getSeries(comparison):null;ctx.fillStyle='#0876cb';ctx.fillRect(0,0,w,h);ctx.fillStyle='#0766ba';ctx.beginPath();ctx.arc(w*.91,0,w*.34,0,Math.PI*2);ctx.fill();
  const margin=portrait?35:65,top=portrait?205:150,ph=portrait?855:440,pw=w-margin*2;
  ctx.fillStyle='#fff';ctx.textAlign='left';ctx.font=`800 ${portrait?33:41}px Arial`;ctx.fillText(spec.title,margin,portrait?91:74);
  ctx.font=`${portrait?19:20}px Arial`;ctx.fillStyle='#d8edff';ctx.fillText(`${el('place')?.value||'Plaats'} · ${ensemble?.label||'ECMWF ENS'} · ${get('rmDays')} dagen`,margin,portrait?135:113);
@@ -6889,12 +6894,12 @@ function plot(progress=1){const portrait=get('rmFormat')==='portrait',w=portrait
  const rows=D.rows,n=rows.length,visible=Math.max(0,Math.min(n-1,Math.round(progress*(n-1))));
  const chance=spec.kind==='chance',direction=spec.field==='wind_direction_10m';
  let min=0,max=100;
- if(!chance&&!direction){const vv=rows.flatMap(r=>[r.p10,r.p90]).filter(Number.isFinite);if(!vv.length)return;min=Math.floor((Math.min(...vv)-2)/5)*5;max=Math.ceil((Math.max(...vv)+2)/5)*5;if(spec.field!=='temperature_2m')min=Math.max(0,min);if(max-min<5)max=min+5}
+ if(!chance&&!direction){const vv=[...rows,...(C?.rows||[])].flatMap(r=>[r.p10,r.p90]).filter(Number.isFinite);if(!vv.length)return;min=Math.floor((Math.min(...vv)-2)/5)*5;max=Math.ceil((Math.max(...vv)+2)/5)*5;if(spec.field!=='temperature_2m')min=Math.max(0,min);if(max-min<5)max=min+5}
  else if(direction){max=360}
  const y=v=>bottom-(v-min)/Math.max(1,max-min)*hh;
  for(let k=0;k<=4;k++){const v=min+(max-min)*k/4,yy=y(v);ctx.strokeStyle='#e1eaf2';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(right,yy);ctx.stroke();ctx.textAlign='right';ctx.fillStyle='#557188';ctx.font=`${portrait?16:15}px Arial`;ctx.fillText(`${Math.round(v)}${chance?'%':spec.unit}`,left-9,yy+4)}
  const x=i=>left+ww*(i+.5)/Math.max(n,1);
- if(chance){const step=ww/n,bw=Math.max(3,step*.69);rows.forEach((r,i)=>{const px=x(i),fraction=Math.max(0,Math.min(1,progress*n-i));if(r.n>=2&&fraction){const va=(r.a||0)*fraction,vb=(r.b||0)*fraction;box(px-bw/2,y(va),bw,bottom-y(va),Math.min(5,bw/4),P.blue);box(px-bw*.21,y(vb),bw*.42,bottom-y(vb),Math.min(4,bw/5),P.dark)}ctx.fillStyle='#38617e';ctx.textAlign='center';ctx.font=`${portrait?14:14}px Arial`;ctx.fillText(fmt(r.day),px,bottom+29)})}
+ if(chance){const step=ww/n,bw=Math.max(3,step*.69);rows.forEach((r,i)=>{const px=x(i),fraction=Math.max(0,Math.min(1,progress*n-i));if(r.n>=2&&fraction){const va=(r.a||0)*fraction,vb=(r.b||0)*fraction;box(px-bw/2,y(va),bw,bottom-y(va),Math.min(5,bw/4),P.blue);box(px-bw*.21,y(vb),bw*.42,bottom-y(vb),Math.min(4,bw/5),P.dark)}ctx.fillStyle='#38617e';ctx.textAlign='center';ctx.font=`${portrait?14:14}px Arial`;ctx.fillText(fmt(r.day),px,bottom+29)});if(C?.rows?.length){const byDay=new Map(C.rows.map(r=>[r.day,r]));rows.forEach((r,i)=>{const v=byDay.get(r.day);if(!v||!Number.isFinite(v.a)||i>visible)return;const px=x(i),bar=Math.max(2,bw*.18);box(px+bw*.16,y(v.a),bar,bottom-y(v.a),2,'#f29134')})}}
  else{
   if(!direction&&get('rmMode')==='band'){
    function band(lo,hi,color){const good=rows.slice(0,visible+1).map((r,i)=>({x:x(i),lo:r[lo],hi:r[hi]})).filter(z=>Number.isFinite(z.lo)&&Number.isFinite(z.hi));if(good.length<2)return;ctx.fillStyle=color;ctx.beginPath();good.forEach((z,i)=>i?ctx.lineTo(z.x,y(z.lo)):ctx.moveTo(z.x,y(z.lo)));good.slice().reverse().forEach(z=>ctx.lineTo(z.x,y(z.hi)));ctx.closePath();ctx.fill()}
@@ -6907,20 +6912,43 @@ function plot(progress=1){const portrait=get('rmFormat')==='portrait',w=portrait
    }
   }
   const median=rows.slice(0,visible+1).map((r,i)=>[x(i),Number.isFinite(r.med)?y(r.med):0,Number.isFinite(r.med)]);if(direction){for(let j=1;j<median.length;j++)if(Number.isFinite(rows[j].med)&&Number.isFinite(rows[j-1].med)&&Math.abs(rows[j].med-rows[j-1].med)>180)median[j][2]=false}
-  line(median,'#0876c9',3.4);
+  line(median,'#0876c9',3.4);if(C?.rows?.length&&spec.field!=='wind_direction_10m'){const timesIndex=new Map(C.rows.map(r=>[r.time,r]));const other=rows.slice(0,visible+1).map((r,i)=>{const t=timesIndex.get(r.time);return [x(i),t&&Number.isFinite(t.med)?y(t.med):0,!!(t&&Number.isFinite(t.med))]});line(other,'#f29134',4)}
   const spacing=spec.aggregation==='hour'||direction?Math.max(1,Math.round(rows.length/12)):1;
   rows.forEach((r,i)=>{if(i%spacing)return;ctx.fillStyle='#426b89';ctx.textAlign='center';ctx.font=`${portrait?14:14}px Arial`;ctx.fillText(fmt(r.day),x(i),bottom+28)});
  }
  ctx.textAlign='left';ctx.fillStyle='#ecf7ff';ctx.font=`${portrait?17:17}px Arial`;ctx.fillText(spec.note,margin,portrait?h-119:h-76);
- ctx.font=`${portrait?15:14}px Arial`;ctx.fillText(`${ensemble.label} · ${ensemble.run}${ensemble.cached?' · opgeslagen run':''} · percentages zijn ensembleaandelen`,margin,portrait?h-73:h-41);
+ ctx.font=`${portrait?15:14}px Arial`;ctx.fillText(`${ensemble.label}${comparison?' + '+comparison.label:''} · ${ensemble.run}${ensemble.cached?' · cache':''} · modelaandelen, geen officiële kansen`,margin,portrait?h-73:h-41);
 }
-async function load(){show('Ensemblegegevens ophalen…');el('rmLoad').disabled=true;try{
- const d=await fetchEnsembleWithFallback('ecmwf_ifs025_ensemble',ENSEMBLE_RICH_VARS,null,true);ensemble={h:d.h,times:d.times||d.h.time,label:typeof ensembleLabel==='function'?ensembleLabel(d.model):'ECMWF ENS',run:typeof storedRunText==='function'?storedRunText(d):'laatste run',cached:d.source!=='nieuw'};
- plot();el('rmPlay').disabled=false;el('rmImage').disabled=false;el('rmVideo').disabled=!(window.MediaRecorder&&canvas.captureStream);const v=getSeries();show(`${ensemble.label} · ${ensemble.run}${v?.missing?' · '+v.missing:''}${ensemble.cached?' · opgeslagen gegevens':''}`);
- }catch(e){ensemble=null;plot();show('Geen bruikbare ensemblegegevens: '+e.message)}finally{el('rmLoad').disabled=false}}
+async function load(){
+ const selected=get('rmModel');cancelAnimationFrame(raf);playing=false;
+ if(selected==='icon_ref'){
+   ensemble=null;comparison=null;plot();el('rmPlay').disabled=true;el('rmImage').disabled=true;el('rmVideo').disabled=true;
+   show('ICON-EU is een deterministisch dagmodel (circa 5 dagen), zonder ensembleleden. Kies ICON-EU in de gewone dagverwachting; een ICON-pluim of kanspercentage zou misleidend zijn.');
+   el('model').value='icon';el('model').dispatchEvent(new Event('change',{bubbles:true}));return;
+ }
+ show('Ensemblegegevens ophalen…');el('rmLoad').disabled=true;ensemble=null;comparison=null;
+ try{
+  const desired=selected==='compare'?['ecmwf_ifs025_ensemble','ncep_gefs05']:[selected];
+  const runs=await Promise.allSettled(desired.map(model=>getEnsembleDataset(model,{allowNetwork:true,days:Math.min(Number(get('rmDays')),ensembleForecastDays(model))})));
+  const available=runs.map((r,i)=>r.status==='fulfilled'?{h:r.value.h,times:r.value.times||r.value.h?.time||[],label:ensembleModels[desired[i]],run:typeof storedRunText==='function'?storedRunText(r.value):'laatste run',cached:r.value.source!=='nieuw',model:desired[i]}:null);
+  ensemble=available[0];comparison=selected==='compare'?available[1]:null;
+  if(!ensemble&&comparison){ensemble=comparison;comparison=null;}
+  if(!ensemble)throw Error(runs.map(r=>r.status==='rejected'?r.reason?.message:'').filter(Boolean).join('; ')||'Geen ensembles beschikbaar');
+  plot();const v=getSeries();const ready=!!v&&!v.missing;
+  el('rmPlay').disabled=!ready;el('rmImage').disabled=!ready;el('rmVideo').disabled=!ready||!(window.MediaRecorder&&canvas.captureStream);
+  const compareText=selected==='compare'?(comparison?' · twee afzonderlijke ensemblemediaanlijnen':' · één ensemble beschikbaar; vergelijking onvolledig'):'';
+  show(`${ensemble.label}${compareText} · ${ensemble.run}${v?.missing?' · '+v.missing:''}${ensemble.cached?' · opgeslagen gegevens':''}`);
+ }catch(e){ensemble=null;comparison=null;plot();show('Geen bruikbare ensemblegegevens: '+e.message);el('rmPlay').disabled=true;el('rmImage').disabled=true;el('rmVideo').disabled=true}finally{el('rmLoad').disabled=false}
+}
 function animate(done){cancelAnimationFrame(raf);playing=true;el('rmPlay').disabled=true;const start=performance.now(),ms=Number(get('rmDuration'))*1000;function step(now){if(!playing)return;const p=Math.min(1,(now-start)/ms);plot(p);if(p<1)raf=requestAnimationFrame(step);else{playing=false;el('rmPlay').disabled=false;done?.()}}raf=requestAnimationFrame(step)}
-el('rmLoad').onclick=load;el('rmPlay').onclick=()=>{if(ensemble)animate()};
-for(const id of ['rmType','rmMode','rmDays','rmFormat'])el(id).addEventListener('change',()=>{modeSync();plot();if(ensemble){const d=getSeries();show(d?.missing?'Niet beschikbaar: '+d.missing:`${fields[get('rmType')].title} · ${ensemble.label} · ${ensemble.run}`)}});
+el('rmLoad').onclick=load;
+el('rmModel').addEventListener('change',()=>{ensemble=null;comparison=null;plot();show(get('rmModel')==='icon_ref'?'ICON-EU is een dagmodel, geen ensemblepluim. Tik op Dagmodel openen.':'Tik op Gegevens laden voor het gekozen ensemble.');el('rmLoad').textContent=get('rmModel')==='icon_ref'?'↗ ICON-dagmodel openen':'↻ Gegevens laden';el('rmPlay').disabled=true;el('rmImage').disabled=true;el('rmVideo').disabled=true});
+for(const b of panel.querySelectorAll('[data-rm-group]'))b.addEventListener('click',()=>{const kind=b.dataset.rmGroup;panel.querySelectorAll('[data-rm-group]').forEach(t=>t.classList.toggle('active',t===b));const choices=[...el('rmType').options];const target=choices.find(o=>kind==='plume'?fields[o.value].kind==='plume':fields[o.value].kind==='chance');if(fields[get('rmType')].kind!==kind&&target)el('rmType').value=target.value;modeSync();plot();});
+el('rmOldPlume').onclick=()=>{const p=document.getElementById('plumePanel');if(p){p.classList.remove('hidden');document.getElementById('plumeLoad')?.click();p.scrollIntoView({behavior:'smooth',block:'start'})}};
+el('rmOldRisks').onclick=()=>{const p=document.getElementById('riskPanel');if(p){p.classList.remove('hidden');document.getElementById('riskLoad')?.click();p.scrollIntoView({behavior:'smooth',block:'start'})}};
+window.ricoOpenMotion=type=>{panel.open=true;if(fields[type])el('rmType').value=type;modeSync();panel.querySelectorAll('[data-rm-group]').forEach(t=>t.classList.toggle('active',t.dataset.rmGroup===fields[el('rmType').value].kind));panel.scrollIntoView({behavior:'smooth',block:'start'});if(!ensemble&&get('rmModel')!=='icon_ref')load();else plot();};
+el('rmPlay').onclick=()=>{if(ensemble)animate()};
+for(const id of ['rmType','rmMode','rmDays','rmFormat'])el(id).addEventListener('change',()=>{modeSync();panel.querySelectorAll('[data-rm-group]').forEach(t=>t.classList.toggle('active',t.dataset.rmGroup===fields[get('rmType')].kind));plot();if(ensemble){const d=getSeries();show(d?.missing?'Niet beschikbaar: '+d.missing:`${fields[get('rmType')].title} · ${ensemble.label} · ${ensemble.run}`)}});
 el('rmImage').onclick=()=>{if(!ensemble)return;plot();canvas.toBlob(blob=>{if(!blob)return;const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=`ricoweer-${get('rmType')}-${get('rmDays')}dagen.png`;a.click();setTimeout(()=>URL.revokeObjectURL(u),1600)},'image/png')};
 el('rmVideo').onclick=()=>{if(!ensemble||!window.MediaRecorder||!canvas.captureStream)return;const mime=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(x=>MediaRecorder.isTypeSupported(x));if(!mime){show('Deze browser ondersteunt geen WebM; gebruik PNG.');return}try{const stream=canvas.captureStream(25),parts=[],rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:2500000});rec.ondataavailable=e=>{if(e.data.size)parts.push(e.data)};rec.onstop=()=>{const u=URL.createObjectURL(new Blob(parts,{type:mime})),a=document.createElement('a');a.href=u;a.download=`ricoweer-${get('rmType')}.webm`;a.click();setTimeout(()=>URL.revokeObjectURL(u),5000);stream.getTracks().forEach(t=>t.stop());show('Video gereed.')};rec.start();el('rmVideo').disabled=true;show('Video opnemen…');animate(()=>{setTimeout(()=>{if(rec.state!=='inactive')rec.stop();el('rmVideo').disabled=false},300)})}catch(e){el('rmVideo').disabled=false;show('Video-opname mislukt: '+e.message)}};
 modeSync();plot();
