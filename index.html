@@ -2901,7 +2901,7 @@ let lastPlumeCanvas=null,lastPlumeRunLabel='',lastPlumePrev=null;const PLUME_HIS
 // v1.24: ensembledata eenmalig ophalen en duurzaam bewaren. Pluim, kansen en modelmix
 // delen dezelfde brondata. Een mislukte update wist nooit de laatst goede verwachting.
 const ENSEMBLE_DB='regioweer-ensemble-cache-v1',ENSEMBLE_STORE='runs',ENSEMBLE_RATE_KEY='rw-ensemble-rate-limit-date-v1';
-const ENSEMBLE_RICH_VARS=['temperature_2m','wind_gusts_10m','precipitation','snowfall','weather_code'];
+const ENSEMBLE_RICH_VARS=['temperature_2m','wind_gusts_10m','precipitation','snowfall','weather_code','wind_speed_10m'];
 const ensembleMetaMemo=new Map(),ensembleInflight=new Map();
 function ensemblePlaceKey(model){const lat=Number($('lat').value||0),lon=Number($('lon').value||0);return `${lat.toFixed(3)}:${lon.toFixed(3)}:${model}`}
 function amsterdamDateKey(){try{return new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Amsterdam',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())}catch(e){return new Date().toISOString().slice(0,10)}}
@@ -6819,61 +6819,85 @@ document.getElementById('model')?.addEventListener('change',start);
 #ricoMotionPanel .rm-note{font-size:12px;color:#526c81;line-height:1.4;margin:8px 0}
 #ricoMotionPanel .rm-status{font-size:13px;font-weight:650;margin:7px 0}
 </style>
-<details id="ricoMotionPanel"><summary>🎬 Weeranimaties · temperatuur & kansen</summary>
-<p class="rm-note">Maak een weeranimatie met de ECMWF-ensemblegegevens voor de gekozen plaats. De app gebruikt dezelfde opgeslagen ensemble-run als de pluimen; bij ontbrekende gegevens kan hij de nieuwste run ophalen. Geen aangepaste of verzonnen kansen.</p>
+<details id="ricoMotionPanel"><summary>🎬 Weeranimaties · pluimen, neerslag, sneeuw en wind</summary>
+<p class="rm-note">Maak een weeranimatie met de ECMWF-ensemblegegevens voor de gekozen plaats. De app gebruikt de opgeslagen ensemble-run van de pluimen; bij ontbrekende gegevens kan hij de nieuwste run ophalen. Grafieken tonen uitsluitend beschikbare variabelen. Geen aangepaste of verzonnen kansen.</p>
 <div class="rm-controls">
-<label>Grafiek <select id="rmType"><option value="temp">🌡️ Temperatuurpluim</option><option value="frost">❄️ Vorstkans (minimum &lt;0 °C)</option></select></label>
+<label>Grafiek <select id="rmType"><option value="temp">🌡️ Temperatuurpluim</option><option value="frost">❄️ Vorstkans (&lt;0 °C)</option><option value="precip">🌧️ Neerslagkans (1/10 mm)</option><option value="snow">🌨️ Sneeuwkans (0,1/1 cm)</option><option value="wind">💨 Windsnelheid (km/u)</option><option value="gust">🌪️ Windstoten (75/100 km/u)</option></select></label>
 <label>Dagen <select id="rmDays"><option value="10">10 dagen</option><option value="15" selected>15 dagen</option></select></label>
 <label>Formaat <select id="rmFormat"><option value="landscape">16:9</option><option value="portrait">9:16</option></select></label>
 <label>Duur <select id="rmDuration"><option value="9">9 seconden</option><option value="20">20 seconden</option></select></label>
 </div>
 <div class="rm-controls"><button id="rmLoad" type="button">↻ Gegevens laden</button><button id="rmPlay" type="button" disabled>▶ Afspelen</button><button id="rmVideo" type="button" disabled>⬇ Video (WebM)</button><button id="rmImage" type="button" disabled>⬇ PNG</button></div>
-<div class="rm-status" id="rmStatus" role="status">Kies een grafiek en laad de ensemblegegevens.</div>
+<div class="rm-status" id="rmStatus" role="status">Kies een grafiek en laad de ensemblegegevens. Niet iedere modelrun bevat alle variabelen.</div>
 <canvas id="rmCanvas" width="1280" height="720"></canvas>
 <p class="rm-note">Video-opslag werkt in browsers die WebM-opname ondersteunen. Op andere apparaten blijft de PNG-export beschikbaar. De animatie is een visualisatie van één bestaande modelrun, geen opeenvolging van nieuwe runs.</p>
 </details>
 <script id="rico-motion-script">
 (()=>{'use strict';
 const $m=id=>document.getElementById(id), panel=$m('ricoMotionPanel');if(!panel)return;
-const canvas=$m('rmCanvas'),ctx=canvas.getContext('2d');let ensemble=null,progress=1,playing=false,frameId=0;
+const canvas=$m('rmCanvas'),ctx=canvas.getContext('2d');let ensemble=null,playing=false,frameId=0;
 const name=()=>(document.getElementById('place')?.value||'gekozen plaats').trim();
 const status=s=>$m('rmStatus').textContent=s;
 const pick=id=>$m(id).value;
+const TYPES={temp:{label:'TEMPERATUURPLUIM',note:'10–90% en 25–75% van ensembleleden · mediaan'},frost:{label:'VORSTKANS',note:'Minimumtemperatuur < 0 °C'},precip:{label:'NEERSLAGKANS',note:'Minstens 1 mm (blauw) · minstens 10 mm (donkerblauw) in 24 uur'},snow:{label:'SNEEUWKANS',note:'Minstens 0,1 cm (blauw) · minstens 1 cm (donkerblauw) per dag'},wind:{label:'WIND',note:'Maximale windsterkte per dag · mediaan met P20–P80 · km/u'},gust:{label:'ZWARE WINDSTOTEN',note:'Windstoten ≥ 75 km/u (blauw) · ≥ 100 km/u (donkerblauw)'}};
 function bounds(){const p=pick('rmFormat')==='portrait';canvas.width=p?720:1280;canvas.height=p?1280:720;return {w:canvas.width,h:canvas.height,p}}
-const fDate=s=>{const d=new Date(String(s).slice(0,10)+'T12:00:00Z');return new Intl.DateTimeFormat('nl-NL',{weekday:'short',day:'numeric',month:'short',timeZone:'UTC'}).format(d)};
-function data(){if(!ensemble)throw Error('Haal eerst de ensemblegegevens op.');const dates=Number(pick('rmDays')),type=pick('rmType'),hours=ensemble.times||[],keys=ensemble.tkeys;
-if(type==='temp'){
-  const samples=[];for(let i=0;i<hours.length;i+=3){const day=String(hours[i]).slice(0,10);if(!day)continue;const vals=keys.map(k=>Number(ensemble.h[k]?.[i])).filter(Number.isFinite);if(vals.length<2)continue;const sorted=vals.sort((a,b)=>a-b),percentile=q=>{const p=q*(sorted.length-1),j=Math.floor(p);return sorted[j]+(sorted[Math.min(j+1,sorted.length-1)]-sorted[j])*(p-j)};samples.push({day,t:hours[i],lo:percentile(.1),q1:percentile(.25),med:percentile(.5),q3:percentile(.75),hi:percentile(.9)})}
-  const first=samples[0]?.day;const allowed=[...new Set(samples.map(x=>x.day))].slice(0,dates);return {type,rows:samples.filter(x=>allowed.includes(x.day)),total:allowed.length};
+const fDate=s=>{const d=new Date(String(s).slice(0,10)+'T12:00:00Z');return new Intl.DateTimeFormat('nl-NL',{weekday:'short',day:'numeric',timeZone:'UTC'}).format(d)};
+const valid=v=>v!==null&&v!==undefined&&v!==''&&Number.isFinite(Number(v));
+function pct(vals,q){const a=vals.filter(Number.isFinite).sort((x,y)=>x-y);if(!a.length)return null;const u=q*(a.length-1),i=Math.floor(u);return a[i]+(a[Math.min(i+1,a.length-1)]-a[i])*(u-i)}
+function data(){if(!ensemble)return null;const maxDays=Number(pick('rmDays')),type=pick('rmType'),h=ensemble.h,times=ensemble.times,keys=ensemble.tkeys;
+  if(type==='temp'){
+    const raw=[];for(let i=0;i<times.length;i+=3){const day=String(times[i]).slice(0,10);const vals=keys.map(k=>h[k]?.[i]).filter(valid).map(Number);if(vals.length<2)continue;raw.push({day,lo:pct(vals,.1),q1:pct(vals,.25),med:pct(vals,.5),q3:pct(vals,.75),hi:pct(vals,.9)})}
+    const allowed=[...new Set(raw.map(x=>x.day))].slice(0,maxDays);return {type,rows:raw.filter(x=>allowed.includes(x.day)),unit:'°C'};
+  }
+  const groups={};times.forEach((time,i)=>{const day=String(time).slice(0,10);if(day)(groups[day]||=[]).push(i)});
+  const days=Object.keys(groups).slice(0,maxDays);
+  const variable=type==='frost'?'temperature_2m':type==='precip'?'precipitation':type==='snow'?'snowfall':type==='wind'?'wind_speed_10m':'wind_gusts_10m';
+  const vk=typeof ensembleKeys==='function'?ensembleKeys(h,variable):Object.keys(h).filter(k=>k.startsWith(variable+'_member'));
+  if(vk.length<2)return {type,rows:[],missing:`${variable} ontbreekt in deze ensemble-run`,unit:''};
+  const rows=days.map(day=>{const values=vk.map(k=>{const arr=groups[day].map(i=>h[k]?.[i]).filter(valid).map(Number);if(!arr.length)return null;return type==='frost'?Math.min(...arr):type==='precip'||type==='snow'?arr.reduce((a,b)=>a+b,0):Math.max(...arr)}).filter(Number.isFinite);
+    if(!values.length)return {day,a:null,b:null,n:0};
+    if(type==='wind')return {day,med:pct(values,.5),lo:pct(values,.2),hi:pct(values,.8),n:values.length};
+    const limits=type==='frost'?[0,null]:type==='precip'?[1,10]:type==='snow'?[.1,1]:[75,100];
+    const chance=t=>t===null?null:100*values.filter(x=>type==='frost'?x<t:x>=t).length/values.length;
+    return {day,a:chance(limits[0]),b:chance(limits[1]),n:values.length};
+  });return {type,rows,unit:type==='wind'?'km/u':'%'};
 }
-  const groups={};hours.forEach((t,i)=>{const day=String(t).slice(0,10);if(!day)return;(groups[day] ||= []).push(i)});
-  const days=Object.keys(groups).slice(0,dates),rows=days.map(day=>{const lows=keys.map(k=>{const vals=groups[day].map(i=>Number(ensemble.h[k]?.[i])).filter(Number.isFinite);return vals.length?Math.min(...vals):null}).filter(Number.isFinite);return {day,pct:lows.length?100*lows.filter(x=>x<0).length/lows.length:null,n:lows.length}});return {type,rows,total:rows.length};
+function roundRect(x,y,w,h,r,fill){if(w<=0||h<=0)return;ctx.fillStyle=fill;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill()}
+function draw(progress=1){const {w,h,p}=bounds(),type=pick('rmType'),meta=TYPES[type],D=ensemble?data():null;progress=Math.max(0,Math.min(1,progress));
+  ctx.fillStyle='#0876cc';ctx.fillRect(0,0,w,h);ctx.fillStyle='#0564b9';ctx.beginPath();ctx.arc(w*.9,0,w*.32,0,Math.PI*2);ctx.fill();
+  const margin=p?35:65,top=p?215:150,plotH=p?825:435,plotW=w-2*margin;
+  ctx.fillStyle='#fff';ctx.font=`800 ${p?32:41}px Arial`;ctx.textAlign='left';ctx.fillText(meta.label,margin,p?95:75);
+  ctx.font=`${p?22:21}px Arial`;ctx.fillStyle='#dbebff';ctx.fillText(`${name()} · ${ensemble?.label||'ECMWF ENS'} · ${Number(pick('rmDays'))} dagen`,margin,p?139:115);
+  roundRect(margin,top,plotW,plotH,14,'#ffffff');const l=margin+(p?55:65),r=margin+plotW-20,t0=top+52,b=top+plotH-70,ww=r-l,hh=b-t0;
+  if(!D||!D.rows.some(row=>Number.isFinite(row.med)||Number.isFinite(row.a))){ctx.fillStyle='#476177';ctx.textAlign='center';ctx.font=`${p?20:23}px Arial`;ctx.fillText(D?.missing||'Geen bruikbare gegevens: laad een ensemble-run',w/2,top+plotH/2);return}
+  ctx.lineWidth=1;ctx.font=`${p?16:15}px Arial`;
+  const rows=D.rows,n=rows.length;
+  if(type==='temp'){
+    const vals=rows.flatMap(z=>[z.lo,z.hi]).filter(Number.isFinite),mn=Math.floor((Math.min(...vals)-1)/5)*5,mx=Math.ceil((Math.max(...vals)+1)/5)*5,span=Math.max(5,mx-mn),y=v=>b-(v-mn)/span*hh,x=i=>l+i/(n-1||1)*ww;
+    for(let a=mn;a<=mx;a+=5){ctx.strokeStyle=a===0?'#8aa5b9':'#e3ecf4';ctx.beginPath();ctx.moveTo(l,y(a));ctx.lineTo(r,y(a));ctx.stroke();ctx.textAlign='right';ctx.fillStyle='#557187';ctx.fillText(a+'°',l-10,y(a)+5)}
+    const end=Math.max(0,(n-1)*progress),last=Math.min(n-1,Math.ceil(end));
+    function band(lower,upper,color){ctx.fillStyle=color;ctx.beginPath();for(let i=0;i<=last;i++){const j=Math.min(i,end),a=rows[Math.floor(j)],c=rows[Math.min(n-1,Math.ceil(j))],v=a[lower]+(c[lower]-a[lower])*(j-Math.floor(j));i===0?ctx.moveTo(x(j),y(v)):ctx.lineTo(x(j),y(v))}for(let i=last;i>=0;i--){const j=Math.min(i,end),a=rows[Math.floor(j)],c=rows[Math.min(n-1,Math.ceil(j))],v=a[upper]+(c[upper]-a[upper])*(j-Math.floor(j));ctx.lineTo(x(j),y(v))}ctx.closePath();ctx.fill()}
+    band('lo','hi','#d9ebf8');band('q1','q3','#9dcbee');ctx.strokeStyle='#127bcb';ctx.lineWidth=4;ctx.beginPath();for(let i=0;i<=last;i++){const j=Math.min(i,end),a=rows[Math.floor(j)],c=rows[Math.min(n-1,Math.ceil(j))],v=a.med+(c.med-a.med)*(j-Math.floor(j));i===0?ctx.moveTo(x(j),y(v)):ctx.lineTo(x(j),y(v))}ctx.stroke();ctx.lineWidth=1;
+    const days=[...new Set(rows.map(z=>z.day))];days.forEach(day=>{const j=rows.findIndex(z=>z.day===day);ctx.fillStyle='#456f8c';ctx.textAlign='center';ctx.fillText(fDate(day),x(j),b+31)});
+  }else{
+    const isWind=type==='wind',mx=isWind?Math.max(20,Math.ceil(Math.max(...rows.map(x=>x.hi||0))*1.1/10)*10):100;
+    for(let k=0;k<=4;k++){const value=mx*k/4,y=b-k/4*hh;ctx.strokeStyle='#dfebf4';ctx.beginPath();ctx.moveTo(l,y);ctx.lineTo(r,y);ctx.stroke();ctx.textAlign='right';ctx.fillStyle='#557187';ctx.fillText(`${Math.round(value)}${isWind?'':'%'}`,l-8,y+5)}
+    const step=ww/Math.max(n,1),bar=step*.7;
+    rows.forEach((row,i)=>{const x=l+step*(i+.5),reveal=Math.min(1,Math.max(0,progress*n-i));ctx.fillStyle='#456f8c';ctx.textAlign='center';ctx.font=`${p?15:14}px Arial`;ctx.fillText(fDate(row.day),x,b+31);if(!reveal)return;
+      const av=isWind?row.med:row.a;if(!Number.isFinite(av))return;
+      const height=Math.max(0,hh*av/mx*reveal);roundRect(x-bar/2,b-height,bar,height,4,'#1594eb');
+      if(isWind){if(Number.isFinite(row.lo)&&Number.isFinite(row.hi)){const y0=b-row.lo/mx*hh*reveal,y1=b-row.hi/mx*hh*reveal;ctx.strokeStyle='#0b527e';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(x,y0);ctx.lineTo(x,y1);ctx.moveTo(x-bar*.13,y0);ctx.lineTo(x+bar*.13,y0);ctx.moveTo(x-bar*.13,y1);ctx.lineTo(x+bar*.13,y1);ctx.stroke();ctx.lineWidth=1}}
+      else if(Number.isFinite(row.b)){const bh=Math.max(0,hh*row.b/mx*reveal);roundRect(x-bar*.23,b-bh,bar*.46,bh,3,'#0b4c9b')}
+      if(reveal>.9){ctx.fillStyle='#13537b';ctx.font='bold 14px Arial';ctx.fillText(`${Math.round(av)}${isWind?'':'%'}`,x,b-height-12)}
+    });
+  }
+  ctx.fillStyle='#e6f3ff';ctx.font=`${p?17:16}px Arial`;ctx.textAlign='left';ctx.fillText(meta.note,margin,p?h-119:h-77);
+  ctx.font=`${p?15:14}px Arial`;ctx.fillText(`${ensemble.label} · ${ensemble.run}${ensemble.cached?' · opgeslagen gegevens':''} · modelaandeel, geen officiële kans`,margin,p?h-77:h-43);
 }
-function roundRect(x,y,w,h,r,fill){ctx.fillStyle=fill;ctx.beginPath();ctx.roundRect(x,y,w,h,r);ctx.fill()}
-function draw(t=1){progress=Math.max(0,Math.min(1,t));const {w,h,p}=bounds(),D=ensemble?data():null;const sx=w/1280,sy=h/(p?1280:720);ctx.fillStyle='#0876cc';ctx.fillRect(0,0,w,h);ctx.fillStyle='#0564b9';ctx.beginPath();ctx.arc(w*.9,0,w*.32,0,Math.PI*2);ctx.fill();
-const margin=p?35:65,top=p?215:150,plotH=p?825:435,plotW=w-2*margin;
-ctx.fillStyle='#fff';ctx.font=`800 ${p?37:43}px Arial`;ctx.textAlign='left';ctx.fillText(D?.type==='frost'?'VORSTKANS':'TEMPERATUURPLUIM',margin,p?95:75);
-ctx.font=`${p?23:22}px Arial`;ctx.fillStyle='#dbebff';ctx.fillText(`${name()} · ${ensemble?.label||'ECMWF ENS'} · ${Number(pick('rmDays'))} dagen`,margin,p?139:115);
-roundRect(margin,top,plotW,plotH,14,'#ffffff');const l=margin+(p?55:65),r=margin+plotW-20,t0=top+52,b=top+plotH-70,ww=r-l,hh=b-t0;
-ctx.lineWidth=1;ctx.strokeStyle='#dae5ef';ctx.fillStyle='#4e6578';ctx.font=`${p?18:16}px Arial`;
-if(!D||!D.rows.length){ctx.textAlign='center';ctx.fillText('Laad de ensemblegegevens om de animatie te maken',w/2,top+plotH/2);return}
-if(D.type==='frost'){
-  for(let pct=0;pct<=100;pct+=25){const y=b-pct/100*hh;ctx.strokeStyle='#dfebf4';ctx.beginPath();ctx.moveTo(l,y);ctx.lineTo(r,y);ctx.stroke();ctx.textAlign='right';ctx.fillStyle='#557187';ctx.fillText(pct+'%',l-10,y+5)}
-  const n=D.rows.length,step=ww/n,bar=step*.67;D.rows.forEach((row,i)=>{const x=l+i*step+step/2,y=b;ctx.fillStyle='#4f7086';ctx.textAlign='center';ctx.font=`${p?15:14}px Arial`;ctx.fillText(fDate(row.day).replace(' ','\n'),x,b+30);if(!Number.isFinite(row.pct))return;const height=Math.max(0,hh*row.pct/100*Math.min(1,Math.max(0,progress*n-i)));roundRect(x-bar/2,y-height,bar,height,3,'#1594eb');if(progress*n>i+.85){ctx.fillStyle='#23618a';ctx.font='bold 14px Arial';ctx.fillText(Math.round(row.pct)+'%',x,y-height-9)}})
-}else{
-  const rows=D.rows,n=rows.length,vals=rows.flatMap(z=>[z.lo,z.hi]).filter(Number.isFinite),mn=Math.floor((Math.min(...vals)-1)/5)*5,mx=Math.ceil((Math.max(...vals)+1)/5)*5,span=Math.max(5,mx-mn),y=v=>b-(v-mn)/span*hh,x=i=>l+i/(n-1||1)*ww;
-  for(let a=mn;a<=mx;a+=5){ctx.strokeStyle=a===0?'#8aa5b9':'#e3ecf4';ctx.beginPath();ctx.moveTo(l,y(a));ctx.lineTo(r,y(a));ctx.stroke();ctx.textAlign='right';ctx.fillStyle='#557187';ctx.fillText(a+'°',l-10,y(a)+5)}
-  const end=Math.max(0,(n-1)*progress),last=Math.min(n-1,Math.ceil(end));
-  function band(lo,hi,color){ctx.fillStyle=color;ctx.beginPath();for(let i=0;i<=last;i++){const j=Math.min(i,end),a=rows[Math.floor(j)],c=rows[Math.min(n-1,Math.ceil(j))],v=a[lo]+(c[lo]-a[lo])*(j-Math.floor(j));i===0?ctx.moveTo(x(j),y(v)):ctx.lineTo(x(j),y(v))}for(let i=last;i>=0;i--){const j=Math.min(i,end),a=rows[Math.floor(j)],c=rows[Math.min(n-1,Math.ceil(j))],v=a[hi]+(c[hi]-a[hi])*(j-Math.floor(j));ctx.lineTo(x(j),y(v))}ctx.closePath();ctx.fill()}
-  band('lo','hi','#d9ebf8');band('q1','q3','#9dcbee');ctx.strokeStyle='#127bcb';ctx.lineWidth=4;ctx.beginPath();for(let i=0;i<=last;i++){const j=Math.min(i,end),a=rows[Math.floor(j)],c=rows[Math.min(n-1,Math.ceil(j))],v=a.med+(c.med-a.med)*(j-Math.floor(j));i===0?ctx.moveTo(x(j),y(v)):ctx.lineTo(x(j),y(v))}ctx.stroke();ctx.lineWidth=1;const days=[...new Set(rows.map(z=>z.day))];days.forEach((day,i)=>{const j=rows.findIndex(z=>z.day===day);ctx.fillStyle='#456f8c';ctx.textAlign='center';ctx.font=`${p?15:14}px Arial`;ctx.fillText(fDate(day),x(j),b+31)});
-}
-ctx.fillStyle='#e6f3ff';ctx.font=`${p?18:17}px Arial`;ctx.textAlign='left';ctx.fillText(D.type==='temp'?'Band: 10–90% en 25–75% van de leden · lijn: mediaan':'Percentage ensembleleden met minimum onder 0 °C',margin,p?h-119:h-77);
-ctx.font=`${p?16:15}px Arial`;ctx.fillText(`${ensemble.label} · ${ensemble.run}${ensemble.cached?' · opgeslagen gegevens':''}`,margin,p?h-77:h-43);
-}
-async function load(){status('Ensemblegegevens controleren…');$m('rmLoad').disabled=true;try{if(typeof fetchEnsembleWithFallback!=='function')throw Error('Ensemblefunctie ontbreekt in deze appversie');const d=await fetchEnsembleWithFallback('ecmwf_ifs025_ensemble',['temperature_2m'],null,true);ensemble={h:d.h,times:d.times||d.h.time,tkeys:d.tkeys,label:typeof ensembleLabel==='function'?ensembleLabel(d.model):'ECMWF ENS',run:typeof storedRunText==='function'?storedRunText(d):'laatste run',cached:d.source!=='nieuw'};draw(1);$m('rmPlay').disabled=false;$m('rmImage').disabled=false;$m('rmVideo').disabled=!window.MediaRecorder||!canvas.captureStream;status(`${ensemble.tkeys.length} leden · ${ensemble.label} · ${ensemble.run}${ensemble.cached?' · laatste beschikbare gegevens':''}`)}catch(e){status('Geen bruikbare ensemblegegevens: '+e.message)}finally{$m('rmLoad').disabled=false}}
+async function load(){status('Ensemblegegevens controleren…');$m('rmLoad').disabled=true;try{if(typeof fetchEnsembleWithFallback!=='function')throw Error('Ensemblefunctie ontbreekt');const d=await fetchEnsembleWithFallback('ecmwf_ifs025_ensemble',ENSEMBLE_RICH_VARS,null,true);ensemble={h:d.h,times:d.times||d.h.time,tkeys:d.tkeys,label:typeof ensembleLabel==='function'?ensembleLabel(d.model):'ECMWF ENS',run:typeof storedRunText==='function'?storedRunText(d):'laatste run',cached:d.source!=='nieuw'};draw(1);$m('rmPlay').disabled=false;$m('rmImage').disabled=false;$m('rmVideo').disabled=!window.MediaRecorder||!canvas.captureStream;const dNow=data();status(`${ensemble.tkeys.length} leden · ${ensemble.label} · ${ensemble.run}${dNow?.missing?' · '+dNow.missing:''}${ensemble.cached?' · opgeslagen run':''}`)}catch(e){ensemble=null;draw(1);status('Geen bruikbare ensemblegegevens: '+e.message)}finally{$m('rmLoad').disabled=false}}
 function animate(done){cancelAnimationFrame(frameId);playing=true;$m('rmPlay').disabled=true;const duration=Number(pick('rmDuration'))*1000,start=performance.now();function step(now){if(!playing)return;const t=Math.min(1,(now-start)/duration);draw(t);if(t<1)frameId=requestAnimationFrame(step);else{playing=false;$m('rmPlay').disabled=false;done?.()}}frameId=requestAnimationFrame(step)}
 $m('rmLoad').onclick=load;$m('rmPlay').onclick=()=>{if(ensemble)animate()};
-for(const key of ['rmType','rmDays','rmFormat'])$m(key).addEventListener('change',()=>draw(1));
+for(const key of ['rmType','rmDays','rmFormat'])$m(key).addEventListener('change',()=>{draw(1);if(ensemble){const d=data();status(d?.missing?'Niet beschikbaar: '+d.missing:`${TYPES[pick('rmType')].label} · ${ensemble.label} · ${ensemble.run}`)}});
 $m('rmImage').onclick=()=>{if(!ensemble)return;draw(1);canvas.toBlob(blob=>{if(!blob)return;const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`ricoweer-${pick('rmType')}-${pick('rmDays')}dagen.png`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500)},'image/png')};
 $m('rmVideo').onclick=async()=>{if(!ensemble||!window.MediaRecorder||!canvas.captureStream)return;const mime=['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'].find(x=>MediaRecorder.isTypeSupported(x));if(!mime){status('Deze browser ondersteunt geen WebM-opname. Gebruik PNG.');return}try{const stream=canvas.captureStream(25),chunks=[],rec=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:3000000});rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};rec.onstop=()=>{const blob=new Blob(chunks,{type:mime}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`ricoweer-${pick('rmType')}-${pick('rmDays')}dagen.webm`;a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);stream.getTracks().forEach(x=>x.stop());status('Video klaar. Het bestand staat bij je downloads.')};rec.start();$m('rmVideo').disabled=true;status('Animatie wordt opgenomen…');animate(()=>{setTimeout(()=>{rec.stop();$m('rmVideo').disabled=false},350)})}catch(e){$m('rmVideo').disabled=false;status('Video-opname niet gelukt: '+e.message)}};
 draw(1);
