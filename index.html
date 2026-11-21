@@ -31,7 +31,24 @@
 /* v42 compacter & betrouwbaarheid */
 .runPanelCompact{padding:10px 12px}.runDetails summary{cursor:pointer;font-size:14px;color:#173a63;list-style:none}.runDetails summary::-webkit-details-marker{display:none}.runDetails summary:after{content:" ▾";color:#6b7d91}.runDetails[open] summary:after{content:" ▴"}.runPanelCompact .runs{gap:4px;margin-top:7px}.runPanelCompact .runrow{padding:6px 8px;border-radius:9px}.runPanelCompact .runname{font-size:11px}.runPanelCompact .runcad,.runPanelCompact .runnext{font-size:10px}.runPanelCompact .runhint{font-size:9px}.forecastSelect{padding:7px 9px;font-size:12px;min-width:105px}.confidenceStrip{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.confidencePill{padding:7px 9px;border-radius:12px;background:#eef7ef;border:1px solid #cfe4d0;color:#285d39;font-size:11px;font-weight:800}.confidencePill.medium{background:#fff4df;border-color:#ffd58b;color:#8a5d10}.confidencePill.low{background:#ffe8e3;border-color:#f4b7ad;color:#9b3b2f}.confidencePill.info{background:#edf4fb;border-color:#d4e2f0;color:#305a7f}.dark .runDetails summary{color:#eaf3ff}.dark .confidencePill{background:#173b26;border-color:#28573a;color:#bde9c7}.dark .confidencePill.medium{background:#46391c;border-color:#665226;color:#ffe2a8}.dark .confidencePill.low{background:#492823;border-color:#6d3830;color:#ffbeb5}.dark .confidencePill.info{background:#243b52;border-color:#35536e;color:#dcecff}
 
-.alertPanel{border:1px solid #dce6f1;background:linear-gradient(135deg,#f8fbff,#f3f8fd)}.alertHead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.alertStatus{display:flex;align-items:center;gap:9px;font-weight:900;color:#173a63}.alertDot{width:11px;height:11px;border-radius:50%;background:#4da66b;box-shadow:0 0 0 4px #4da66b20}.alertDot.watch{background:#e6a51b;box-shadow:0 0 0 4px #e6a51b25}.alertDot.high{background:#df5848;box-shadow:0 0 0 4px #df584825}.alertText{font-size:12px;color:#50667e;line-height:1.5;margin-top:7px}.alertActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.alertActions a{display:inline-block;text-decoration:none;padding:8px 11px;border-radius:11px;background:#edf3fb;color:#164f89;font-size:12px;font-weight:850}.weatherHeadline{font-size:19px;font-weight:900;color:#173a63;margin-bottom:6px}.dark .alertPanel{background:linear-gradient(135deg,#172635,#1a2c3d);border-color:#314358}.dark .alertStatus,.dark .weatherHeadline{color:#eaf3ff}.dark .alertText{color:#bdd0e3}.dark .alertActions a{background:#243b52;color:#dcecff}
+.alertPanel{border:1px solid #dce6f1;background:linear-gradient(135deg,#f8fbff,#f3f8fd)}.alertHead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.alertStatus{display:flex;align-items:center;gap:9px;font-weight:900;color:#173a63}.alertDot{width:11px;height:11px;border-radius:50%;background:#4da66b;box-shadow:0 0 0 4px #4da66b20}.alertDot.watch{background:#e6a51b;box-shadow:0 0 0 4px #e6a51b25}.alertDot.high{background:#df5848;box-shadow:0 0 0 4px #df584825}.alertText{font-size:12px;color:#50667e;line-height:1.5;margin-top:7px}.alertActions{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}
+/* Compacte signalen per weertype, in plaats van een lange tekst met herhaling. */
+.ricoWarnIntro{font-weight:750;margin:5px 0 11px;color:#25486a}
+.ricoWarnGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.ricoWarnCard{padding:11px 12px;border:1px solid #d4e2ee;border-radius:13px;background:#fff;min-width:0}
+.ricoWarnCardTitle{font-size:14px;font-weight:900;color:#163d61;margin-bottom:4px}
+.ricoWarnPct{display:block;font-size:13px;color:#0c70b2;margin-bottom:4px}
+.ricoWarnDays{font-size:12px;font-weight:750;color:#345b7b}
+.ricoWarnDetail{font-size:11px;color:#637992;margin-top:3px}
+.ricoWarnMinor{font-size:12px;margin:10px 0 2px;color:#496882}
+.ricoWarnFooter{font-size:11px;line-height:1.4;color:#62778c;margin:11px 0 0}
+.dark .ricoWarnIntro{color:#d4e7fb}
+.dark .ricoWarnCard{background:#203448;border-color:#3a5166}
+.dark .ricoWarnCardTitle,.dark .ricoWarnDays{color:#e1efff}
+.dark .ricoWarnPct{color:#78c4fa}
+.dark .ricoWarnDetail,.dark .ricoWarnMinor,.dark .ricoWarnFooter{color:#a8bfd4}
+@media(max-width:620px){.ricoWarnGrid{grid-template-columns:1fr}.ricoWarnCard{padding:10px 12px}}
+.alertActions a{display:inline-block;text-decoration:none;padding:8px 11px;border-radius:11px;background:#edf3fb;color:#164f89;font-size:12px;font-weight:850}.weatherHeadline{font-size:19px;font-weight:900;color:#173a63;margin-bottom:6px}.dark .alertPanel{background:linear-gradient(135deg,#172635,#1a2c3d);border-color:#314358}.dark .alertStatus,.dark .weatherHeadline{color:#eaf3ff}.dark .alertText{color:#bdd0e3}.dark .alertActions a{background:#243b52;color:#dcecff}
 
 /* v44 compacte bediening */
 .actionPrimary{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:12px}.actionPrimary .primary{min-height:48px}.actionPrimary .ghost{padding:10px 14px}.quickActions{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:9px}.quickActions button{padding:10px 7px;font-size:11px;border-radius:11px}.toolDetails{margin-top:9px;border:1px solid #dce6f1;border-radius:13px;background:#f8fbff}.toolDetails summary{cursor:pointer;padding:10px 12px;font-weight:850;font-size:12px;color:#315a82;list-style:none}.toolDetails summary::-webkit-details-marker{display:none}.toolDetails summary:after{content:' ▾';color:#7b8ba0}.toolDetails[open] summary:after{content:' ▴'}.toolGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;padding:0 9px 9px}.toolGrid button{padding:9px 7px;font-size:11px}.warningLegend{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}.warningKey{display:inline-flex;align-items:center;gap:5px;padding:4px 7px;border-radius:999px;font-size:9px;font-weight:800;background:#f0f4f8;color:#5c6e82}.warningKey i{width:8px;height:8px;border-radius:50%;display:inline-block}.modelCode{padding:4px 8px;border-radius:999px;font-size:10px;font-weight:900;color:#fff}.modelCode.green{background:#4da66b}.modelCode.yellow{background:#e6a51b}.modelCode.orange{background:#ef7d26}.modelCode.red{background:#d83f35}.dark .toolDetails{background:#1b2b3b;border-color:#314358}.dark .toolDetails summary{color:#dcecff}.dark .warningKey{background:#243546;color:#c8d7e7}
@@ -1801,13 +1818,101 @@ async function scanEnsembleAlerts(){
  }catch(e){console.warn('Ensemble 10-daagse scan:',e.message);renderSignal10()}
 }
 function renderWarningPanel(){
- const rows=lastRows.filter(r=>r.date>=forecastStartDate()).slice(0,10);const dot=$('alertDot'),title=$('alertTitle'),text=$('alertText'),badge=$('modelCodeBadge');if(!dot||!title||!text)return;
- const setLevel=(level,label)=>{dot.className='alertDot'+(level==='green'?'':level==='yellow'?' watch':' high');if(badge){badge.className='modelCode '+level;badge.textContent='MODELSIGNAAL '+label.toUpperCase()}};
- if(!rows.length){setLevel('green','groen');title.textContent='Waarschuwingen & aandachtspunten';text.textContent='Haal de modelmix op voor mogelijke aandachtspunten. Voor officiële kleurcodes gebruik je KNMI.';return}
- const sig=[];let severity=0;if(fineNightSummary?.label){const nn=fineNightSummary.models?.length||0,sw=nn>=3?'mediaan':nn===2?'centrale waarde':'waarde';sig.push(`Komende nacht: ${fineNightSummary.label.replace(/^❄️\s*|^🌙\s*/,'')} · ${sw} ${Number.isFinite(fineNightSummary.median)?fineNightSummary.median.toFixed(1).replace('.',',')+'°':'—'} · ${fineNightSummary.under7}/${nn} modellen onder 7°C`);severity=Math.max(severity,fineNightSummary.strong>=2?1:0)}const fs=fineNightSummary?.signals;if(fs){const addFine=(k,label,sev=1)=>{const z=fs[k];if(z?.any>=2){sig.push(`Fijnmazig: ${z.any}/${fineNightSummary.models.length} modellen geven ${label}${z.strong>=2?' (meerdere sterke signalen)':''}`);severity=Math.max(severity,z.strong>=2?Math.max(2,sev):sev)}};addFine('fog','mist/laag-zichtsignaal',1);addFine('ice','gladheidssignaal',2);addFine('thunder','onweerssignaal',1);addFine('hail','hagelsignaal',2);addFine('snow','sneeuwsignaal',1);addFine('rain','signaal voor zware neerslag',1);addFine('wind','signaal voor zware windstoten',2)}
- for(const r of rows){const d=dayShort(r.date);if((r.gust||0)>=100){sig.push(`${d}: zeer zware windstoten tot circa ${Math.round(r.gust)} km/u`);severity=Math.max(severity,3)}else if((r.gust||0)>=90){sig.push(`${d}: zware windstoten tot circa ${Math.round(r.gust)} km/u`);severity=Math.max(severity,2)}else if((r.gust||0)>=75){sig.push(`${d}: kans op zware windstoten tot circa ${Math.round(r.gust)} km/u`);severity=Math.max(severity,1)}if((r.precip||0)>=30){sig.push(`${d}: veel neerslag, rond ${wholeMm(r.precip)} mm`);severity=Math.max(severity,2)}else if((r.precip||0)>=20){sig.push(`${d}: natte dag, rond ${wholeMm(r.precip)} mm`);severity=Math.max(severity,1)}if((r.max||-99)>=38){sig.push(`${d}: uitzonderlijk heet, circa ${Math.round(r.max)} graden`);severity=Math.max(severity,3)}else if((r.max||-99)>=35){sig.push(`${d}: zeer heet, circa ${Math.round(r.max)} graden`);severity=Math.max(severity,2)}else if((r.max||-99)>=30){sig.push(`${d}: tropisch warm, circa ${Math.round(r.max)} graden`);severity=Math.max(severity,1)}if((r.min||99)<=-10){sig.push(`${d}: strenge vorst mogelijk`);severity=Math.max(severity,2)}else if((r.min||99)<=-5){sig.push(`${d}: matige vorst mogelijk`);severity=Math.max(severity,1)}else if((r.min||99)<0){sig.push(`${d}: kans op vorst`);severity=Math.max(severity,1)}if((r.max||99)<0){sig.push(`${d}: ijsdag mogelijk`);severity=Math.max(severity,2)}if(Number.isFinite(r.thunderChance)&&r.thunderChance>=20){sig.push(`${d}: ${r.thunderChance>=60?'sterk':r.thunderChance>=35?'duidelijk':'beperkt'} onweerssignaal in de modelmix`);severity=Math.max(severity,r.thunderChance>=60?2:1)}if(Number.isFinite(r.hailChance)&&r.hailChance>=20){sig.push(`${d}: ${r.hailChance>=60?'sterk':r.hailChance>=35?'duidelijk':'beperkt'} hagelsignaal in de modelmix`);severity=Math.max(severity,2)}if(Number.isFinite(r.snowChance)&&r.snowChance>=20){sig.push(`${d}: ${r.snowChance>=60?'sterk':r.snowChance>=35?'duidelijk':'beperkt'} sneeuwsignaal in de modelmix`);severity=Math.max(severity,r.snowChance>=60?2:1)}const e=ensembleAlerts[r.date]||{};const ep=(key,label,sev=1)=>{const p=e[key];if(Number.isFinite(p)&&p>=20){sig.push(`${d}: ${p}% ensemblekans op ${label}`);severity=Math.max(severity,p>=60?Math.max(2,sev):sev)}};ep('thunder','onweer',1);ep('hail','hagel bij onweer',2);ep('snow','sneeuw',1);ep('gust75','windstoten ≥75 km/u',1);ep('gust90','windstoten ≥90 km/u',2);ep('gust100','windstoten ≥100 km/u',3);ep('rain20','≥20 mm neerslag',1);ep('rain30','≥30 mm neerslag',2);ep('hot30','≥30°C',1);ep('hot35','≥35°C',2);ep('frost','vorst',1);ep('frost5','matige vorst',2);ep('frost10','strenge vorst',3);ep('ice','ijsdag',2);if(Number.isFinite(r.agreement)&&r.agreement<45){sig.push(`${d}: lage modelovereenkomst`);severity=Math.max(severity,1)}}
- const unique=[...new Set(sig)],levels=[['green','groen'],['yellow','geel'],['orange','oranje'],['red','rood']],lv=levels[severity];setLevel(lv[0],lv[1]);
- if(unique.length){title.textContent='Drempel- en waarschuwingssignalen';text.textContent=unique.join(' · ')+'. Dit zijn modelsignalen; voor officiële waarschuwingen en kleurcodes gebruik je KNMI.'}else{title.textContent='Geen duidelijke drempelsignalen';text.textContent='De huidige modelmix laat voor de komende 10 dagen geen grote extremen of waarschuwingsdrempels zien. Voor officiële waarschuwingen gebruik je KNMI.'}
+ const rows=lastRows.filter(r=>r.date>=forecastStartDate()).slice(0,10);
+ const dot=$('alertDot'),title=$('alertTitle'),text=$('alertText'),badge=$('modelCodeBadge');
+ if(!dot||!title||!text)return;
+ const levels=[['green','groen'],['yellow','geel'],['orange','oranje'],['red','rood']];
+ const setLevel=level=>{
+  const [color,name]=levels[Math.min(3,Math.max(0,level))];
+  dot.className='alertDot'+(color==='green'?'':color==='yellow'?' watch':' high');
+  if(badge){badge.className='modelCode '+color;badge.textContent='MODELSIGNAAL '+name.toUpperCase()}
+ };
+ text.replaceChildren();
+ if(!rows.length){setLevel(0);title.textContent='Waarschuwingen & aandachtspunten';text.textContent='Haal de modelmix op voor de komende 10 dagen.';return}
+ // Waarschuwingssignalen groeperen: geen dubbele regel voor ieder model en iedere dag.
+ // Ensemblekansen blijven herkenbaar als modelkansen, nooit als officiele KNMI-waarschuwing.
+ const categories=[
+  {id:'frost',icon:'❄️',name:'Nachtvorst',events:[],severity:1},
+  {id:'snow',icon:'🌨️',name:'Sneeuw',events:[],severity:1},
+  {id:'wind',icon:'💨',name:'Zware windstoten',events:[],severity:2},
+  {id:'rain',icon:'🌧️',name:'Veel neerslag',events:[],severity:1},
+  {id:'thunder',icon:'⛈️',name:'Onweer en hagel',events:[],severity:1},
+  {id:'heat',icon:'🌡️',name:'Hitte',events:[],severity:1},
+  {id:'uncertain',icon:'🎯',name:'Modelonzekerheid',events:[],severity:0},
+ ];
+ const cat=Object.fromEntries(categories.map(x=>[x.id,x]));
+ function add(id,r,{pct=null,detail='',severity=null}={}){
+  const c=cat[id];if(!c)return;
+  const event={date:r.date,pct:Number.isFinite(pct)?Math.round(pct):null,detail};
+  const prior=c.events.findIndex(x=>x.date===event.date);
+  if(prior<0)c.events.push(event);
+  else if((event.pct??-1)>(c.events[prior].pct??-1))c.events[prior]=event;
+  if(Number.isFinite(severity))c.severity=Math.max(c.severity,severity);
+ }
+ for(const r of rows){
+  const e=ensembleAlerts[r.date]||{};
+  const has=(k,threshold=20)=>Number.isFinite(e[k])&&e[k]>=threshold;
+  if(has('frost')||Number.isFinite(r.min)&&r.min<0){
+   const p=has('frost')?e.frost:null;
+   const detail=r.min<=-10?'strenge vorst':r.min<=-5?'matige vorst':'lichte vorst';
+   add('frost',r,{pct:p,detail,severity:r.min<=-10?2:1});
+  }
+  if(has('snow')||Number.isFinite(r.snowChance)&&r.snowChance>=20)
+   add('snow',r,{pct:has('snow')?e.snow:null,detail:has('snow')?'ensemblekans':'sneeuwsignaal in de modelmix',severity:has('snow',60)?2:1});
+  const gust=Math.max(Number.isFinite(r.gust)?r.gust:0,0);
+  if(gust>=75||has('gust75')||has('gust90')||has('gust100')){
+   const p=has('gust100')?e.gust100:has('gust90')?e.gust90:has('gust75')?e.gust75:null;
+   add('wind',r,{pct:p,detail:gust>=75?`tot ${Math.round(gust)} km/u`:'zware windstoten',severity:gust>=100||has('gust100',60)?3:gust>=90||has('gust90')?2:1});
+  }
+  if(r.precip>=20||has('rain20')||has('rain30')){
+   add('rain',r,{pct:has('rain30')?e.rain30:has('rain20')?e.rain20:null,
+    detail:r.precip>=20?`circa ${wholeMm(r.precip)} mm`:'20 mm of meer',severity:r.precip>=30||has('rain30',60)?2:1});
+  }
+  if(has('thunder')||has('hail')||(Number.isFinite(r.thunderChance)&&r.thunderChance>=20)||(Number.isFinite(r.hailChance)&&r.hailChance>=20))
+   add('thunder',r,{pct:has('thunder')?e.thunder:has('hail')?e.hail:null,detail:has('hail')?'ook hagelsignaal':'onweerssignaal',severity:has('hail',60)?2:1});
+  if(r.max>=30||has('hot30')||has('hot35'))
+   add('heat',r,{pct:has('hot35')?e.hot35:has('hot30')?e.hot30:null,detail:r.max>=30?`maximaal ${Math.round(r.max)}°C`:'tropische temperaturen',severity:r.max>=38?3:r.max>=35||has('hot35',60)?2:1});
+  if(Number.isFinite(r.agreement)&&r.agreement<45)
+   add('uncertain',r,{detail:'modellen lopen uiteen'});
+ }
+ const fine=fineNightSummary?.signals;
+ let fog=null;
+ if(fine?.fog?.any>=2){
+  fog={icon:'🌫️',name:'Mist of beperkt zicht',pct:null,
+    days:['komende nacht'], detail:`${fine.fog.any} van ${fineNightSummary?.models?.length||'?'} fijnmazige modellen`,severity:fine.fog.strong>=2?2:1};
+ }
+ const chosen=categories.filter(c=>c.events.length&&c.id!=='uncertain');
+ const cards=chosen.map(c=>{
+  c.events.sort((a,b)=>a.date.localeCompare(b.date));
+  const ranked=[...c.events].sort((a,b)=>(b.pct??-1)-(a.pct??-1));
+  const maximum=ranked[0]?.pct;
+  const peak=Number.isFinite(maximum)?ranked[0]:null;
+  const days=c.events.slice(0,3).map(x=>dayShort(x.date));
+  return {icon:c.icon,name:c.name,pct:maximum,days,more:c.events.length-days.length,
+   detail:peak?.detail||c.events[0]?.detail||'',severity:c.severity};
+ });
+ if(fog)cards.push(fog);
+ const uncertain=cat.uncertain.events.length;
+ let severity=cards.reduce((n,c)=>Math.max(n,c.severity||0),0);
+ setLevel(severity);
+ title.textContent=cards.length?'Aandachtspunten komende 10 dagen':'Geen duidelijke waarschuwingssignalen';
+ const intro=document.createElement('p');intro.className='ricoWarnIntro';
+ intro.textContent=cards.length?`${cards.length} ${cards.length===1?'weeronderwerp vraagt':'weeronderwerpen vragen'} aandacht. De belangrijkste signalen staan hieronder.`:'De modelmix laat momenteel geen opvallende extremen zien.';
+ text.appendChild(intro);
+ const grid=document.createElement('div');grid.className='ricoWarnGrid';
+ function makeCard(c){
+  const card=document.createElement('article');card.className='ricoWarnCard';
+  const head=document.createElement('div');head.className='ricoWarnCardTitle';head.textContent=`${c.icon} ${c.name}`;card.appendChild(head);
+  if(Number.isFinite(c.pct)){const pct=document.createElement('strong');pct.className='ricoWarnPct';pct.textContent=`Maximaal ${c.pct}% ensemblekans`;card.appendChild(pct)}
+  const days=document.createElement('div');days.className='ricoWarnDays';
+  days.textContent=`${(c.days||[]).join(' · ')}${c.more?` · +${c.more} dagen`:''}`;card.appendChild(days);
+  if(c.detail){const info=document.createElement('div');info.className='ricoWarnDetail';info.textContent=c.detail;card.appendChild(info)}
+  return card;
+ }
+ for(const c of cards)grid.appendChild(makeCard(c));
+ if(cards.length)text.appendChild(grid);
+ if(uncertain){const note=document.createElement('p');note.className='ricoWarnMinor';note.textContent=`Bij ${uncertain} ${uncertain===1?'dag':'dagen'} lopen de weermodellen duidelijk uiteen.`;text.appendChild(note)}
+ const footer=document.createElement('p');footer.className='ricoWarnFooter';footer.textContent='Modelsignalen en ensemblekansen, geen officiële waarschuwingen. Raadpleeg KNMI voor actuele kleurcodes.';text.appendChild(footer);
 }
 async function renderTodayTomorrow(sourceData=null,singleKey=null){
  const p=$('todayTomorrowPanel'),box=$('todayTomorrowGrid');if(!p||!box)return;
