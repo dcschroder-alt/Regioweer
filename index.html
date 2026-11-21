@@ -6957,6 +6957,13 @@ document.getElementById('model')?.addEventListener('change',start);
 #ricoMotionPanel canvas{display:block;width:100%;max-width:900px;height:auto;background:#0763bb;border-radius:12px}
 #ricoMotionPanel .rm-note{font-size:12px;color:#526c81;line-height:1.4;margin:8px 0}
 #ricoMotionPanel .rm-status{font-size:13px;font-weight:650;margin:10px 0;padding:10px 12px;background:#ffffffac;border-radius:10px}#ricoMotionPanel .rm-tabs{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}#ricoMotionPanel .rm-tab{border-radius:30px;padding:9px 13px;background:#fff}#ricoMotionPanel .rm-tab.active{background:#0876cb;color:white;border-color:#0876cb}#ricoMotionPanel .rm-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;font-weight:650;margin:8px 0}#ricoMotionPanel .rm-dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:5px}#ricoMotionPanel .rm-advanced{margin-top:14px;border-top:1px solid #c7dfed;padding-top:9px}#ricoMotionPanel .rm-advanced summary{font-size:14px}#ricoMotionPanel .rm-controls button.primary{background:#0876cb;color:#fff}#ricoMotionPanel .rm-model-note{padding:8px 12px;border-radius:10px;background:#e4effa;font-size:12px}
+/* Mobiel: voorkom horizontaal uitschuiven van titel, legenda en canvas. */
+#ricoMotionPanel{box-sizing:border-box;width:100%;max-width:100%;min-width:0;overflow:hidden}
+#ricoMotionPanel *,#ricoMotionPanel *::before,#ricoMotionPanel *::after{box-sizing:border-box}
+#ricoMotionPanel .rm-status,#ricoMotionPanel .rm-model-note,#ricoMotionPanel .rm-note{overflow-wrap:anywhere;white-space:normal}
+#ricoMotionPanel .rm-legend{min-width:0;flex-wrap:wrap;overflow-wrap:anywhere}
+#ricoMotionPanel canvas{width:100%!important;max-width:100%!important;min-width:0;height:auto!important;aspect-ratio:auto;object-fit:contain}
+@media(max-width:520px){#ricoMotionPanel{padding:12px;border-radius:15px}#ricoMotionPanel summary{font-size:17px;line-height:1.3}#ricoMotionPanel .rm-controls{gap:7px}#ricoMotionPanel .rm-controls label{flex:1 1 145px;min-width:0}#ricoMotionPanel .rm-controls select{width:100%;max-width:100%;font-size:14px}#ricoMotionPanel .rm-legend{gap:7px;font-size:11px}}
 </style>
 <details id="ricoMotionPanel"><summary>📈 Pluimen, kansen & weeranimaties</summary>
 <p class="rm-note">Dezelfde ensemblebron als in Ricoweer. Vergelijk ECMWF met GFS, volg de onzekerheid of maak een animatie. ICON-EU is een kortetermijndagmodel en wordt niet als ensemble weergegeven. Ontbrekende gegevens worden nooit ingevuld.</p>
@@ -6982,7 +6989,7 @@ document.getElementById('model')?.addEventListener('change',start);
 (()=>{'use strict';
 const el=id=>document.getElementById(id),panel=el('ricoMotionPanel');if(!panel)return;
 const canvas=el('rmCanvas'),ctx=canvas.getContext('2d');
-let ensemble=null,comparison=null,raf=0,playing=false;const ensembleModels={ecmwf_ifs025_ensemble:'ECMWF ENS',ncep_gefs05:'GFS GEFS'};
+let ensemble=null,comparison=null,raf=0,playing=false,lastMotionRefresh=0,motionLoading=false;const MOTION_REFRESH_MS=15*60*1000;const ensembleModels={ecmwf_ifs025_ensemble:'ECMWF ENS',ncep_gefs05:'GFS GEFS'};
 const get=id=>el(id).value,show=s=>{el('rmStatus').textContent=s},isnum=x=>x!==null&&x!==undefined&&x!==''&&Number.isFinite(Number(x));
 const fields={
  temp:{title:'TEMPERATUURPLUIM',kind:'plume',field:'temperature_2m',unit:'°C',aggregation:'hour',note:'Mediaan, P10–P90 en P25–P75 · °C'},
@@ -7033,15 +7040,22 @@ function plot(progress=1){const portrait=get('rmFormat')==='portrait',w=portrait
  if(!chance&&!direction){const vv=[...rows,...(C?.rows||[])].flatMap(r=>[r.p10,r.p90]).filter(Number.isFinite);if(!vv.length)return;min=Math.floor((Math.min(...vv)-2)/5)*5;max=Math.ceil((Math.max(...vv)+2)/5)*5;if(spec.field==='temperature_2m'){min=Math.min(min,-5);max=Math.max(max,5)}else min=Math.max(0,min);if(max-min<5)max=min+5}
  else if(direction){max=360}
  const y=v=>bottom-(v-min)/Math.max(1,max-min)*hh;
- for(let k=0;k<=4;k++){const v=min+(max-min)*k/4,yy=y(v);ctx.strokeStyle='#e1eaf2';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(right,yy);ctx.stroke();ctx.textAlign='right';ctx.fillStyle='#557188';ctx.font=`${portrait?16:15}px Arial`;ctx.fillText(`${Math.round(v)}${chance?'%':spec.unit}`,left-9,yy+4)}
- // Meteorologische referenties uitsluitend bij de temperatuurpluim.
- // Altijd binnen de schaal; achter de scenariolijnen en spreidingsband.
+ for(let k=0;k<=4;k++){const v=min+(max-min)*k/4,yy=y(v);
+  const reference=spec.field==='temperature_2m'&&!chance&&!direction;
+  if(reference&&(Math.abs(v)<1.5||Math.abs(v+5)<1.5))continue; // Geen dubbel label boven nul-/min-vijflijn.
+  ctx.strokeStyle='#e5edf4';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(right,yy);ctx.stroke();
+  ctx.textAlign='right';ctx.fillStyle='#61788b';ctx.font=`${portrait?16:15}px Arial`;ctx.fillText(`${Math.round(v)}${chance?'%':spec.unit}`,left-11,yy+5)
+ }
+ // Rustige vorstreferenties: 0 C duidelijk, -5 C subtiel. Geen overlappende y-aslabels.
  if(!chance&&!direction&&spec.field==='temperature_2m'){
-  for(const [temp,color,width,dash] of [[-5,'#8aa6c1',1.9,[7,5]],[0,'#175e9b',3,[]]]){
+  for(const [temp,color,width,dash] of [[-5,'#9bafbf',1.6,[6,6]],[0,'#175d95',2.7,[]]]){
    const yy=y(temp);ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;
    ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(right,yy);ctx.stroke();ctx.restore();
+   const name=temp===0?'0°':'−5°';
+   ctx.save();ctx.fillStyle='#ffffff';ctx.fillRect(left-56,yy-12,46,24);
    ctx.fillStyle=color;ctx.font=`700 ${portrait?17:17}px Arial`;
-   ctx.textAlign='right';ctx.fillText(`${temp===0?'0':'−5'}°C`,left-9,yy-7);
+   ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(name,left-13,yy);
+   ctx.restore();
   }
  }
  const x=i=>left+ww*(i+.5)/Math.max(n,1);
@@ -7066,7 +7080,15 @@ function plot(progress=1){const portrait=get('rmFormat')==='portrait',w=portrait
  ctx.font=`${portrait?15:14}px Arial`;ctx.fillText(`${ensemble.label}${comparison?' + '+comparison.label:''} · ${ensemble.run}${ensemble.cached?' · cache':''} · modelaandelen, geen officiële kansen`,margin,portrait?h-73:h-41);
 }
 async function load(){
+ if(motionLoading)return;
+ motionLoading=true;lastMotionRefresh=Date.now();
  const selected=get('rmModel');cancelAnimationFrame(raf);playing=false;
+ // Bypass verlopen metadatacache voor een echte check bij het openen.
+ for(const model of (selected==='compare'?['ecmwf_ifs025_ensemble','ncep_gefs05']:[selected])){
+   if(model==='icon_ref')continue;
+   try{localStorage.removeItem('rico-ensemble-meta-v21-'+model);ensembleMetaMemo?.delete(model)}catch(_){ }
+ }
+
  if(selected==='icon_ref'){
    ensemble=null;comparison=null;plot();el('rmPlay').disabled=true;el('rmImage').disabled=true;el('rmVideo').disabled=true;
    show('ICON-EU is een deterministisch dagmodel (circa 5 dagen), zonder ensembleleden. Kies ICON-EU in de gewone dagverwachting; een ICON-pluim of kanspercentage zou misleidend zijn.');
@@ -7076,15 +7098,17 @@ async function load(){
  try{
   const desired=selected==='compare'?['ecmwf_ifs025_ensemble','ncep_gefs05']:[selected];
   const runs=await Promise.allSettled(desired.map(model=>getEnsembleDataset(model,{allowNetwork:true,days:Math.min(Number(get('rmDays')),ensembleForecastDays(model))})));
-  const available=runs.map((r,i)=>r.status==='fulfilled'?{h:r.value.h,times:r.value.times||r.value.h?.time||[],label:ensembleModels[desired[i]],run:typeof storedRunText==='function'?storedRunText(r.value):'laatste run',cached:r.value.source!=='nieuw',model:desired[i]}:null);
+  const available=runs.map((r,i)=>r.status==='fulfilled'?{h:r.value.h,times:r.value.times||r.value.h?.time||[],label:ensembleModels[desired[i]],run:typeof storedRunText==='function'?storedRunText(r.value):'laatste run',cached:r.value.source!=='nieuw',fetchError:r.value.fetchError||null,model:desired[i]}:null);
   ensemble=available[0];comparison=selected==='compare'?available[1]:null;
   if(!ensemble&&comparison){ensemble=comparison;comparison=null;}
   if(!ensemble)throw Error(runs.map(r=>r.status==='rejected'?r.reason?.message:'').filter(Boolean).join('; ')||'Geen ensembles beschikbaar');
   plot();const v=getSeries();const ready=!!v&&!v.missing;
   el('rmPlay').disabled=!ready;el('rmImage').disabled=!ready;el('rmVideo').disabled=!ready||!(window.MediaRecorder&&canvas.captureStream);
   const compareText=selected==='compare'?(comparison?' · twee afzonderlijke ensemblemediaanlijnen':' · één ensemble beschikbaar; vergelijking onvolledig'):'';
-  show(`${ensemble.label}${compareText} · ${ensemble.run}${v?.missing?' · '+v.missing:''}${ensemble.cached?' · opgeslagen gegevens':''}`);
- }catch(e){ensemble=null;comparison=null;plot();show('Geen bruikbare ensemblegegevens: '+e.message);el('rmPlay').disabled=true;el('rmImage').disabled=true;el('rmVideo').disabled=true}finally{el('rmLoad').disabled=false}
+  const stale=ensemble.cached?' · laatst opgeslagen gegevens (nieuwere run niet bevestigd)':' · nieuwste opgehaalde gegevens';
+  const issue=available.filter(x=>x?.fetchError).map(x=>x.fetchError).join(' / ');
+  show(`${ensemble.label}${compareText} · ${ensemble.run}${v?.missing?' · '+v.missing:''}${stale}${issue?' · verversen niet gelukt: '+issue:''}`);
+ }catch(e){ensemble=null;comparison=null;plot();show('Geen bruikbare ensemblegegevens: '+e.message);el('rmPlay').disabled=true;el('rmImage').disabled=true;el('rmVideo').disabled=true}finally{el('rmLoad').disabled=false;motionLoading=false}
 }
 function animate(done){cancelAnimationFrame(raf);playing=true;el('rmPlay').disabled=true;const start=performance.now(),ms=Number(get('rmDuration'))*1000;function step(now){if(!playing)return;const p=Math.min(1,(now-start)/ms);plot(p);if(p<1)raf=requestAnimationFrame(step);else{playing=false;el('rmPlay').disabled=false;done?.()}}raf=requestAnimationFrame(step)}
 el('rmLoad').onclick=load;
@@ -7092,7 +7116,15 @@ el('rmModel').addEventListener('change',()=>{ensemble=null;comparison=null;plot(
 for(const b of panel.querySelectorAll('[data-rm-group]'))b.addEventListener('click',()=>{const kind=b.dataset.rmGroup;panel.querySelectorAll('[data-rm-group]').forEach(t=>t.classList.toggle('active',t===b));const choices=[...el('rmType').options];const target=choices.find(o=>kind==='plume'?fields[o.value].kind==='plume':fields[o.value].kind==='chance');if(fields[get('rmType')].kind!==kind&&target)el('rmType').value=target.value;modeSync();plot();});
 el('rmOldPlume').onclick=()=>{const p=document.getElementById('plumePanel');if(p){p.classList.remove('hidden');document.getElementById('plumeLoad')?.click();p.scrollIntoView({behavior:'smooth',block:'start'})}};
 el('rmOldRisks').onclick=()=>{const p=document.getElementById('riskPanel');if(p){p.classList.remove('hidden');document.getElementById('riskLoad')?.click();p.scrollIntoView({behavior:'smooth',block:'start'})}};
-window.ricoOpenMotion=type=>{panel.open=true;if(fields[type])el('rmType').value=type;modeSync();panel.querySelectorAll('[data-rm-group]').forEach(t=>t.classList.toggle('active',t.dataset.rmGroup===fields[el('rmType').value].kind));panel.scrollIntoView({behavior:'smooth',block:'start'});if(!ensemble&&get('rmModel')!=='icon_ref')load();else plot();};
+function autoCheckMotion(){
+ if(!panel.open||get('rmModel')==='icon_ref'||motionLoading||!navigator.onLine)return;
+ if(Date.now()-lastMotionRefresh<MOTION_REFRESH_MS)return;
+ show('Controleren of er een nieuwere ensemble-run is…');
+ load();
+}
+panel.addEventListener('toggle',()=>{if(panel.open)autoCheckMotion()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)autoCheckMotion()});
+window.ricoOpenMotion=type=>{panel.open=true;if(fields[type])el('rmType').value=type;modeSync();panel.querySelectorAll('[data-rm-group]').forEach(t=>t.classList.toggle('active',t.dataset.rmGroup===fields[el('rmType').value].kind));panel.scrollIntoView({behavior:'smooth',block:'start'});if(!ensemble&&get('rmModel')!=='icon_ref')autoCheckMotion();else plot();};
 el('rmPlay').onclick=()=>{if(ensemble)animate()};
 for(const id of ['rmType','rmMode','rmDays','rmFormat'])el(id).addEventListener('change',()=>{modeSync();panel.querySelectorAll('[data-rm-group]').forEach(t=>t.classList.toggle('active',t.dataset.rmGroup===fields[get('rmType')].kind));plot();if(ensemble){const d=getSeries();show(d?.missing?'Niet beschikbaar: '+d.missing:`${fields[get('rmType')].title} · ${ensemble.label} · ${ensemble.run}`)}});
 el('rmImage').onclick=()=>{if(!ensemble)return;plot();canvas.toBlob(blob=>{if(!blob)return;const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=`ricoweer-${get('rmType')}-${get('rmDays')}dagen.png`;a.click();setTimeout(()=>URL.revokeObjectURL(u),1600)},'image/png')};
