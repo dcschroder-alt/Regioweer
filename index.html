@@ -7030,10 +7030,20 @@ function plot(progress=1){const portrait=get('rmFormat')==='portrait',w=portrait
  const rows=D.rows,n=rows.length,visible=Math.max(0,Math.min(n-1,Math.round(progress*(n-1))));
  const chance=spec.kind==='chance',direction=spec.field==='wind_direction_10m';
  let min=0,max=100;
- if(!chance&&!direction){const vv=[...rows,...(C?.rows||[])].flatMap(r=>[r.p10,r.p90]).filter(Number.isFinite);if(!vv.length)return;min=Math.floor((Math.min(...vv)-2)/5)*5;max=Math.ceil((Math.max(...vv)+2)/5)*5;if(spec.field!=='temperature_2m')min=Math.max(0,min);if(max-min<5)max=min+5}
+ if(!chance&&!direction){const vv=[...rows,...(C?.rows||[])].flatMap(r=>[r.p10,r.p90]).filter(Number.isFinite);if(!vv.length)return;min=Math.floor((Math.min(...vv)-2)/5)*5;max=Math.ceil((Math.max(...vv)+2)/5)*5;if(spec.field==='temperature_2m'){min=Math.min(min,-5);max=Math.max(max,5)}else min=Math.max(0,min);if(max-min<5)max=min+5}
  else if(direction){max=360}
  const y=v=>bottom-(v-min)/Math.max(1,max-min)*hh;
  for(let k=0;k<=4;k++){const v=min+(max-min)*k/4,yy=y(v);ctx.strokeStyle='#e1eaf2';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(right,yy);ctx.stroke();ctx.textAlign='right';ctx.fillStyle='#557188';ctx.font=`${portrait?16:15}px Arial`;ctx.fillText(`${Math.round(v)}${chance?'%':spec.unit}`,left-9,yy+4)}
+ // Meteorologische referenties uitsluitend bij de temperatuurpluim.
+ // Altijd binnen de schaal; achter de scenariolijnen en spreidingsband.
+ if(!chance&&!direction&&spec.field==='temperature_2m'){
+  for(const [temp,color,width,dash] of [[-5,'#8aa6c1',1.9,[7,5]],[0,'#175e9b',3,[]]]){
+   const yy=y(temp);ctx.save();ctx.strokeStyle=color;ctx.lineWidth=width;
+   ctx.setLineDash(dash);ctx.beginPath();ctx.moveTo(left,yy);ctx.lineTo(right,yy);ctx.stroke();ctx.restore();
+   ctx.fillStyle=color;ctx.font=`700 ${portrait?17:17}px Arial`;
+   ctx.textAlign='right';ctx.fillText(`${temp===0?'0':'−5'}°C`,left-9,yy-7);
+  }
+ }
  const x=i=>left+ww*(i+.5)/Math.max(n,1);
  if(chance){const step=ww/n,bw=Math.max(3,step*.69);rows.forEach((r,i)=>{const px=x(i),fraction=Math.max(0,Math.min(1,progress*n-i));if(r.n>=2&&fraction){const va=(r.a||0)*fraction,vb=(r.b||0)*fraction;box(px-bw/2,y(va),bw,bottom-y(va),Math.min(5,bw/4),P.blue);box(px-bw*.21,y(vb),bw*.42,bottom-y(vb),Math.min(4,bw/5),P.dark)}ctx.fillStyle='#38617e';ctx.textAlign='center';ctx.font=`${portrait?14:14}px Arial`;ctx.fillText(fmt(r.day),px,bottom+29)});if(C?.rows?.length){const byDay=new Map(C.rows.map(r=>[r.day,r]));rows.forEach((r,i)=>{const v=byDay.get(r.day);if(!v||!Number.isFinite(v.a)||i>visible)return;const px=x(i),bar=Math.max(2,bw*.18);box(px+bw*.16,y(v.a),bar,bottom-y(v.a),2,'#f29134')})}}
  else{
