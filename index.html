@@ -833,6 +833,37 @@ function ricoHourlyCloudSky(cloud){return Number.isFinite(cloud)?ricoSunSky((100
 </div></details></section>
 
 
+
+<style id="rico-frost-nov-style">
+#ricoFrostNov .frostTop{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px}
+#ricoFrostNov .frostTitle{font-size:19px;font-weight:900;color:var(--ink,#164660)}
+#ricoFrostNov .frostDesc{font-size:13px;opacity:.82;margin:5px 0 14px}
+#ricoFrostNov .frostRows{display:grid;gap:8px}
+#ricoFrostNov .frostRow{display:grid;grid-template-columns:34px 56px minmax(0,1fr) 44px;align-items:center;gap:7px;font-size:14px}
+#ricoFrostNov .frostRank{font-size:12px;font-weight:800;opacity:.65;text-align:right}
+#ricoFrostNov .frostYear{font-weight:800;font-variant-numeric:tabular-nums}
+#ricoFrostNov .frostTrack{height:27px;background:rgba(107,157,185,.12);border-radius:6px;display:flex;overflow:hidden;min-width:0}
+#ricoFrostNov .frostMeasured{background:#308fc8;height:100%;min-width:0}
+#ricoFrostNov .frostCurrent .frostMeasured{background:#e9ac21}
+#ricoFrostNov .frostPred{background:repeating-linear-gradient(135deg,#ffe0a0 0px,#ffe0a0 7px,#f5c35a 7px,#f5c35a 13px);height:100%}
+#ricoFrostNov .frostValue{text-align:right;font-weight:900;font-variant-numeric:tabular-nums}
+#ricoFrostNov .frostCurrent .frostYear,#ricoFrostNov .frostCurrent .frostValue{color:#a36806}
+#ricoFrostNov .frostLegend{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin-top:14px}
+#ricoFrostNov .frostSwatch{width:14px;height:11px;display:inline-block;border-radius:2px;margin-right:5px;vertical-align:-1px;background:#308fc8}
+#ricoFrostNov .frostSwatch.current{background:#e9ac21}
+#ricoFrostNov .frostSwatch.future{background:repeating-linear-gradient(135deg,#ffe0a0 0px,#ffe0a0 5px,#f5c35a 5px,#f5c35a 10px)}
+#ricoFrostNov .frostNote{font-size:12px;opacity:.8;line-height:1.5;margin-top:12px}
+#ricoFrostNov button{font:inherit}
+@media(max-width:420px){#ricoFrostNov .frostRow{grid-template-columns:22px 43px minmax(0,1fr) 35px;gap:5px;font-size:12px}}
+</style>
+
+<section class="panel" id="ricoFrostNov"><details><summary>❄️ Novemberrecord: meeste vorstdagen De Bilt</summary><div class="rv65-foldbody">
+<div class="frostTop"><div class="frostTitle">❄️ Vorstdagen in november · De Bilt</div><button class="ghost" id="ricoFrostNovRefresh" type="button">↻ Bijwerken</button></div>
+<div class="frostDesc">Historische top 10 sinds 1901 · een vorstdag heeft een minimumtemperatuur onder 0 °C op 1,5 meter.</div>
+<div id="ricoFrostNovStatus" class="note" aria-live="polite">Open dit overzicht om de KNMI-gegevens te laden.</div>
+<div id="ricoFrostNovBars" class="frostRows"></div><div id="ricoFrostNovLegend" class="frostLegend"></div>
+<div id="ricoFrostNovNote" class="frostNote">Blauw: afgeronde meetjaren · geel: gemeten vorstdagen lopende november · gearceerd: modelverwachting. Prognoses zijn geen officiële records.</div>
+</div></details></section>
 <section class="panel" id="stationStatsPanel"><details class="rv65-fold" data-rv65="stationStatsPanel"><summary>📊 KNMI-stations en records<span class="rv65-hint">Tik voor details</span></summary><div class="rv65-foldbody"><div style="font-weight:900;font-size:18px">📊 KNMI-stations · temperatuurstatistieken</div><div class="note">Excelachtig maandoverzicht met verschuivend 30-jarig normaal. Historische gegevens ingebouwd vanaf 1901 waar beschikbaar. Recente KNMI-dagwaarden worden bij openen gecontroleerd (maximaal elke 6 uur). Waarden van de laatste 3 dagen krijgen het label voorlopig totdat hun definitieve status bevestigd is. Geen upload nodig.</div>
 <div class="v34toolbar"><button type="button" id="statsRefresh" class="ghost">↻ KNMI-gegevens vernieuwen</button></div><div id="statsStatus" class="note" aria-live="polite">Nog geen daggegevens geladen.</div>
 <div class="v34toolbar"><label>Weergave <select id="statsView"><option value="rank">Landelijke ranglijst</option><option value="month">Per maand per station</option></select></label><label>Jaar <select id="statsYear"></select></label><label>Periode <select id="statsMonth"><option value="0">Heel jaar</option></select></label><label>Statistiek <select id="statsMetric"><option value="tg">Gemiddelde temperatuur TG</option><option value="txavg">Gemiddelde maximumtemperatuur TX</option><option value="tnavg">Gemiddelde minimumtemperatuur TN</option><option value="txmax">Hoogste maximumtemperatuur</option><option value="tnmin">Laagste minimumtemperatuur</option><option value="warm">Warme dagen ≥20°C</option><option value="summer">Zomerse dagen ≥25°C</option><option value="tropical">Tropische dagen ≥30°C</option><option value="hot35">Zeer hete dagen ≥35°C</option><option value="frost">Vorstdagen &lt;0°C</option><option value="moderate">Matige vorst &lt;−5°C</option><option value="severe">Strenge vorst &lt;−10°C</option><option value="ice">IJsdagen (Tx &lt;0°C)</option><option value="tropicalNight">Tropische nachten ≥20°C</option><option value="rec_warm">🏆 RECORDS — meeste warme dagen</option><option value="rec_summer">🏆 RECORDS — meeste zomerse dagen</option><option value="rec_tropical">🏆 RECORDS — meeste tropische dagen</option><option value="rec_frost">🏆 RECORDS — meeste vorstdagen</option><option value="rec_ice">🏆 RECORDS — meeste ijsdagen</option><option value="rec_tg">🏆 RECORDS — hoogste gemiddelde temperatuur</option><option value="rec_coldtg">🏆 RECORDS — laagste gemiddelde temperatuur</option><option value="rec_txmax">🏆 RECORDS — hoogste maximumtemperatuur</option><option value="rec_tnmin">🏆 RECORDS — laagste minimumtemperatuur</option></select></label><label id="statsStationLabel" style="display:none">Station <select id="statsStation"></select></label></div>
@@ -7387,5 +7418,104 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
   render();
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start();
+})();
+</script>
+
+<script id="rico-frost-nov-script">
+(()=>{
+'use strict';
+const box=document.getElementById('ricoFrostNov');if(!box)return;
+const status=document.getElementById('ricoFrostNovStatus'),bars=document.getElementById('ricoFrostNovBars'),legend=document.getElementById('ricoFrostNovLegend'),note=document.getElementById('ricoFrostNovNote');
+const nlDate=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Amsterdam',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const n=v=>v===null||v===undefined||v===''?null:(Number.isFinite(Number(v))?Number(v):null);
+const dateNum=v=>Number(String(v).replace(/-/g,''));
+let running=null;
+async function loadArchive(){
+ const r=await fetch('./knmi-nederland-1901-2026.json',{cache:'force-cache'});
+ if(!r.ok)throw Error('Historisch KNMI-bestand ontbreekt (HTTP '+r.status+')');
+ const j=await r.json();if(!Array.isArray(j.rows))throw Error('Historisch archief bevat geen dagregels');
+ const map=new Map();
+ const add=a=>{if(!Array.isArray(a)||Number(a[0])!==260)return;const d=String(a[1]);if(!/^\d{8}$/.test(d)||d.slice(4,6)!=='11')return;const raw=n(a[3]);if(raw===null)return;map.set(d,raw/10)};
+ j.rows.forEach(add);
+ // In de bestaande klimaatmonitor worden aanvullende KNMI-dagen opgeslagen.
+ try{const saved=JSON.parse(localStorage.getItem('ricoweer_knmi_recent_v2')||'[]');saved.forEach(add)}catch(e){}
+ if(window.ricoKnmi?.rows?.length)window.ricoKnmi.rows.forEach(add);
+ // De Bilt-klimaatcache is een tweede bron voor recent gevalideerde dagen.
+ for(const key of ['rw-climate-v106-weerstats-today','rw-climate-v105-jina']){
+  try{const o=JSON.parse(localStorage.getItem(key)||'null');for(const r of o?.rows||[]){if(r.date?.slice(5,7)==='11'&&Number.isFinite(r.tn)&&r.source==='KNMI daggegevens')map.set(r.date.replace(/-/g,''),r.tn)}}catch(e){}
+ }
+ return map;
+}
+async function futureFrost(today){
+ const year=+today.slice(0,4),novEnd=`${year}-11-30`;
+ if(today.slice(5,7)!=='11'||today>=novEnd)return {dates:new Map(),error:null};
+ const url=new URL('https://api.open-meteo.com/v1/forecast');
+ url.search=new URLSearchParams({latitude:'52.10',longitude:'5.18',models:'ecmwf_ifs',daily:'temperature_2m_min',timezone:'Europe/Amsterdam',forecast_days:'16'}).toString();
+ try{
+  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),12000);
+  let res;try{res=await fetch(url.toString(),{signal:controller.signal,cache:'no-store'})}finally{clearTimeout(timer)}
+  if(!res.ok)throw Error('HTTP '+res.status);
+  const j=await res.json();if(j.error)throw Error(j.reason||'API niet beschikbaar');
+  const dates=new Map();const ds=j.daily?.time||[],mins=j.daily?.temperature_2m_min||[];
+  ds.forEach((d,i)=>{const temp=n(mins[i]);if(d>today&&d<=novEnd&&temp!==null)dates.set(d,temp)});
+  return {dates,error:null};
+ }catch(e){return {dates:new Map(),error:String(e.message||e)}}
+}
+function render(records,year,today,forecast){
+ const historic=[];
+ for(const [y,a] of records){if(y>year||(y===year&&today.slice(5,7)==='11'))continue;if(a.days.size===30)historic.push({year:y,actual:a.frost,expected:0});}
+ historic.sort((a,b)=>b.actual-a.actual||a.year-b.year);
+ const top=historic.slice(0,10),cur=records.get(year),novToday=today.slice(5,7)==='11';
+ let meas=0,measDates=0,remaining=0,projected=0,forecastFull=false;
+ if(novToday){
+  const end=Math.min(+today.slice(8),30);
+  for(let d=1;d<=end;d++){const value=cur?.days.get(d);if(Number.isFinite(value)){measDates++;if(value<0)meas++}}
+  remaining=30-end;
+  for(let d=end+1;d<=30;d++){const key=`${year}-11-${String(d).padStart(2,'0')}`;const v=forecast.dates.get(key);if(Number.isFinite(v)&&v<0)projected++}
+  forecastFull=Array.from({length:remaining},(_,i)=>`${year}-11-${String(end+1+i).padStart(2,'0')}`).every(d=>forecast.dates.has(d));
+ }
+ const completeMeas=novToday&&measDates===+today.slice(8);
+ const includeCur=novToday&&measDates>0;
+ const projectedValid=includeCur&&completeMeas&&forecastFull;
+ // Toon huidig jaar afzonderlijk wanneer de voorlopige top-10 wordt bereikt,
+ // of als context onder de historische ranglijst. De positie is anders niet hard te maken.
+ const total=meas+(projectedValid?projected:0);
+ const current={year,actual:meas,expected:projectedValid?projected:0,current:true,total};
+ const all=[...top];
+ if(includeCur){all.push(current);all.sort((a,b)=>(b.actual+(b.expected||0))-(a.actual+(a.expected||0))||a.year-b.year);
+  if(all.length>10&&!all.slice(0,10).some(x=>x.current)){
+   all.splice(all.findIndex(x=>x.current),1);all.push(current);
+  }else all.splice(10);
+ }
+ const max=Math.max(1,...all.map(x=>x.actual+(x.expected||0)));
+ bars.innerHTML=all.map((x,i)=>{
+  const total=x.actual+(x.expected||0),a=x.actual/max*100,b=(x.expected||0)/max*100;
+  return `<div class="frostRow${x.current?' frostCurrent':''}" role="group" aria-label="${x.year}: ${x.actual} gemeten${x.current&&x.expected?`, ${x.expected} verwacht`:''} vorstdagen"><span class="frostRank">${i+1}</span><span class="frostYear">${x.year}${x.current?'*':''}</span><span class="frostTrack"><span class="frostMeasured" style="width:${a.toFixed(2)}%"></span>${b?`<span class="frostPred" style="width:${b.toFixed(2)}%"></span>`:''}</span><span class="frostValue">${total}${x.current?'*':''}</span></div>`;
+ }).join('');
+ legend.innerHTML='<span><i class="frostSwatch"></i>Volledige meetjaren</span>'+ (includeCur?'<span><i class="frostSwatch current"></i>Gemeten '+year+'</span>':'')+(projectedValid?'<span><i class="frostSwatch future"></i>Verwacht t/m 30 november</span>':'');
+ const latest=[...cur?.days?.keys()||[]].sort((a,b)=>b-a)[0];
+ const top10value=top.at(-1)?.actual;
+ const rank=includeCur&&projectedValid?1+historic.filter(x=>x.actual>total).length:null;
+ const lines=[`Historische ranglijst: ${historic.length} complete novembermaanden in het lokale KNMI-archief.`];
+ if(includeCur){lines.push(`${year}: ${meas} gemeten vorstdagen uit ${measDates} beschikbare novemberdagen${latest?` (laatst beschikbare dag: ${latest} november)`:''}.`);
+  if(projectedValid)lines.push(`Aanvullend ${projected} vorstdagen verwacht met ECMWF IFS, tot 30 november. Voorlopige positie: ${rank}.`);
+  else lines.push('Geen volledige verwachting voor de resterende novemberdagen en/of nog meetdagen niet binnen; daarom geen voorlopige eindrangschikking.');
+ }
+ lines.push('Vorstdag: TN < 0 °C op reguliere meethoogte. Geel gearceerd is een modelverwachting, geen meting of officieel KNMI-record.');
+ note.textContent=lines.join(' ');
+ status.textContent=`De Bilt (KNMI 260) · ${all.length} regels · bijgewerkt ${new Intl.DateTimeFormat('nl-NL',{timeZone:'Europe/Amsterdam',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}).format(new Date())}${forecast.error?' · modelverwachting tijdelijk niet beschikbaar':''}`;
+}
+async function update(){if(running)return running;running=(async()=>{
+ status.textContent='KNMI-geschiedenis en actuele novembergegevens laden…';
+ try{
+  const map=await loadArchive(),today=nlDate(),year=+today.slice(0,4),records=new Map();
+  for(const [d,tn] of map){const y=+d.slice(0,4),day=+d.slice(6,8);if(!records.has(y))records.set(y,{days:new Map(),frost:0});records.get(y).days.set(day,tn)}
+  for(const x of records.values())x.frost=[...x.days.values()].filter(v=>v<0).length;
+  const fc=await futureFrost(today);
+  render(records,year,today,fc);
+ }catch(e){status.textContent='De KNMI-gegevens konden niet worden geladen: '+String(e.message||e);bars.innerHTML='';legend.innerHTML='';}
+ })().finally(()=>{running=null});return running}
+box.querySelector('details')?.addEventListener('toggle',e=>{if(e.target.open)update()});
+document.getElementById('ricoFrostNovRefresh')?.addEventListener('click',e=>{e.preventDefault();update()});
 })();
 </script>
