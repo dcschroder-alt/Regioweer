@@ -7132,6 +7132,57 @@ el('rmVideo').onclick=()=>{if(!ensemble||!window.MediaRecorder||!canvas.captureS
 modeSync();plot();
 })();
 </script>
+
+<!-- ricoweer-max-min-visual-hierarchy-v1 -->
+<style id="rico-max-min-visual-hierarchy-v1">
+/* Presentatie: maxima rood en dominant, minima blauw en secundair.
+   Gebruikt uitsluitend bestaande weerwaarden; geen aanpassing van modelmix. */
+.card .temps, .previewDay .temps, .modelmixDayGrid .temps {
+  display:flex; align-items:baseline; justify-content:center; flex-wrap:wrap;
+  gap:5px; line-height:1.15; font-size:14px; margin-top:8px;
+  font-variant-numeric:tabular-nums;
+}
+.card .temps .max, .previewDay .temps .max, .modelmixDayGrid .temps .max {
+  font-size:clamp(27px,5vw,36px); font-weight:950; color:#b83939;
+  letter-spacing:-.035em; line-height:1.12;
+}
+.card .temps .min, .previewDay .temps .min, .modelmixDayGrid .temps .min {
+  font-size:clamp(18px,3.3vw,24px); font-weight:850; color:#176eab; line-height:1.15;
+}
+/* De staafgrafieken 'Modelmix in beeld' hebben eigen tekstcomponenten. */
+#rv67Graph .rv67-temp, #rv91RandstadGraph .rv67-temp {height:116px}
+#rv67Graph .rv67-tx, #rv91RandstadGraph .rv67-tx {
+  font-size:clamp(19px,3vw,23px); font-weight:950; color:#b83939;
+  letter-spacing:-.025em; bottom:calc(100% + 5px); opacity:1;
+}
+#rv67Graph .rv67-tn, #rv91RandstadGraph .rv67-tn {
+  font-size:clamp(15px,2.5vw,19px); font-weight:900;
+  color:#176eab; opacity:1; margin-top:7px; line-height:1.25;
+}
+/* De uitgebreide Randstadkaarten kregen al rode en blauwe cijfers;
+   dezelfde hiërarchie geldt nu op alle schermformaten. */
+#ricoRandstadOverview .ricoRSFirstFive .ricoRSTemps strong {font-size:clamp(30px,5vw,38px);color:#b83939}
+#ricoRandstadOverview .ricoRSFirstFive .ricoRSTemps small {font-size:clamp(19px,3.2vw,25px);color:#176eab}
+#ricoRandstadOverview .ricoRSExtra .ricoRSTemps strong {font-size:clamp(24px,4vw,30px);color:#b83939}
+#ricoRandstadOverview .ricoRSExtra .ricoRSTemps small {font-size:clamp(17px,2.8vw,21px);color:#176eab}
+/* Donkere modus: zachtere, maar contrasterende kleuren. */
+.dark .card .temps .max, .dark .previewDay .temps .max,
+.dark .modelmixDayGrid .temps .max, .dark #rv67Graph .rv67-tx,
+.dark #rv91RandstadGraph .rv67-tx,
+.dark #ricoRandstadOverview .ricoRSTemps strong {color:#ff8d88}
+.dark .card .temps .min, .dark .previewDay .temps .min,
+.dark .modelmixDayGrid .temps .min, .dark #rv67Graph .rv67-tn,
+.dark #rv91RandstadGraph .rv67-tn,
+.dark #ricoRandstadOverview .ricoRSTemps small {color:#8acbff}
+@media(max-width:420px){
+  #rv67Graph .rv67-temp,#rv91RandstadGraph .rv67-temp {height:110px}
+  #rv67Graph .rv67-tx,#rv91RandstadGraph .rv67-tx {font-size:19px}
+  #rv67Graph .rv67-tn,#rv91RandstadGraph .rv67-tn {font-size:16px}
+  .card .temps .max,.previewDay .temps .max {font-size:30px}
+  .card .temps .min,.previewDay .temps .min {font-size:20px}
+}
+</style>
+
 </body></html>
 <style id="rico-v82-map-style">
 /* Weerkaart NL-style compact, coloured readings, preserving symbols and wind. */
