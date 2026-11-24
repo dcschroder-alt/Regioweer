@@ -1301,7 +1301,7 @@ function localDatePlus(offset){const d=new Date(`${$('date').value}T12:00:00`);d
 function nlToday(){return new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Amsterdam',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())}
 function isoDatePlus(base,offset){const d=new Date(base+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+offset);return d.toISOString().slice(0,10)}
 function appBaseDate(){return isAutoRun()?nlToday():$('date').value}
-function forecastStartDate(){const base=appBaseDate();return isAutoRun()&&nlHourNow()>=18?isoDatePlus(base,1):base}
+function forecastStartDate(){const base=appBaseDate();return isAutoRun()&&nlHourNow()>=17?isoDatePlus(base,1):base}
 function relativeForecastLead(date){const a=new Date(nlToday()+'T12:00:00Z'),b=new Date(date+'T12:00:00Z'),n=Math.round((b-a)/86400000);if(n===0)return'Vandaag';if(n===1)return'Morgen';if(n===2)return'Overmorgen';return dayLabelLong(date).replace(/^./,c=>c.toUpperCase())}
 function avg(vals,k){let a=vals.map(v=>v?.[k]).filter(v=>Number.isFinite(v));return a.length?a.reduce((x,y)=>x+y,0)/a.length:null}
 function maxv(vals,k){let a=vals.map(v=>v?.[k]).filter(v=>Number.isFinite(v));return a.length?Math.max(...a):null}
@@ -1533,7 +1533,7 @@ function show(rows){
  const c=$('results');c.innerHTML='';const isMix=$('model').value==='mix',singleName=!isMix?($('model').selectedOptions[0]?.textContent||'Gekozen model'):'';
  for(const r of rows){let d=new Date(r.date+'T12:00:00');let winter=isWinterDate(r.date);let extra=`☂ ${Number.isFinite(r.pop)?Math.round(r.pop)+'%':'—'}<br>UV ${Number.isFinite(r.uv)?Math.round(r.uv):'—'}${Number.isFinite(r.uv)&&r.uv>=6?' · insmeren':''}`;const wl=windSummary(r);if(wl)extra+=`<br>${wl}`;if(precipitationPhaseNote(r))extra+=`<br>${precipitationPhaseNote(r)}`;if(Number.isFinite(r.thunderChance)&&r.thunderChance>0)extra+=`<br>⛈ onweerssignaal`;if(Number.isFinite(r.hailChance)&&r.hailChance>0)extra+=`<br>🧊 hagelsignaal`;
  const comparison=isMix&&!r._aggregateOnly?agreementBadge(r):'';let source='';if(isMix&&r.count){const stat=r.count>=3?'mediaan + range':r.count===2?'centrale waarde + range':'1 model beschikbaar';source=`<div class="modelCount">${mixSourceLabel(r)} · ${stat}</div>`;}else if(isMix&&r._aggregateOnly)source='<div class="modelCount">laatste opgeslagen mixsamenvatting</div>';else if(!isMix)source=`<div class="modelCount">${singleName}</div>`;const spread=isMix&&r.count>=2&&Number.isFinite(r.txLow)&&Number.isFinite(r.txHigh)?`<div class="spread">TX ${Math.round(r.txLow)}–${Math.round(r.txHigh)}° · TN ${Math.round(r.tnLow)}–${Math.round(r.tnHigh)}°</div>`:'';
- c.insertAdjacentHTML('beforeend',`<article class="card clickable ${r.date===nlToday()?'todayCard '+(nlHourNow()>=18?'pastToday':''):''}" data-date="${r.date}"><div class="day">${NL[d.getDay()]}</div><div class="date">${d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'})}</div><div class="icon">${forecastIcon(r)}</div><div class="weatherLabel" style="font-size:12px;font-weight:700;color:#30465f;min-height:30px;text-align:center;margin-top:-4px">${forecastText(r)}</div>${comparison}${source}<div class="temps"><span class="max">${Math.round(r.max)}°</span> / <span class="min">${Math.round(r.min)}°</span></div>${trendForDate(r.date)?`<div class="trendBadge ${trendForDate(r.date).includes('▲')?'up':trendForDate(r.date).includes('▼')?'down':''}">${trendForDate(r.date)}</div>`:''}${spread}<div class="meta">☀ ${Number.isFinite(r.sun)?Math.round(r.sun):'—'} u<br>💧 ${Number.isFinite(r.precip)?(r.precip<0.05?'droog':Math.round(r.precip)+' mm'):'—'}<br>${extra}</div></article>`)}
+ c.insertAdjacentHTML('beforeend',`<article class="card clickable ${r.date===nlToday()?'todayCard '+(nlHourNow()>=17?'pastToday':''):''}" data-date="${r.date}"><div class="day">${NL[d.getDay()]}</div><div class="date">${d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'})}</div><div class="icon">${forecastIcon(r)}</div><div class="weatherLabel" style="font-size:12px;font-weight:700;color:#30465f;min-height:30px;text-align:center;margin-top:-4px">${forecastText(r)}</div>${comparison}${source}<div class="temps"><span class="max">${Math.round(r.max)}°</span> / <span class="min">${Math.round(r.min)}°</span></div>${trendForDate(r.date)?`<div class="trendBadge ${trendForDate(r.date).includes('▲')?'up':trendForDate(r.date).includes('▼')?'down':''}">${trendForDate(r.date)}</div>`:''}${spread}<div class="meta">☀ ${Number.isFinite(r.sun)?Math.round(r.sun):'—'} u<br>💧 ${Number.isFinite(r.precip)?(r.precip<0.05?'droog':Math.round(r.precip)+' mm'):'—'}<br>${extra}</div></article>`)}
  syncVisibleDayCards(rows).catch(e=>console.warn('Dagkaarten synchroniseren',e));
 }
 function dayShort(date){const d=new Date(date+'T12:00:00');return NL[d.getDay()]+' '+d.toLocaleDateString('nl-NL',{day:'2-digit',month:'2-digit'})}
@@ -1813,7 +1813,7 @@ async function renderTodayTomorrow(sourceData=null,singleKey=null){
  if(evening){
    items=[['Morgen',tomorrow]].filter(x=>x[1]);
    $('todayTomorrowTitle').textContent='Komende nacht & morgen';
-   $('todayTomorrowNote').textContent='Na 18:00 staat de komende nacht weer vooraan, inclusief wind en windstoten.';
+   $('todayTomorrowNote').textContent='Na 17:00 staat de komende nacht weer vooraan, inclusief wind en windstoten.';
  } else {
    items=[[(isAutoRun()?'Vandaag':'Run-dag'),today],[(isAutoRun()?'Morgen':'Volgende dag'),tomorrow]].filter(x=>x[1]);
    $('todayTomorrowTitle').textContent=isAutoRun()?'Vandaag & morgen':'Run-dag & volgende dag';
@@ -2108,7 +2108,7 @@ function transitionParagraph(prevGroup,group,para){
  return `${lead} ${rest}`.replace(/\s{2,}/g,' ').trim();
 }
 function buildMultiDayWeatherText(ctx=null){
- const evening=isAutoRun()&&nlHourNow()>=18,n=forecastHorizon(),startDate=forecastStartDate(),rows=lastRows.filter(r=>r.date>=startDate).slice(0,n);if(!rows.length)return'';
+ const evening=isAutoRun()&&nlHourNow()>=17,n=forecastHorizon(),startDate=forecastStartDate(),rows=lastRows.filter(r=>r.date>=startDate).slice(0,n);if(!rows.length)return'';
  const first=narrativeProfile(rows[0],ctx),paras=[firstDayParagraph(first,evening)],rest=rows.slice(1);if(rest.length){const groups=makeNarrativeGroups(rest,ctx);let prevTemp=first.temp,prevGroup=[first];const detailedLimit=n>=9?4:n>=6?3:2;for(const g of groups.slice(0,detailedLimit)){let para=periodParagraph(g,prevTemp);para=transitionParagraph(prevGroup,g,para);paras.push(para);prevTemp=Math.round(g.reduce((a,x)=>a+x.temp,0)/g.length);prevGroup=g}const used=groups.slice(0,detailedLimit).flat().length,tail=rest.slice(used);if(tail.length){const prof=tail.map(r=>narrativeProfile(r,ctx)),temps=prof.map(x=>x.temp),avg=Math.round(temps.reduce((a,b)=>a+b,0)/temps.length),wet=prof.filter(x=>x.rain!=='dry').length,agreements=tail.map(r=>r.agreement).filter(Number.isFinite),a=agreements.length?Math.round(agreements.reduce((x,y)=>x+y,0)/agreements.length):null;let z='Verder vooruit neemt de onzekerheid geleidelijk toe.';if(Math.max(...temps)-Math.min(...temps)<=3)z+=` De temperatuur verandert waarschijnlijk weinig en ligt overdag rond ${avg} graden.`;else z+=` De maxima liggen waarschijnlijk tussen ${Math.min(...temps)} en ${Math.max(...temps)} graden.`;if(wet===0)z+=' Een duidelijke overgang naar wisselvallig weer is vooralsnog niet zichtbaar.';else if(wet>=Math.ceil(tail.length*.6))z+=' De modellen laten vaker een signaal voor buien of regen zien.';else z+=' Af en toe verschijnt een neerslagsignaal, maar er blijven ook droge perioden.';if(a!==null&&a<55)z+=' De modellen verschillen daarbij vooral over de timing en hoeveelheid van de neerslag en, op langere termijn, de temperatuur.';paras.push(z)}}
  return editorialPolish(paras).slice(0,n>=9?6:n>=6?5:4).join('\n\n');
 }
@@ -3236,7 +3236,7 @@ function ricoRandstadSharedRows(start,limit=15){
 async function drawRandstadCardsPng(options={}){
  // De landelijke scan wordt onafhankelijk geladen. Gebruik direct de beschikbare
  // modelmix als de regionale scan nog niet gereed is, zonder extra API-verzoeken.
- const pngStart=isoDatePlus(appBaseDate(),(()=>{const hm=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Amsterdam',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date());const [h,m]=hm.split(':').map(Number);return h>17||(h===17&&m>=30)?1:0})()); // Randstad: vanaf 18:00 morgen
+ const pngStart=isoDatePlus(appBaseDate(),(()=>{const hm=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Amsterdam',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date());const [h,m]=hm.split(':').map(Number);return h>=17?1:0})()); // Randstad: vanaf 18:00 morgen
  let days=(nationalScanLastPack?.days||[]).filter(d=>d?.date>=pngStart);
  if(!days.length){
   try{const cached=JSON.parse(localStorage.getItem(NATIONAL_SCAN_CACHE)||'null');days=(cached?.days||[]).filter(d=>d?.date>=pngStart)}catch(e){}
@@ -3846,7 +3846,7 @@ renderClimate().catch(console.warn);
 
 
 $('todayDetailBtn').onclick=()=>openDayDetail(forecastStartDate());
-function updateTodayButton(){if(!$('todayDetailBtn'))return;const ev=isAutoRun()&&nlHourNow()>=18;$ ('todayDetailBtn').textContent=ev?'🌤 Morgen':'☀ Vandaag';$('todayDetailBtn').title=ev?'Morgen uitgebreid bekijken':'Vandaag uitgebreid bekijken'}
+function updateTodayButton(){if(!$('todayDetailBtn'))return;const ev=isAutoRun()&&nlHourNow()>=17;$ ('todayDetailBtn').textContent=ev?'🌤 Morgen':'☀ Vandaag';$('todayDetailBtn').title=ev?'Morgen uitgebreid bekijken':'Vandaag uitgebreid bekijken'}
 updateTodayButton();
 let lastUiCalendarDate=nlToday();
 function syncCalendarDay(){const now=nlToday();updateTodayButton();if(now===lastUiCalendarDate)return;lastUiCalendarDate=now;if(isAutoRun()){$('date').value=now;if(lastRows.length){setStatus('Nieuwe kalenderdag · opgeslagen modelmix blijft zichtbaar; ververs handmatig voor nieuwe runs.',100)}}}
@@ -3857,7 +3857,7 @@ function renderShareMode(){
 $('shareModeOpen').onclick=()=>{renderShareMode();$('shareMode').classList.remove('hidden')};$('shareModeClose').onclick=()=>$('shareMode').classList.add('hidden');
 $('shareFive').onclick=async()=>{try{const c=await drawFiveDayFigure(false);if(!c)return;const blob=await new Promise(res=>c.toBlob(res,'image/png'));const f=new File([blob],'regioweer-5-daagse.png',{type:'image/png'});if(navigator.canShare?.({files:[f]}))await navigator.share({title:'Ricoweer 5-daagse',files:[f]});else download(blob,'regioweer-5-daagse.png')}catch(e){setStatus('Delen lukte niet: '+e.message,100)}};
 $('sitePack').onclick=async()=>{await drawFiveDayFigure(true);$('csv').click();if(lastRiskCanvas)$('riskSave').click();setStatus('Sitepakket opgeslagen: 5-daagse + CSV'+(lastRiskCanvas?' + kansentabel':''),100)};
-function syncRunMode(){const auto=isAutoRun();if(auto)$('date').value=nlToday();$('date').disabled=auto;$('date').style.opacity=auto?'.55':'1';const ff=$('modelForecastFrom');if(ff)ff.textContent=(auto&&nlHourNow()>=18?'vanaf morgen':'vanaf vandaag')+' · tik op een dag voor uurdetails';$('status').textContent=auto?'Auto: ieder model gebruikt zijn nieuwste beschikbare run.':'Handmatige run: alle modellen proberen hetzelfde gekozen UTC-tijdstip.';updateTodayButton()}
+function syncRunMode(){const auto=isAutoRun();if(auto)$('date').value=nlToday();$('date').disabled=auto;$('date').style.opacity=auto?'.55':'1';const ff=$('modelForecastFrom');if(ff)ff.textContent=(auto&&nlHourNow()>=17?'vanaf morgen':'vanaf vandaag')+' · tik op een dag voor uurdetails';$('status').textContent=auto?'Auto: ieder model gebruikt zijn nieuwste beschikbare run.':'Handmatige run: alle modellen proberen hetzelfde gekozen UTC-tijdstip.';updateTodayButton()}
 $('run').addEventListener('change',syncRunMode);syncRunMode();
 $('run').addEventListener('change',()=>{setTimeout(()=>loadGfsRunTable(false).catch(console.warn),50)});
 $('date').addEventListener('change',()=>{if(!isAutoRun())setTimeout(()=>loadGfsRunTable(false).catch(console.warn),50)});
@@ -6458,7 +6458,7 @@ function sync(){
  const all=cards();
  const today=new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Amsterdam'});
  const hour=Number(new Intl.DateTimeFormat('nl-NL',{timeZone:'Europe/Amsterdam',hour:'2-digit',hourCycle:'h23'}).format(new Date()));
- const defaultDate=new Date(Date.parse(today+'T12:00:00')+(hour>=18?86400000:0)).toLocaleDateString('sv-SE',{timeZone:'Europe/Amsterdam'});
+ const defaultDate=new Date(Date.parse(today+'T12:00:00')+(hour>=17?86400000:0)).toLocaleDateString('sv-SE',{timeZone:'Europe/Amsterdam'});
  // The atlas cards follow the scan's chronological order. Match dayparts by calendar day/month.
  const dates=all.map(c=>dateKey(dateFor(c)));
  const preferred=dateKey(new Date(defaultDate+'T12:00:00').toLocaleDateString('nl-NL',{weekday:'long',day:'numeric',month:'short'}));
@@ -6972,7 +6972,7 @@ html.ricoWidgetMode #ricoLiveShell .ricoLiveFooter{font-size:10px!important;line
  const iso=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Amsterdam',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
  const nextDate=(base,add)=>new Date(Date.parse(base+'T12:00:00Z')+add*86400000).toISOString().slice(0,10);
  const tomorrow=()=>nextDate(iso(),1);
- const startDate=()=>{const hm=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Amsterdam',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(new Date());const [hour,minute]=hm.split(':').map(Number);return nextDate(iso(),hour>17||(hour===17&&minute>=30)?1:0)};
+ const startDate=()=>{const hour=Number(new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Amsterdam',hour:'2-digit',hourCycle:'h23'}).format(new Date()));return nextDate(iso(),hour>=17?1:0)};
  const startLabel=()=>new Intl.DateTimeFormat('nl-NL',{weekday:'short',day:'numeric',month:'short',timeZone:'Europe/Amsterdam'}).format(new Date(startDate()+'T12:00:00Z'));
  const fmtNum=(v,dec=0)=>Number.isFinite(v)?v.toFixed(dec).replace('.',','):'—';
  const bft=kmh=>{if(!Number.isFinite(kmh))return '—';const limits=[1,6,12,20,29,39,50,62,75,89,103,118];return limits.filter(x=>kmh>=x).length+' Bft'};
